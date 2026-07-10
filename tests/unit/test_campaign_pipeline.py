@@ -103,3 +103,24 @@ async def test_pipeline_outreach_failure(monkeypatch):
 
     assert result["success"] is False
     assert "error" in result
+
+
+@pytest.mark.asyncio
+async def test_pipeline_triggers_feedback(monkeypatch):
+    from core.workflows.feedback_loop import FeedbackLoop
+
+    called = {"hit": False}
+
+    def fake_record(*args, **kwargs):
+        called["hit"] = True
+        return {}
+
+    monkeypatch.setattr(
+        FeedbackLoop,
+        "record_result",
+        fake_record,
+    )
+
+    # execute pipeline
+
+    assert called["hit"] is True

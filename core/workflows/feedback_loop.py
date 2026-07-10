@@ -3,7 +3,7 @@ from core.prompts.adaptive_weights import AdaptiveWeightEngine
 
 class FeedbackLoop:
     def __init__(self):
-        self.weights = AdaptiveWeightEngine()
+        self.engine = AdaptiveWeightEngine()
 
     def record_result(
         self,
@@ -11,11 +11,18 @@ class FeedbackLoop:
         score: float,
     ):
         """
-        score: 0.0 - 1.0
+        score range: 0.0 - 1.0
         """
-        self.weights.update(
+
+        self.engine.update(
             archetypes=archetypes,
             score=score,
         )
 
-        return self.weights.weights
+        return {
+            "updated": True,
+            "weights": self.engine.weights,
+        }
+
+    def get_weights(self):
+        return self.engine.weights
