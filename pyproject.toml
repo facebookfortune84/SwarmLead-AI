@@ -1,0 +1,30 @@
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
+addopts = """
+--cov=core
+--cov=utils
+--cov=configs
+-v
+"""
+testpaths = ["tests"]
+
+
+[tool.coverage.run]
+branch = true
+source = ["core", "utils", "configs"]
+
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "@abstractmethod",
+]
+
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]  # errors, format, imports
+ignore = ["E501"]  # optional: line length if you want flexibility

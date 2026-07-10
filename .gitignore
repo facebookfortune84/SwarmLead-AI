@@ -1,0 +1,74 @@
+# ------------------------------
+# Python
+# ------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+# venvs
+venv/
+.venv/
+env/
+ENV/
+
+# ------------------------------
+# Testing / Coverage
+# ------------------------------
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# ------------------------------
+# Logs
+# ------------------------------
+logs/
+*.log
+
+# ------------------------------
+# OS / Editor
+# ------------------------------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ------------------------------
+# Env / Secrets
+# ------------------------------
+.env
+.env.*
+*.env
+
+# ------------------------------
+# Build / Distribution
+# ------------------------------
+build/
+dist/
+*.egg-info/
+
+# ------------------------------
+# Runtime Assets
+# ------------------------------
+assets/optimized/
+
+# keep raw, ignore temp junk
+assets/raw/*.tmp
+assets/raw/*.bak
+
+# ------------------------------
+# Local DB / large files
+# ------------------------------
+*.sqlite3
+*.db
+*.csv
+
+# ------------------------------
+# Cache
+# ------------------------------
+.cache/
+
+# ------------------------------
+# OPTIONAL (toggle ON later)
+# ------------------------------
+# asset_processor/output/
