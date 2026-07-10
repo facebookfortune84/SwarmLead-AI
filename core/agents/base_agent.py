@@ -103,7 +103,7 @@ class BaseAgent(ABC):
         prompt: str,
         trace_id: Optional[str] = None,
         model: Optional[str] = None,
-    ) -> str:
+    ) -> Dict[str, Any]:
         """
         Centralized LLM call for all agents.
         """
@@ -120,13 +120,26 @@ class BaseAgent(ABC):
             trace_id=trace_id,
         )
 
-        result = await self.llm_client.generate(
-            prompt=prompt,
-            model=model,
-            trace_id=trace_id,
-        )
+        try:
+            result = await self.llm_client.generate(
+                prompt=prompt,
+                model=model,
+                trace_id=trace_id,
+            )
+            return result
 
-        return result.get("response", "")
+        except Exception as e:
+            log_with_context(
+                logger,
+                "error",
+                "LLM call failed",
+                extra={
+                    "agent": self.name,
+                    "error": str(e),
+                },
+                trace_id=trace_id,
+            )
+            return {"error": "LLM unavailable — fallback response"}
 
     # ------------------------------------------------------------------
     # Validation Hook

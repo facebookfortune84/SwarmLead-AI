@@ -19,7 +19,7 @@ class SchedulerConfig(BaseModel):
 
 class LLMConfig(BaseModel):
     provider: str = Field(default="ollama")
-    model: str = Field(default="mistral")
+    model: str = Field(default="qwen2.5-coder:1.5b")
 
     timeout: int = Field(default=60)
     fallback_model: Optional[str] = None
