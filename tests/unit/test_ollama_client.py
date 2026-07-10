@@ -39,7 +39,6 @@ async def test_retry_logic(monkeypatch):
 
 
 @pytest.mark.asyncio
-@pytest.mark.asyncio
 async def test_fallback_model(monkeypatch):
     client = OllamaClient()
 

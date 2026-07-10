@@ -5,7 +5,7 @@ def test_default_config_load():
 
     assert config.environment == "development"
     assert config.scheduler.max_concurrent_tasks == 5
-    assert config.llm.model == "mistral"
+    assert config.llm.model == "qwen2.5-coder:1.5b"
 
 
 def test_env_override(monkeypatch):
@@ -28,8 +28,9 @@ def test_feature_flags():
 
 
 def test_schema_validation():
-    from configs.schema import SchedulerConfig
     import pytest
+
+    from configs.schema import SchedulerConfig
 
     with pytest.raises(Exception):
         SchedulerConfig(max_concurrent_tasks=0)  # invalid
@@ -54,8 +55,9 @@ def test_runtime_defaults():
 
 
 def test_generation_validation_limits():
-    from configs.schema import GenerationConfig
     import pytest
+
+    from configs.schema import GenerationConfig
 
     with pytest.raises(Exception):
         GenerationConfig(max_tokens=0)
@@ -68,8 +70,9 @@ def test_generation_validation_limits():
 
 
 def test_runtime_validation_limits():
-    from configs.schema import RuntimeConfig
     import pytest
+
+    from configs.schema import RuntimeConfig
 
     with pytest.raises(Exception):
         RuntimeConfig(timeout=0)
@@ -79,8 +82,9 @@ def test_runtime_validation_limits():
 
 
 def test_llm_config_validation():
-    from configs.schema import LLMConfig
     import pytest
+
+    from configs.schema import LLMConfig
 
     config = LLMConfig()
     assert config.max_retries == 3

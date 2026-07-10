@@ -34,10 +34,17 @@ class AssetOptimizer:
         for item in items:
             confidence = item.get("confidence", 0)
 
-            if confidence < 30:  # ✅ filter noise
+            if confidence < 30:
                 continue
 
-            report_entry = self._get_report(item["source"])
+            source = item.get("source")
+
+            # malformed item
+            if not source:
+                continue
+
+            report_entry = self._get_report(source)
+
             if not report_entry:
                 continue
 
@@ -46,14 +53,15 @@ class AssetOptimizer:
             score = (confidence * 0.6) + (strength * 0.4)
 
             file_path = item.get("file")
+
             prompt_text = ""
 
             if file_path:
                 prompt_text = self._extract_prompt_from_dna(file_path)
 
-            # ✅ fallback for test data / missing files
+            # fallback
             if not prompt_text:
-                prompt_text = item.get("source", "")
+                prompt_text = source
 
             if not prompt_text:
                 continue
@@ -65,10 +73,8 @@ class AssetOptimizer:
                 }
             )
 
-        # ✅ rank
         cleaned.sort(key=lambda x: x["score"], reverse=True)
 
-        # ✅ keep top 5
         return cleaned[:5]
 
     def _get_report(self, source):
@@ -103,7 +109,11 @@ class AssetOptimizer:
                 data.get("communication_policy", {}).get("collaborates_with", [])
             )
 
-            domains = ", ".join(data.get("topology", {}).get("domains", []))
+            domains = [
+                d for d in data.get("topology", {}).get("domains", []) if "realms2riches" in d
+            ]
+
+            domains = ", ".join(domains)
 
             governance = data.get("governance", {})
             governance_text = ", ".join([k for k, v in governance.items() if v is True])

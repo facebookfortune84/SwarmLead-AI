@@ -103,11 +103,8 @@ class BaseAgent(ABC):
         prompt: str,
         trace_id: Optional[str] = None,
         model: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        """
-        Centralized LLM call for all agents.
-        """
-
+    ) -> str:
+        """Centralized LLM call for all agents. Returns response text only."""
         log_with_context(
             logger,
             "info",
@@ -126,7 +123,12 @@ class BaseAgent(ABC):
                 model=model,
                 trace_id=trace_id,
             )
-            return result
+
+            # normalize dict responses
+            if isinstance(result, dict):
+                return result.get("response", "")
+
+            return str(result)
 
         except Exception as e:
             log_with_context(
@@ -139,7 +141,8 @@ class BaseAgent(ABC):
                 },
                 trace_id=trace_id,
             )
-            return {"error": "LLM unavailable — fallback response"}
+            # consistent string fallback
+            return ""
 
     # ------------------------------------------------------------------
     # Validation Hook
