@@ -2,12 +2,14 @@ import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock
 
-import pytest
-
 # Ensure repo root is on sys.path so `core` package can be imported in tests
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+import pytest
+
 from core.agents.strategy.strategy_agent import StrategyAgent  # type: ignore
+from core.analytics.event_tracker import EventTracker
+from core.memory.long_term_memory.long_term_memory import LongTermMemory
 
 
 @pytest.fixture
@@ -225,3 +227,108 @@ async def test_execute_uses_top_k_three(agent):
     _, kwargs = agent.vector_store.search.call_args
 
     assert kwargs["top_k"] == 3
+
+
+@pytest.mark.asyncio
+async def test_tracks_strategy_started_and_completed(
+    config,
+    tmp_path,
+):
+
+    memory = LongTermMemory(path=str(tmp_path / "memory.json"))
+
+    tracker = EventTracker()
+    agent = StrategyAgent(
+        "strategy",
+        config,
+        long_term_memory=memory,
+        event_tracker=tracker,
+    )
+
+    agent.selector.select = Mock(return_value=[])
+    agent.asset_loader.build_context = Mock(return_value="")
+    agent.vector_store.search = Mock(return_value=[])
+
+    agent.call_llm = AsyncMock(return_value='{"angles":[], "hooks":[], "summary":"ok"}')
+
+    await agent.execute(
+        {},
+        {},
+        "trace-123",
+    )
+
+    assert len(tracker.filter("strategy_started")) == 1
+
+    assert len(tracker.filter("strategy_completed")) == 1
+
+
+@pytest.mark.asyncio
+async def test_feedback_memories_are_added_to_prompt(
+    config,
+    tmp_path,
+):
+    memory = LongTermMemory(path=str(tmp_path / "memory.json"))
+
+    memory.add_learning(
+        content="ROI messaging wins",
+        memory_type="feedback",
+    )
+    tracker = EventTracker()
+
+    agent = StrategyAgent(
+        "strategy",
+        config,
+        long_term_memory=memory,
+        event_tracker=tracker,
+    )
+
+    agent.selector.select = Mock(return_value=[])
+    agent.asset_loader.build_context = Mock(return_value="")
+    agent.vector_store.search = Mock(return_value=[])
+
+    captured_prompt = {}
+
+    async def fake_call(prompt, trace_id=None):
+        captured_prompt["prompt"] = prompt
+
+        return '{"angles":[], "hooks":[], "summary":"ok"}'
+
+    agent.call_llm = fake_call
+
+    await agent.execute(
+        {},
+        {},
+        None,
+    )
+
+    assert "ROI messaging wins" in captured_prompt["prompt"]
+
+
+@pytest.mark.asyncio
+async def test_tracks_errors(
+    config,
+    tmp_path,
+):
+    memory = LongTermMemory(path=str(tmp_path / "memory.json"))
+
+    tracker = EventTracker()
+
+    agent = StrategyAgent(
+        "strategy",
+        config,
+        long_term_memory=memory,
+        event_tracker=tracker,
+    )
+
+    agent.selector.select = Mock(side_effect=ValueError("boom"))
+
+    with pytest.raises(ValueError):
+        await agent.execute(
+            {},
+            {},
+            "trace-err",
+        )
+
+    errors = tracker.filter("error")
+
+    assert len(errors) == 1
