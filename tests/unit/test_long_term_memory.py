@@ -1,9 +1,6 @@
-import pytest
+import json
 
-try:
-    from core.memory import LongTermMemory
-except (ImportError, AttributeError) as e:
-    pytest.skip(f"core.memory.LongTermMemory is not available: {e}", allow_module_level=True)
+from core.memory.long_term_memory.long_term_memory import LongTermMemory
 
 
 def test_add_record(tmp_path):
@@ -24,7 +21,6 @@ def test_persistence(tmp_path):
     reloaded = LongTermMemory(path=str(path))
 
     assert reloaded.count() == 1
-
     assert reloaded.all()[0]["campaign"] == "Persisted Campaign"
 
 
@@ -53,11 +49,23 @@ def test_find(tmp_path):
     assert len(results) == 2
 
 
+def test_find_no_match(tmp_path):
+    memory = LongTermMemory(path=str(tmp_path / "memory.json"))
+
+    memory.add({"type": "strategy"})
+
+    results = memory.find(
+        "type",
+        "feedback",
+    )
+
+    assert results == []
+
+
 def test_find_by_type(tmp_path):
     memory = LongTermMemory(path=str(tmp_path / "memory.json"))
 
     memory.add({"type": "feedback", "content": "A"})
-
     memory.add({"type": "strategy", "content": "B"})
 
     results = memory.find_by_type("feedback")
@@ -79,14 +87,59 @@ def test_latest(tmp_path):
     assert latest[1]["content"] == "item-4"
 
 
+def test_latest_empty(tmp_path):
+    memory = LongTermMemory(path=str(tmp_path / "memory.json"))
+
+    assert memory.latest() == []
+
+
+def test_latest_limit_exceeds_count(tmp_path):
+    memory = LongTermMemory(path=str(tmp_path / "memory.json"))
+
+    memory.add({"content": "one"})
+
+    latest = memory.latest(10)
+
+    assert len(latest) == 1
+
+
 def test_search_text(tmp_path):
     memory = LongTermMemory(path=str(tmp_path / "memory.json"))
 
     memory.add({"content": "High converting SaaS strategy"})
-
     memory.add({"content": "Cold outreach sequence"})
 
     results = memory.search_text("saas")
+
+    assert len(results) == 1
+
+
+def test_search_text_no_match(tmp_path):
+    memory = LongTermMemory(path=str(tmp_path / "memory.json"))
+
+    memory.add({"content": "cold outreach"})
+
+    results = memory.search_text("founder")
+
+    assert results == []
+
+
+def test_search_text_missing_content_field(tmp_path):
+    memory = LongTermMemory(path=str(tmp_path / "memory.json"))
+
+    memory.add({"foo": "bar"})
+
+    results = memory.search_text("anything")
+
+    assert results == []
+
+
+def test_search_text_non_string_content(tmp_path):
+    memory = LongTermMemory(path=str(tmp_path / "memory.json"))
+
+    memory.add({"content": 12345})
+
+    results = memory.search_text("123")
 
     assert len(results) == 1
 
@@ -109,6 +162,18 @@ def test_add_learning(tmp_path):
     assert record["metadata"]["campaign"] == "Q1 Launch"
 
 
+def test_add_learning_defaults(tmp_path):
+    memory = LongTermMemory(path=str(tmp_path / "memory.json"))
+
+    record = memory.add_learning(
+        content="test",
+    )
+
+    assert record["type"] == "feedback"
+    assert record["metadata"] == {}
+    assert "created_at" in record
+
+
 def test_missing_file(tmp_path):
     memory = LongTermMemory(path=str(tmp_path / "missing.json"))
 
@@ -123,6 +188,26 @@ def test_invalid_json(tmp_path):
     memory = LongTermMemory(path=str(path))
 
     assert memory.count() == 0
+
+
+def test_valid_json_not_list(tmp_path):
+    path = tmp_path / "badshape.json"
+
+    path.write_text(json.dumps({"unexpected": "object"}))
+
+    memory = LongTermMemory(path=str(path))
+
+    assert memory.count() == 0
+
+
+def test_nested_directory_creation(tmp_path):
+    path = tmp_path / "nested" / "deep" / "memory.json"
+
+    memory = LongTermMemory(path=str(path))
+
+    memory.add({"content": "test"})
+
+    assert path.exists()
 
 
 def test_add_enriches_metadata(tmp_path):

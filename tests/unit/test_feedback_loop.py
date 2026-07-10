@@ -185,3 +185,73 @@ def test_record_result_returns_memory_flag(
     )
 
     assert result["memory_recorded"] is True
+
+
+def test_get_learnings_find_by_type_exception():
+    class Memory:
+        def find_by_type(self, _):
+            raise RuntimeError()
+
+    loop = FeedbackLoop()
+    loop.memory = Memory()
+
+    assert loop.get_learnings() == []
+
+
+def test_get_learnings_legacy_find():
+    class Memory:
+        def find(self, key, value):
+            return [{"type": "feedback", "content": "legacy"}]
+
+    loop = FeedbackLoop()
+    loop.memory = Memory()
+    learnings = loop.get_learnings()
+
+    assert len(learnings) == 1
+
+
+def test_get_learnings_find_exception():
+    class Memory:
+        def find(self, key, value):
+            raise RuntimeError()
+
+    loop = FeedbackLoop()
+    loop.memory = Memory()
+
+    assert loop.get_learnings() == []
+
+
+def test_get_learnings_all_fallback():
+    class Memory:
+        def all(self):
+            return [
+                {"type": "feedback", "content": "fallback"},
+                {"type": "strategy"},
+            ]
+
+    loop = FeedbackLoop()
+    loop.memory = Memory()
+    learnings = loop.get_learnings()
+
+    assert len(learnings) == 1
+
+
+def test_get_learnings_all_exception():
+    class Memory:
+        def all(self):
+            raise RuntimeError()
+
+    loop = FeedbackLoop()
+    loop.memory = Memory()
+
+    assert loop.get_learnings() == []
+
+
+def test_get_learnings_empty_memory():
+    class EmptyMemory:
+        pass
+
+    loop = FeedbackLoop()
+    loop.memory = EmptyMemory()
+
+    assert loop.get_learnings() == []

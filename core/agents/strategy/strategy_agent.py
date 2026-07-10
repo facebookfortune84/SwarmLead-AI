@@ -104,7 +104,7 @@ class StrategyAgent(BaseAgent):
 
             related_memories = self.vector_store.search(
                 query,
-                top_k=5,
+                top_k=3,
             )
 
             vector_memory_context = "\n".join(

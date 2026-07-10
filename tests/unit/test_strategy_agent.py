@@ -332,3 +332,32 @@ async def test_tracks_errors(
     errors = tracker.filter("error")
 
     assert len(errors) == 1
+
+
+@pytest.mark.asyncio
+async def test_feedback_memory_failure_path(
+    config,
+):
+    class BrokenMemory:
+        def find_by_type(self, _):
+            raise RuntimeError()
+
+    tracker = EventTracker()
+    agent = StrategyAgent(
+        "strategy",
+        config,
+        long_term_memory=BrokenMemory(),
+        event_tracker=tracker,
+    )
+
+    agent.selector.select = Mock(return_value=[])
+    agent.asset_loader.build_context = Mock(return_value="")
+    agent.vector_store.search = Mock(return_value=[])
+    agent.call_llm = AsyncMock(return_value='{"angles":[], "hooks":[], "summary":"ok"}')
+
+    result = await agent.execute(
+        {},
+        {},
+        None,
+    )
+    assert result["summary"] == "ok"

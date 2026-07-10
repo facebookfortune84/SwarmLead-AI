@@ -142,8 +142,8 @@ class LongTermMemory:
 
     def find_by_type(
         self,
-        memory_type: str,
-    ) -> List[Dict[str, Any]]:
+        memory_type,
+    ):
         return self.find(
             "type",
             memory_type,
