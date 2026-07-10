@@ -302,3 +302,38 @@ async def test_call_llm_trace_id_propagation(monkeypatch):
 
     finally:
         logger.removeHandler(handler)
+
+
+@pytest.mark.asyncio
+async def test_call_llm_exception_path(monkeypatch):
+    from configs.config_loader import ConfigLoader
+
+    config = ConfigLoader.load()
+
+    agent = DummyAgent("exception_agent", config)
+
+    async def fail(*args, **kwargs):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(agent.llm_client, "generate", fail)
+
+    result = await agent.call_llm("test prompt")
+
+    assert result == ""
+
+
+@pytest.mark.asyncio
+async def test_call_llm_string_response():
+    from configs.config_loader import ConfigLoader
+
+    config = ConfigLoader.load()
+    agent = DummyAgent("string_agent", config)
+
+    async def mock_generate(*args, **kwargs):
+        return "plain string response"
+
+    agent.llm_client.generate = mock_generate
+
+    result = await agent.call_llm("prompt")
+
+    assert result == "plain string response"

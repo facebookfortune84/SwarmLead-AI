@@ -85,3 +85,37 @@ def test_weight_engine_no_weights(tmp_path):
     result = engine.get({"builder": 1.0})
 
     assert result["builder"] == 1.0
+
+
+def test_weight_engine_missing_file_explicit(tmp_path):
+    from core.prompts.adaptive_weights import AdaptiveWeightEngine
+
+    missing = tmp_path / "does_not_exist.json"
+
+    engine = AdaptiveWeightEngine(path=str(missing))
+
+    assert engine.weights == {}
+
+
+def test_weight_engine_missing_file_branch(tmp_path):
+    from core.prompts.adaptive_weights import AdaptiveWeightEngine
+
+    path = tmp_path / "missing.json"
+
+    engine = AdaptiveWeightEngine(path=str(path))
+
+    assert engine.weights == {}
+
+
+def test_weight_engine_load_existing_file(tmp_path):
+    import json
+
+    from core.prompts.adaptive_weights import AdaptiveWeightEngine
+
+    file = tmp_path / "weights.json"
+
+    file.write_text(json.dumps({"builder": 0.2}))
+
+    engine = AdaptiveWeightEngine(path=str(file))
+
+    assert engine.weights["builder"] == 0.2

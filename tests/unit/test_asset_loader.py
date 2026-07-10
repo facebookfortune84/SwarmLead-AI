@@ -133,3 +133,51 @@ def test_loader_skips_invalid_entry(tmp_path):
     ctx = loader.build_context({"builder": 1.0})
 
     assert ctx == ""
+
+
+def test_asset_loader_json_exception(tmp_path, monkeypatch):
+    from core.prompts.asset_loader import AssetLoader
+
+    bad = tmp_path / "data.json"
+    bad.write_text('{"valid": true}')
+
+    def explode(*args, **kwargs):
+        raise RuntimeError("boom")
+
+    # simulate json.loads raising an unexpected exception
+    import json
+
+    monkeypatch.setattr(json, "loads", explode)
+
+    loader = AssetLoader(path=str(bad))
+
+    # on exception the loader should default to empty archetypes
+    assert loader.data == {"archetypes": {}}
+
+
+def test_asset_loader_load_exception(tmp_path, monkeypatch):
+    from core.prompts.asset_loader import AssetLoader
+
+    file = tmp_path / "data.json"
+    file.write_text("{}")
+
+    def boom(*args, **kwargs):
+        raise RuntimeError()
+
+    monkeypatch.setattr("json.loads", boom)
+
+    loader = AssetLoader(path=str(file))
+
+    assert loader.data == {"archetypes": {}}
+
+
+def test_asset_loader_empty_file(tmp_path):
+    from core.prompts.asset_loader import AssetLoader
+
+    file = tmp_path / "empty.json"
+
+    file.write_text("")
+
+    loader = AssetLoader(path=str(file))
+
+    assert loader.data == {"archetypes": {}}

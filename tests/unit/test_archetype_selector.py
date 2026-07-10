@@ -122,3 +122,17 @@ def test_selector_goal_case_handling():
     result = selector.select("GROWTH", "strategy_agent")
 
     assert "planner" in result
+
+
+def test_selector_default_outreach_path():
+    from configs.config_loader import ConfigLoader
+    from core.prompts.archetype_selector import ArchetypeSelector
+
+    config = ConfigLoader.load()
+    config.archetypes.enable_dynamic_selection = False
+
+    selector = ArchetypeSelector(config)
+
+    result = selector.select("anything", "outreach_agent")
+
+    assert result == config.archetypes.default_outreach_archetypes

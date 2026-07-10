@@ -253,3 +253,145 @@ def test_optimizer_fallback_source(tmp_path):
     result = opt.run()
 
     assert "fallback" in result["archetypes"]["builder"][0]["text"]
+
+
+def test_optimizer_dna_full_field_coverage(tmp_path):
+    import json
+
+    from core.prompts.asset_optimizer import AssetOptimizer
+
+    raw = tmp_path / "raw"
+    raw.mkdir()
+
+    dna = tmp_path / "dna.json"
+
+    dna.write_text(
+        json.dumps(
+            {
+                "identity": {"role": "architect"},
+                "mission": {"primary": "build"},
+                "topology": {"domains": ["realms2riches.com"]},
+                "reasoning_framework": ["explore"],
+                "capabilities": ["coding"],
+                "communication_policy": {"collaborates_with": ["Builder"]},
+                "constraints": ["policy"],
+                "governance": {
+                    "evidence_required": True,
+                    "audit_logging": True,
+                },
+            }
+        )
+    )
+
+    registry = {
+        "generated_at": "now",
+        "archetypes": {
+            "builder": [
+                {
+                    "source": "x",
+                    "file": str(dna),
+                    "confidence": 100,
+                }
+            ]
+        },
+    }
+
+    report = {
+        "results": [
+            {
+                "source": "x",
+                "scores": {"builder": 100},
+            }
+        ]
+    }
+
+    (raw / "archetype_registry.json").write_text(json.dumps(registry))
+    (raw / "archetype_classification_report.json").write_text(json.dumps(report))
+
+    opt = AssetOptimizer(
+        input_dir=str(raw),
+        output_dir=str(tmp_path / "out"),
+    )
+
+    result = opt.run()
+
+    text = result["archetypes"]["builder"][0]["text"]
+
+    assert "architect" in text
+    assert "build" in text
+    assert "realms2riches.com" in text
+    assert "explore" in text
+    assert "coding" in text
+    assert "Builder" in text
+    assert "policy" in text
+    assert "evidence_required" in text
+
+
+def test_optimizer_extract_prompt_exception(tmp_path):
+    from core.prompts.asset_optimizer import AssetOptimizer
+
+    raw = tmp_path / "raw"
+    raw.mkdir()
+
+    (raw / "archetype_registry.json").write_text('{"generated_at":"x","archetypes":{}}')
+
+    (raw / "archetype_classification_report.json").write_text('{"results":[]}')
+
+    opt = AssetOptimizer(
+        input_dir=str(raw),
+        output_dir=str(tmp_path / "out"),
+    )
+
+    result = opt._extract_prompt_from_dna("does_not_exist.json")
+
+    assert result == ""
+
+
+def test_optimizer_get_report_miss(tmp_path):
+    from core.prompts.asset_optimizer import AssetOptimizer
+
+    raw = tmp_path / "raw"
+    raw.mkdir()
+
+    (raw / "archetype_registry.json").write_text('{"generated_at":"x","archetypes":{}}')
+
+    (raw / "archetype_classification_report.json").write_text('{"results":[]}')
+
+    opt = AssetOptimizer(input_dir=str(raw), output_dir=str(tmp_path / "out"))
+    assert opt._get_report("missing") is None
+
+
+def test_optimizer_skips_empty_prompt_after_fallback(tmp_path):
+    import json
+
+    from core.prompts.asset_optimizer import AssetOptimizer
+
+    raw = tmp_path / "raw"
+    raw.mkdir()
+
+    registry = {
+        "generated_at": "now",
+        "archetypes": {
+            "builder": [
+                {
+                    "source": "",
+                    "file": None,
+                    "confidence": 100,
+                }
+            ]
+        },
+    }
+
+    report = {"results": []}
+
+    (raw / "archetype_registry.json").write_text(json.dumps(registry))
+    (raw / "archetype_classification_report.json").write_text(json.dumps(report))
+
+    optimizer = AssetOptimizer(
+        input_dir=str(raw),
+        output_dir=str(tmp_path / "out"),
+    )
+
+    result = optimizer.run()
+
+    assert result["archetypes"] == {}
