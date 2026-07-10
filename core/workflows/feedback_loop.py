@@ -2,8 +2,12 @@ from core.prompts.adaptive_weights import AdaptiveWeightEngine
 
 
 class FeedbackLoop:
-    def __init__(self):
-        self.engine = AdaptiveWeightEngine()
+    """
+    Records campaign outcomes and updates adaptive archetype weights.
+    """
+
+    def __init__(self, weights_path="assets/optimized/archetype_weights.json"):
+        self.engine = AdaptiveWeightEngine(path=weights_path)
 
     def record_result(
         self,
@@ -11,7 +15,14 @@ class FeedbackLoop:
         score: float,
     ):
         """
-        score range: 0.0 - 1.0
+        archetypes:
+            {
+                "planner": 0.6,
+                "architect": 0.4,
+            }
+
+        score:
+            0.0 - 1.0
         """
 
         self.engine.update(
