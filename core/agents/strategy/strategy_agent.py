@@ -4,6 +4,8 @@ from core.agents.base_agent import BaseAgent
 from core.prompts.archetype_selector import ArchetypeSelector
 from core.prompts.asset_loader import AssetLoader
 
+from core.memory.vector_store import VectorStore
+
 
 class StrategyAgent(BaseAgent):
     def __init__(self, name, config):
@@ -11,6 +13,9 @@ class StrategyAgent(BaseAgent):
 
         self.asset_loader = AssetLoader()
         self.selector = ArchetypeSelector(config)
+
+        # memory retrieval
+        self.vector_store = VectorStore()
 
     async def execute(
         self,
@@ -23,28 +28,58 @@ class StrategyAgent(BaseAgent):
         audience = input_data.get("audience", "")
         goal = input_data.get("goal", "")
 
-        # ✅ dynamic + adaptive selection
-        archetypes = self.selector.select(goal, "strategy_agent")
+        # --------------------------------------------------
+        # Archetype Selection
+        # --------------------------------------------------
 
-        # ✅ build context
+        archetypes = self.selector.select(
+            goal,
+            "strategy_agent",
+        )
+
         asset_context = self.asset_loader.build_context(archetypes)
+
+        # --------------------------------------------------
+        # Memory Retrieval
+        # --------------------------------------------------
+
+        related_memories = self.vector_store.search(
+            f"{product} {audience} {goal}",
+            top_k=3,
+        )
+
+        memory_context = "\n".join(memory["text"] for memory in related_memories)
+
+        # --------------------------------------------------
+        # Prompt
+        # --------------------------------------------------
 
         prompt = f"""
 You are an elite marketing strategist.
 
-Use the following proven intelligence:
+Historical learnings:
+{memory_context}
+
+Proven archetype intelligence:
 {asset_context}
 
-Product: {product}
-Audience: {audience}
-Goal: {goal}
+Product:
+{product}
+
+Audience:
+{audience}
+
+Goal:
+{goal}
 
 Generate:
+
 1. 5 marketing angles
 2. 5 hooks
 3. A summary
 
 Return JSON:
+
 {{
   "angles": [...],
   "hooks": [...],
@@ -52,7 +87,10 @@ Return JSON:
 }}
 """
 
-        response = await self.call_llm(prompt, trace_id=trace_id)
+        response = await self.call_llm(
+            prompt,
+            trace_id=trace_id,
+        )
 
         return self._parse_response(response)
 
@@ -61,11 +99,13 @@ Return JSON:
 
         try:
             parsed = json.loads(text)
+
             return {
                 "angles": parsed.get("angles", []),
                 "hooks": parsed.get("hooks", []),
                 "summary": parsed.get("summary", ""),
             }
+
         except Exception:
             return {
                 "angles": [],
