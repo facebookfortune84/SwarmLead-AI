@@ -1,10 +1,9 @@
 from typing import Any, Dict, Optional
 
 from core.agents.base_agent import BaseAgent
+from core.memory.vector_store import VectorStore
 from core.prompts.archetype_selector import ArchetypeSelector
 from core.prompts.asset_loader import AssetLoader
-
-from core.memory.vector_store import VectorStore
 
 
 class StrategyAgent(BaseAgent):
