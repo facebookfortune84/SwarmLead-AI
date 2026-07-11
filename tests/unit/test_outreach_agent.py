@@ -1,125 +1,225 @@
+from unittest.mock import AsyncMock, Mock
+
 import pytest
 
+from configs.config_loader import ConfigLoader
+from core.agents.outreach.outreach_agent import OutreachAgent
+from core.analytics.event_tracker import EventTracker
+from core.memory.long_term_memory.long_term_memory import LongTermMemory
+
+
+@pytest.fixture
+def config():
+    return ConfigLoader.load()
+
+
+@pytest.fixture
+def agent(config, tmp_path):
+    memory = LongTermMemory(path=str(tmp_path / "memory.json"))
+
+    tracker = EventTracker()
+
+    return OutreachAgent(
+        "outreach_agent",
+        config,
+        long_term_memory=memory,
+        event_tracker=tracker,
+    )
+
 
 @pytest.mark.asyncio
-async def test_outreach_agent_success(monkeypatch):
-    from configs.config_loader import ConfigLoader
-    from core.agents.outreach.outreach_agent import OutreachAgent
-
-    config = ConfigLoader.load()
-    agent = OutreachAgent("outreach_agent", config)
-
-    # ✅ mock valid JSON response
-    async def mock_generate(*args, **kwargs):
-        return {
-            "response": """
+async def test_outreach_agent_success(agent):
+    agent.call_llm = AsyncMock(
+        return_value="""
 {
-  "messages": ["msg1", "msg2", "msg3"]
+    "messages": [
+        "msg1",
+        "msg2",
+        "msg3"
+    ]
 }
 """
-        }
+    )
 
-    agent.llm_client.generate = mock_generate
-
-    result = await agent.run(
-        {"angles": ["angle1", "angle2"]},
-        context={
+    result = await agent.execute(
+        {"angles": ["ang1e1", "angle2"]},
+        {
             "product": "AI Tool",
             "audience": "developers",
         },
+        None,
     )
-
-    assert result["success"] is True
-    assert len(result["result"]["messages"]) == 3
-    assert result["result"]["messages"][0] == "msg1"
+    assert len(result["messages"]) == 3
+    assert result is not None
 
 
 @pytest.mark.asyncio
-async def test_outreach_agent_fallback_parsing(monkeypatch):
-    from configs.config_loader import ConfigLoader
-    from core.agents.outreach.outreach_agent import OutreachAgent
-
-    config = ConfigLoader.load()
-    agent = OutreachAgent("outreach_agent", config)
-
-    # ✅ non-JSON response → fallback path
-    async def mock_generate(*args, **kwargs):
-        return {"response": "Simple outreach message fallback"}
-
-    agent.llm_client.generate = mock_generate
-
-    result = await agent.run(
+async def test_outreach_agent_fallback_parsing(
+    agent,
+):
+    agent.call_llm = AsyncMock(return_value="fallback")
+    result = await agent.execute(
         {"angles": ["angle1"]},
-        context={
-            "product": "AI Tool",
-            "audience": "developers",
-        },
+        {},
+        None,
     )
-
-    assert result["success"] is True
-    assert isinstance(result["result"]["messages"], list)
-
-    # ✅ fallback wraps raw text
-    assert result["result"]["messages"][0] == "Simple outreach message fallback"
+    assert result["messages"][0] == "fallback"
 
 
 @pytest.mark.asyncio
-async def test_outreach_agent_empty_angles(monkeypatch):
-    from configs.config_loader import ConfigLoader
-    from core.agents.outreach.outreach_agent import OutreachAgent
+async def test_outreach_agent_empty_angles(agent):
+    agent.call_llm = AsyncMock(return_value=""" {"messages": ["fallback"]}""")
+    result = await agent.execute(
+        {},
+        {},
+        None,
+    )
+    assert result["messages"][0] == "fallback"
 
-    config = ConfigLoader.load()
-    agent = OutreachAgent("outreach_agent", config)
 
-    async def mock_generate(*args, **kwargs):
-        return {
-            "response": """
+@pytest.mark.asyncio
+async def test_outreach_agent_trace_propagation(
+    agent,
+):
+    captured = {}
+
+    async def fake_llm(
+        prompt,
+        trace_id=None,
+    ):
+        captured["trace_id"] = trace_id
+
+        return """
 {
-  "messages": ["fallback message"]
-}
+    "messages": [
+        "ok"
+    ]
+}    
 """
-        }
 
-    agent.llm_client.generate = mock_generate
+    agent.call_llm = fake_llm
 
-    result = await agent.run(
-        {},  # ✅ no angles provided
-        context={
-            "product": "AI Tool",
-            "audience": "developers",
-        },
+    await agent.execute(
+        {"angles": ["a"]},
+        {},
+        "trace-123",
     )
 
-    assert result["success"] is True
-    assert "messages" in result["result"]
+    assert captured["trace_id"] == "trace-123"
 
 
 @pytest.mark.asyncio
-async def test_outreach_agent_trace_propagation(monkeypatch):
-    from configs.config_loader import ConfigLoader
-    from core.agents.outreach.outreach_agent import OutreachAgent
+async def test_vector_store_called(
+    agent,
+):
+    agent.vector_store.search = Mock(return_value=[])
 
-    config = ConfigLoader.load()
-    agent = OutreachAgent("outreach_agent", config)
+    agent.call_llm = AsyncMock(return_value='{"messages":[]}')
+
+    await agent.execute(
+        {"angles": ["angle1"]},
+        {
+            "product": "AI",
+            "audience": "developers",
+        },
+        None,
+    )
+
+    agent.vector_store.search.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_feedback_memories_added_to_prompt(
+    agent,
+):
+    agent.long_term_memories_added_to_prompt(
+        content=("Personalized first lines outperform generic intros"),
+        memory_type="feedback",
+    )
+
+    agent.vector_store.search = Mock(return_value=[])
 
     captured = {}
 
-    async def mock_generate(prompt, model=None, trace_id=None):
-        captured["trace_id"] = trace_id
-        return {"response": '{"messages": ["ok"]}'}
+    async def fake_llm(
+        prompt,
+        trace_id=None,
+    ):
 
-    agent.llm_client.generate = mock_generate
+        captured["prompt"] = prompt
 
-    trace_id = "outreach-trace"
+        return '{"messages":["ok"]}'
 
-    await agent.run(
-        {"angles": ["angle1"]},
-        context={
-            "product": "AI Tool",
-            "audience": "developers",
-        },
-        trace_id=trace_id,
+    agent.call_llm = fake_llm
+
+    await agent.execute(
+        {},
+        {},
+        None,
     )
 
-    # ✅ ensures trace flows into LLM layer
-    assert captured["trace_id"] == trace_id
+    assert "Personalized first lines" in captured["prompt"]
+
+
+@pytest.mark.asyncio
+async def test_tracks_outreach_events(
+    agent,
+):
+    agent.call_llm = AsyncMock(return_value='{"messages":[]}')
+
+    await agent.execute(
+        {},
+        {},
+        "trace-1",
+    )
+
+    assert len(agent.event_tracker.filter("outreach_started")) == 1
+
+    assert len(agent.event_tracker.filter("outreach_completed")) == 1
+
+
+@pytest.mark.asyncio
+async def test_tracks_errors(
+    agent,
+):
+    agent.call_llm = AsyncMock(side_effect=RuntimeError("boom"))
+
+    with pytest.raises(RuntimeError):
+        await agent.execute(
+            {},
+            {},
+            None,
+        )
+
+    errors = agent.event_tracker.filter("error")
+
+    assert len(errors) == 1
+
+
+def test_parse_response_valid_json(
+    agent,
+):
+
+    result = agent._parse_response(
+        """
+{
+    "messages": [
+        "one",
+        "two"
+    ]
+}
+"""
+    )
+
+    assert result["messages"] == [
+        "one",
+        "two",
+    ]
+
+
+def test_parse_response_invalid_json(
+    agent,
+):
+    result = agent._parse_response("fallback message")
+
+    assert result["messages"] == ["fallback message"]
