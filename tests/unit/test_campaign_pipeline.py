@@ -1,10 +1,11 @@
 import pytest
 
+from core.analytics.event_tracker import EventTracker
+from core.workflows.campaign_pipeline import CampaignPipeline
+
 
 @pytest.mark.asyncio
 async def test_pipeline_with_outreach():
-    from core.workflows.campaign_pipeline import CampaignPipeline
-
     pipeline = CampaignPipeline()
 
     async def mock_strategy(*args, **kwargs):
@@ -41,15 +42,16 @@ async def test_pipeline_with_outreach():
 
 @pytest.mark.asyncio
 async def test_pipeline_missing_strategy_result():
-    from core.workflows.campaign_pipeline import CampaignPipeline
-
     pipeline = CampaignPipeline()
 
     async def mock_strategy(*args, **kwargs):
         return {"success": True}
 
     async def mock_outreach(*args, **kwargs):
-        return {"success": True, "result": {}}
+        return {
+            "success": True,
+            "result": {},
+        }
 
     pipeline.strategy_agent.run = mock_strategy
     pipeline.outreach_agent.run = mock_outreach
@@ -62,12 +64,15 @@ async def test_pipeline_missing_strategy_result():
 
 @pytest.mark.asyncio
 async def test_pipeline_missing_outreach_result():
-    from core.workflows.campaign_pipeline import CampaignPipeline
-
     pipeline = CampaignPipeline()
 
     async def mock_strategy(*args, **kwargs):
-        return {"success": True, "result": {"angles": ["a"]}}
+        return {
+            "success": True,
+            "result": {
+                "angles": ["a"],
+            },
+        }
 
     async def mock_outreach(*args, **kwargs):
         return {"success": True}
@@ -83,17 +88,12 @@ async def test_pipeline_missing_outreach_result():
 
 @pytest.mark.asyncio
 async def test_pipeline_outreach_failure():
-    from core.workflows.campaign_pipeline import CampaignPipeline
-
     pipeline = CampaignPipeline()
 
-    async def mock_strategy(*args, **kwargs):
-        return {"success": True, "result": {"angles": ["a"]}}
-
-    async def failing_outreach(*args, **kwargs):
+    async def failing(*args, **kwargs):
         raise ValueError("outreach failed")
 
-    pipeline.strategy_agent.run = failing_outreach
+    pipeline.strategy_agent.run = failing
 
     result = await pipeline.run({"product": "x"})
 
@@ -101,14 +101,17 @@ async def test_pipeline_outreach_failure():
 
 
 @pytest.mark.asyncio
-async def test_pipeline_triggers_feedback(monkeypatch):
-    from core.workflows.campaign_pipeline import CampaignPipeline
-
+async def test_pipeline_triggers_feedback(
+    monkeypatch,
+):
     pipeline = CampaignPipeline()
 
     called = {"hit": False}
 
-    def fake_record(*args, **kwargs):
+    def fake_record(
+        *args,
+        **kwargs,
+    ):
         called["hit"] = True
 
         return {
@@ -122,11 +125,27 @@ async def test_pipeline_triggers_feedback(monkeypatch):
         fake_record,
     )
 
-    async def mock_strategy(*args, **kwargs):
-        return {"success": True, "result": {"angles": ["angle1"]}}
+    async def mock_strategy(
+        *args,
+        **kwargs,
+    ):
+        return {
+            "success": True,
+            "result": {
+                "angles": ["angle1"],
+            },
+        }
 
-    async def mock_outreach(*args, **kwargs):
-        return {"success": True, "result": {"messages": ["msg1"]}}
+    async def mock_outreach(
+        *args,
+        **kwargs,
+    ):
+        return {
+            "success": True,
+            "result": {
+                "messages": ["msg1"],
+            },
+        }
 
     pipeline.strategy_agent.run = mock_strategy
     pipeline.outreach_agent.run = mock_outreach
@@ -140,3 +159,74 @@ async def test_pipeline_triggers_feedback(monkeypatch):
     )
 
     assert called["hit"] is True
+
+
+@pytest.mark.asyncio
+async def test_campaign_events_emitted():
+    tracker = EventTracker()
+
+    pipeline = CampaignPipeline(
+        event_tracker=tracker,
+    )
+
+    async def mock_strategy(
+        *args,
+        **kwargs,
+    ):
+        return {
+            "success": True,
+            "result": {
+                "angles": ["a"],
+            },
+        }
+
+    async def mock_outreach(
+        *args,
+        **kwargs,
+    ):
+        return {
+            "success": True,
+            "result": {
+                "messages": ["m"],
+            },
+        }
+
+    pipeline.strategy_agent.run = mock_strategy
+    pipeline.outreach_agent.run = mock_outreach
+
+    await pipeline.run(
+        {"goal": "growth"},
+        trace_id="pipeline-trace",
+    )
+
+    assert len(tracker.filter("campaign_started")) == 1
+
+    assert len(tracker.filter("campaign_completed")) == 1
+
+
+@pytest.mark.asyncio
+async def test_campaign_failure_emits_error():
+    tracker = EventTracker()
+
+    pipeline = CampaignPipeline(
+        event_tracker=tracker,
+    )
+
+    async def failing(
+        *args,
+        **kwargs,
+    ):
+        raise RuntimeError("boom")
+
+    pipeline.strategy_agent.run = failing
+
+    result = await pipeline.run(
+        {"goal": "growth"},
+        trace_id="trace-error",
+    )
+
+    assert result["success"] is False
+
+    errors = tracker.filter("error")
+
+    assert len(errors) == 1

@@ -73,7 +73,7 @@ class OutreachAgent(BaseAgent):
                 top_k=3,
             )
 
-            vector_context = "\n".join(memory.get("text", "") for memory in related_memories)
+            vector_context = "\n".join(memory.get("content", "") for memory in related_memories)
 
             # -------------------------------------------------------------------------
             # Long-Term Learnings
@@ -83,7 +83,9 @@ class OutreachAgent(BaseAgent):
 
             try:
                 feedback_memories = self.long_term_memory.find_by_type("feedback")
-                feedback_context = "\n".join(memory.get("text", "") for memory in feedback_memories)
+                feedback_context = "\n".join(
+                    memory.get("content", "") for memory in feedback_memories[-3:]
+                )
 
             except Exception:
                 feedback_context = ""

@@ -132,8 +132,9 @@ async def test_vector_store_called(
 async def test_feedback_memories_added_to_prompt(
     agent,
 ):
-    agent.long_term_memories_added_to_prompt(
-        content=("Personalized first lines outperform generic intros"),
+
+    agent.long_term_memory.add_learning(
+        content="Personalized first lines outperform generic intros",
         memory_type="feedback",
     )
 
@@ -145,7 +146,6 @@ async def test_feedback_memories_added_to_prompt(
         prompt,
         trace_id=None,
     ):
-
         captured["prompt"] = prompt
 
         return '{"messages":["ok"]}'

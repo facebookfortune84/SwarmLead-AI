@@ -214,5 +214,113 @@
     },
     "metadata": {},
     "created_at": "2026-07-10T20:30:38.874951+00:00"
+  },
+  {
+    "type": "feedback",
+    "content": "Campaign feedback recorded",
+    "score": 0.8,
+    "campaign_id": null,
+    "archetypes": {
+      "planner": 0.8999999999999999,
+      "researcher": 0.5680000000000001
+    },
+    "metadata": {},
+    "created_at": "2026-07-11T01:09:46.601279+00:00"
+  },
+  {
+    "type": "feedback",
+    "content": "Campaign feedback recorded",
+    "score": 0.8,
+    "campaign_id": null,
+    "archetypes": {
+      "architect": 0.75,
+      "planner": 0.75
+    },
+    "metadata": {},
+    "created_at": "2026-07-11T01:09:46.759289+00:00"
+  },
+  {
+    "type": "feedback",
+    "content": "Campaign feedback recorded",
+    "score": 0.8,
+    "campaign_id": null,
+    "archetypes": {
+      "architect": 0.75,
+      "planner": 0.75
+    },
+    "metadata": {},
+    "created_at": "2026-07-11T01:09:46.907280+00:00"
+  },
+  {
+    "type": "feedback",
+    "content": "Campaign feedback recorded",
+    "score": 0.8,
+    "campaign_id": null,
+    "archetypes": {
+      "planner": 0.8999999999999999,
+      "researcher": 0.5800000000000001
+    },
+    "metadata": {},
+    "created_at": "2026-07-11T01:21:54.811065+00:00"
+  },
+  {
+    "type": "feedback",
+    "content": "Campaign feedback recorded",
+    "score": 0.8,
+    "campaign_id": null,
+    "archetypes": {
+      "architect": 0.75,
+      "planner": 0.75
+    },
+    "metadata": {},
+    "created_at": "2026-07-11T01:21:55.002067+00:00"
+  },
+  {
+    "type": "feedback",
+    "content": "Campaign feedback recorded",
+    "score": 0.8,
+    "campaign_id": null,
+    "archetypes": {
+      "architect": 0.75,
+      "planner": 0.75
+    },
+    "metadata": {},
+    "created_at": "2026-07-11T01:21:55.146985+00:00"
+  },
+  {
+    "type": "feedback",
+    "content": "Campaign feedback recorded",
+    "score": 0.8,
+    "campaign_id": null,
+    "archetypes": {
+      "planner": 0.8999999999999999,
+      "researcher": 0.5920000000000001
+    },
+    "metadata": {},
+    "created_at": "2026-07-11T03:16:11.739263+00:00"
+  },
+  {
+    "type": "feedback",
+    "content": "Campaign feedback recorded",
+    "score": 0.8,
+    "campaign_id": null,
+    "archetypes": {
+      "architect": 0.75,
+      "planner": 0.75
+    },
+    "metadata": {},
+    "created_at": "2026-07-11T03:16:11.802127+00:00"
+  },
+  {
+    "type": "feedback",
+    "content": "Campaign feedback recorded",
+    "score": 0.8,
+    "campaign_id": null,
+    "archetypes": {
+      "architect": 0.75,
+      "planner": 0.75
+    },
+    "metadata": {},
+    "created_at": "2026-07-11T03:16:11.854433+00:00"
   }
 ]
