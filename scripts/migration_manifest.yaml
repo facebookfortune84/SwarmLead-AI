@@ -1,0 +1,98 @@
+source_root: C:\SwarmEnterprise-v2\backend
+
+target_root: C:\SwarmLead-AI
+
+models:
+
+  source: db/models.py
+
+  split:
+
+    User:
+      target: core/models/user.py
+
+    APIKey:
+      target: core/models/api_key.py
+
+    Lead:
+      target: core/models/lead.py
+
+    UsageEvent:
+      target: core/models/usage.py
+
+    Deployment:
+      target: core/models/deployment.py
+
+    CompanyTenant:
+      target: core/models/tenant.py
+
+    Notification:
+      target: core/models/notification.py
+
+    Message:
+      target: core/models/message.py
+
+    MessageThread:
+      target: core/models/message_thread.py
+
+    Workflow:
+      target: core/models/workflow.py
+
+    WorkflowStep:
+      target: core/models/workflow_step.py
+
+    Ticket:
+      target: core/models/ticket.py
+
+    TicketHistory:
+      target: core/models/ticket_history.py
+
+    TicketComment:
+      target: core/models/ticket_comment.py
+
+
+copy:
+
+  - source: auth/jwt_handler.py
+    target: interfaces/api/auth/jwt_handler.py
+
+  - source: auth/middleware.py
+    target: interfaces/api/auth/middleware.py
+
+  - source: auth/permissions.py
+    target: interfaces/api/auth/permissions.py
+
+  - source: auth/user_service.py
+    target: interfaces/api/auth/user_service.py
+
+  - source: api/auth.py
+    target: interfaces/api/routers/auth.py
+
+  - source: api/users.py
+    target: interfaces/api/routers/users.py
+
+  - source: api/tenants.py
+    target: interfaces/api/routers/tenants.py
+
+  - source: api/leads.py
+    target: interfaces/api/routers/leads.py
+
+  - source: api/outreach.py
+    target: interfaces/api/routers/outreach.py
+
+  - source: api/notifications.py
+    target: interfaces/api/routers/notifications.py
+
+  - source: services/notification_service.py
+    target: core/services/notification_service.py
+
+  - source: services/workflow_service.py
+    target: core/services/workflow_service.py
+
+  - source: services/event_bus.py
+    target: core/events/event_bus.py
+
+exclude:
+
+  - api/companies.py
+  - services/company_generator.py

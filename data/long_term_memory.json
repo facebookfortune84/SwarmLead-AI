@@ -2402,5 +2402,85 @@
       }
     },
     "created_at": "2026-07-12T03:36:49.262571+00:00"
+  },
+  {
+    "type": "feedback",
+    "content": "Campaign feedback recorded",
+    "score": 0.8,
+    "campaign_id": null,
+    "archetypes": {
+      "planner": 1.0,
+      "researcher": 1.0
+    },
+    "metadata": {
+      "strategy": {
+        "angles": [
+          "angle1"
+        ]
+      },
+      "outreach": {
+        "messages": [
+          "msg1"
+        ]
+      }
+    },
+    "created_at": "2026-07-12T04:23:57.866411+00:00"
+  },
+  {
+    "type": "feedback",
+    "content": "Campaign feedback recorded",
+    "score": 0.8,
+    "campaign_id": null,
+    "archetypes": {
+      "architect": 1.0,
+      "planner": 1.0
+    },
+    "metadata": {
+      "strategy": {},
+      "outreach": {}
+    },
+    "created_at": "2026-07-12T04:23:57.904423+00:00"
+  },
+  {
+    "type": "feedback",
+    "content": "Campaign feedback recorded",
+    "score": 0.8,
+    "campaign_id": null,
+    "archetypes": {
+      "architect": 1.0,
+      "planner": 1.0
+    },
+    "metadata": {
+      "strategy": {
+        "angles": [
+          "a"
+        ]
+      },
+      "outreach": {}
+    },
+    "created_at": "2026-07-12T04:23:57.941426+00:00"
+  },
+  {
+    "type": "feedback",
+    "content": "Campaign feedback recorded",
+    "score": 0.8,
+    "campaign_id": null,
+    "archetypes": {
+      "planner": 1.0,
+      "researcher": 1.0
+    },
+    "metadata": {
+      "strategy": {
+        "angles": [
+          "a"
+        ]
+      },
+      "outreach": {
+        "messages": [
+          "m"
+        ]
+      }
+    },
+    "created_at": "2026-07-12T04:23:58.016446+00:00"
   }
 ]

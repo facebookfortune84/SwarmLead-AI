@@ -1,0 +1,101 @@
+
+VALIDATION PHASE
+MODEL SOURCE OK: C:\SwarmEnterprise-v2\backend\db\models.py
+MODEL SOURCE AST VALID
+SOURCE OK: auth/jwt_handler.py
+SOURCE OK: auth/middleware.py
+SOURCE OK: auth/permissions.py
+SOURCE OK: auth/user_service.py
+SOURCE OK: api/auth.py
+SOURCE OK: api/users.py
+SOURCE OK: api/tenants.py
+SOURCE OK: api/leads.py
+SOURCE OK: api/outreach.py
+SOURCE OK: api/notifications.py
+SOURCE OK: api/workflows.py
+SOURCE OK: api/payments.py
+SOURCE OK: api/usage.py
+SOURCE OK: services/notification_service.py
+SOURCE OK: services/workflow_service.py
+SOURCE OK: services/payments.py
+SOURCE OK: services/event_bus.py
+SOURCE OK: storage/file_manager.py
+SOURCE OK: storage/s3_client.py
+SOURCE OK: tasks/notification_tasks.py
+SOURCE OK: tasks/ticket_tasks.py
+SOURCE OK: tasks/workflow_tasks.py
+SOURCE OK: task_queue.py
+SOURCE OK: celery_app.py
+SOURCE OK: api/crm_sync.py
+SOURCE OK: api/reporting.py
+SOURCE OK: core/tenants.py
+SOURCE OK: api/ws.py
+MODEL FOUND: User
+MODEL FOUND: APIKey
+MODEL FOUND: Lead
+MODEL FOUND: UsageEvent
+MODEL FOUND: Deployment
+MODEL FOUND: CompanyTenant
+MODEL FOUND: Notification
+MODEL FOUND: Message
+MODEL FOUND: MessageThread
+MODEL FOUND: Workflow
+MODEL FOUND: WorkflowStep
+MODEL FOUND: Ticket
+MODEL FOUND: TicketHistory
+MODEL FOUND: TicketComment
+
+VALIDATION PASSED
+
+CLEANUP PHASE
+
+FILE COPY PHASE
+COPY auth/jwt_handler.py -> interfaces/api/auth/jwt_handler.py
+COPY auth/middleware.py -> interfaces/api/auth/middleware.py
+COPY auth/permissions.py -> interfaces/api/auth/permissions.py
+COPY auth/user_service.py -> interfaces/api/auth/user_service.py
+COPY api/auth.py -> interfaces/api/routers/auth.py
+COPY api/users.py -> interfaces/api/routers/users.py
+COPY api/tenants.py -> interfaces/api/routers/tenants.py
+COPY api/leads.py -> interfaces/api/routers/leads.py
+COPY api/outreach.py -> interfaces/api/routers/outreach.py
+COPY api/notifications.py -> interfaces/api/routers/notifications.py
+COPY api/workflows.py -> interfaces/api/routers/workflows.py
+COPY api/payments.py -> interfaces/api/routers/payments.py
+COPY api/usage.py -> interfaces/api/routers/usage.py
+COPY services/notification_service.py -> core/services/notification_service.py
+COPY services/workflow_service.py -> core/services/workflow_service.py
+COPY services/payments.py -> core/services/payment_service.py
+COPY services/event_bus.py -> core/events/event_bus.py
+COPY storage/file_manager.py -> core/storage/file_manager.py
+COPY storage/s3_client.py -> core/storage/s3_client.py
+COPY tasks/notification_tasks.py -> infrastructure/celery/notification_tasks.py
+COPY tasks/ticket_tasks.py -> infrastructure/celery/ticket_tasks.py
+COPY tasks/workflow_tasks.py -> infrastructure/celery/workflow_tasks.py
+COPY task_queue.py -> infrastructure/queue/task_queue.py
+COPY celery_app.py -> infrastructure/celery/celery_app.py
+COPY api/crm_sync.py -> interfaces/api/routers/crm.py
+COPY api/reporting.py -> interfaces/api/routers/reporting.py
+COPY core/tenants.py -> core/services/tenant_service.py
+COPY api/ws.py -> interfaces/api/ws.py
+
+MODEL SPLIT PHASE
+GENERATE MODEL core/models/user.py
+GENERATE MODEL core/models/api_key.py
+GENERATE MODEL core/models/lead.py
+GENERATE MODEL core/models/usage.py
+GENERATE MODEL core/models/deployment.py
+GENERATE MODEL core/models/tenant.py
+GENERATE MODEL core/models/notification.py
+GENERATE MODEL core/models/message.py
+GENERATE MODEL core/models/message_thread.py
+GENERATE MODEL core/models/workflow.py
+GENERATE MODEL core/models/workflow_step.py
+GENERATE MODEL core/models/ticket.py
+GENERATE MODEL core/models/ticket_history.py
+GENERATE MODEL core/models/ticket_comment.py
+GENERATE core/models/__init__.py
+
+SUMMARY
+Files Planned: 28
+Models Planned: 14
