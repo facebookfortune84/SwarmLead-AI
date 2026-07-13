@@ -11,7 +11,32 @@ from typing import List
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from agents.outreach.worker import enqueue_campaign, enqueue_outreach
+
+def enqueue_outreach(to_email: str, subject: str, body: str):
+    raise NotImplementedError("outreach worker is not available in this environment")
+
+
+def enqueue_campaign(
+    recipients: List[str],
+    subject: str,
+    body: str,
+    from_name: str = "SwarmOS",
+):
+    raise NotImplementedError("outreach worker is not available in this environment")
+
+
+try:
+    from infrastructure.outreach.worker import (
+        enqueue_campaign as _enqueue_campaign,
+    )
+    from infrastructure.outreach.worker import (
+        enqueue_outreach as _enqueue_outreach,
+    )
+except Exception:  # pragma: no cover - fallback for environments without the worker
+    pass
+else:
+    enqueue_campaign = _enqueue_campaign
+    enqueue_outreach = _enqueue_outreach
 
 router = APIRouter(prefix="/api/outreach", tags=["Outreach"])
 
