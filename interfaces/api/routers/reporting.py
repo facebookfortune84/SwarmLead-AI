@@ -13,7 +13,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from backend.db.session import get_db
+from core.persistence.session import get_db
 
 router = APIRouter(prefix="/api/outreach", tags=["Outreach — Reports"])
 

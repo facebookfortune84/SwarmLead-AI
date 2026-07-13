@@ -5,10 +5,10 @@ from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from backend.db.session import get_db
-from backend.db.models import Workflow
-from backend.services.workflow_service import WorkflowService
-from backend.auth.middleware import get_current_active_user
+from core.persistence.session import get_db
+from core.models.workflow import Workflow
+from core.services.workflow_service import WorkflowService
+from interfaces.api.auth.middleware import get_current_active_user
 
 router = APIRouter(prefix="/api/workflows", tags=["Workflows"])
 

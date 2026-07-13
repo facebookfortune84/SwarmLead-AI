@@ -2,7 +2,7 @@
 Workflow-related Celery tasks.
 """
 import logging
-from backend.celery_app import celery_app
+from infrastructure.celery.celery_app import celery_app
 
 logger = logging.getLogger("tasks.workflows")
 
@@ -24,8 +24,8 @@ def execute_workflow_step(self, workflow_id: str, step_id: str):
         workflow_id: The owning workflow.
         step_id: The WorkflowStep to execute.
     """
-    from backend.db.session import SessionLocal
-    from backend.db.models import WorkflowStep
+    from core.persistence.session import SessionLocal
+    from core.models.workflow_step import WorkflowStep
 
     db = SessionLocal()
     try:
@@ -74,8 +74,8 @@ def handle_step_failure(self, workflow_id: str, step_id: str, error: str):
         step_id: The step that failed.
         error: Error description.
     """
-    from backend.db.session import SessionLocal
-    from backend.services.workflow_service import WorkflowService
+    from core.persistence.session import SessionLocal
+    from core.services.workflow_service import WorkflowService
 
     db = SessionLocal()
     try:
@@ -106,8 +106,8 @@ def advance_workflow(self, workflow_id: str):
     Args:
         workflow_id: The workflow to advance.
     """
-    from backend.db.session import SessionLocal
-    from backend.services.workflow_service import WorkflowService
+    from core.persistence.session import SessionLocal
+    from core.services.workflow_service import WorkflowService
 
     db = SessionLocal()
     try:
@@ -145,7 +145,7 @@ def _dispatch_step(step, db) -> None:
     input_data = json.loads(step.input_json) if step.input_json else {}
 
     if step.step_type == "ticket":
-        from backend.services.ticket_service import TicketService
+        from core.services.ticket_service import TicketService
 
         svc = TicketService(db)
         ticket = svc.create_ticket(
@@ -156,7 +156,7 @@ def _dispatch_step(step, db) -> None:
         step.output_json = json.dumps({"ticket_id": ticket.id})
 
     elif step.step_type == "notification":
-        from backend.services.notification_service import NotificationService
+        from core.services.notification_service import NotificationService
 
         svc = NotificationService(db)
         svc.broadcast_system_event(

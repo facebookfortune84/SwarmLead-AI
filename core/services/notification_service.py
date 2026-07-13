@@ -6,7 +6,8 @@ import logging
 from datetime import datetime
 from typing import Optional
 from sqlalchemy.orm import Session
-from backend.db.models import Notification, User
+from core.models.notification import Notification
+from core.models.user import User
 
 logger = logging.getLogger("NotificationService")
 
@@ -137,7 +138,7 @@ class NotificationService:
     def _ws_push(self, user_id: str, notif: Notification) -> None:
         """Fire-and-forget WebSocket push to the connected client (if any)."""
         try:
-            from backend.api.ws import manager
+            from interfaces.api.ws import manager
             import asyncio
 
             payload = {

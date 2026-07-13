@@ -2,7 +2,7 @@
 Notification-related Celery tasks.
 """
 import logging
-from backend.celery_app import celery_app
+from infrastructure.celery.celery_app import celery_app
 
 logger = logging.getLogger("tasks.notifications")
 
@@ -21,8 +21,8 @@ def send_notification(self, user_id: str, notification_data: dict):
         user_id: Target user ID.
         notification_data: Dict with keys: type, title, message, metadata (opt).
     """
-    from backend.db.session import SessionLocal
-    from backend.services.notification_service import NotificationService
+    from core.persistence.session import SessionLocal
+    from core.services.notification_service import NotificationService
 
     db = SessionLocal()
     try:
@@ -109,8 +109,8 @@ def broadcast_event(self, event_type: str, data: dict):
         event_type: Short event label, e.g. 'deployment.completed'.
         data: Additional data dict (stringified into the message body).
     """
-    from backend.db.session import SessionLocal
-    from backend.services.notification_service import NotificationService
+    from core.persistence.session import SessionLocal
+    from core.services.notification_service import NotificationService
 
     db = SessionLocal()
     try:

@@ -6,7 +6,7 @@ from typing import Optional
 import bcrypt
 from pydantic import BaseModel, EmailStr, field_validator, ConfigDict
 from sqlalchemy.orm import Session
-from backend.db.models import User
+from core.models.user import User
 
 
 class UserCreate(BaseModel):

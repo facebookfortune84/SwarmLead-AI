@@ -11,7 +11,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from backend.db.session import get_db
+from core.persistence.session import get_db
 
 router = APIRouter(prefix="/api/leads", tags=["Leads — Timeline"])
 
@@ -23,8 +23,8 @@ async def get_lead_timeline(lead_id: str, db: Session = Depends(get_db)):
 
     Returns HTTP 404 if no lead with the given id exists.
     """
-    from backend.db.models import Lead
-    from backend.db.models_outreach import LeadTimeline
+    from core.models.lead import Lead
+    from core.models.outreach import LeadTimeline
 
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:

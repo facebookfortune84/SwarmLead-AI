@@ -79,9 +79,9 @@ def _on_ticket_resolved(payload: dict) -> None:
     if not ticket:
         return
     try:
-        from backend.db.session import SessionLocal
-        from backend.services.notification_service import NotificationService
-        from backend.db.ticket_history import record_change
+        from core.persistence.session import SessionLocal
+        from core.services.notification_service import NotificationService
+        from core.persistence.ticket_history import record_change
 
         db = SessionLocal()
         try:
@@ -99,9 +99,9 @@ def _on_task_failed(payload: dict) -> None:
     task_id = payload.get("task_id", "unknown")
     error = payload.get("error", "")
     try:
-        from backend.db.session import SessionLocal
-        from backend.services.notification_service import NotificationService
-        from backend.services.ticket_service import TicketService
+        from core.persistence.session import SessionLocal
+        from core.services.notification_service import NotificationService
+        from core.services.ticket_service import TicketService
 
         db = SessionLocal()
         try:
@@ -126,8 +126,8 @@ def _on_workflow_completed(payload: dict) -> None:
     if not workflow_id:
         return
     try:
-        from backend.db.session import SessionLocal
-        from backend.services.notification_service import NotificationService
+        from core.persistence.session import SessionLocal
+        from core.services.notification_service import NotificationService
 
         db = SessionLocal()
         try:
@@ -147,8 +147,8 @@ def _on_workflow_failed(payload: dict) -> None:
     workflow_id = payload.get("workflow_id", "unknown")
     error = payload.get("error", "")
     try:
-        from backend.db.session import SessionLocal
-        from backend.services.notification_service import NotificationService
+        from core.persistence.session import SessionLocal
+        from core.services.notification_service import NotificationService
 
         db = SessionLocal()
         try:

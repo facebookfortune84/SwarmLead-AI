@@ -5,11 +5,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from sqlalchemy.orm import Session
-from backend.auth.user_service import UserService, UserUpdate, UserResponse
-from backend.auth.middleware import get_current_active_user, get_current_admin_user
-from backend.auth.permissions import can_access_resource
-from backend.db.session import get_db
-from backend.db.models import User
+from interfaces.api.auth.user_service import UserService, UserUpdate, UserResponse
+from interfaces.api.auth.middleware import get_current_active_user, get_current_admin_user
+from interfaces.api.auth.permissions import can_access_resource
+from core.persistence.session import get_db
+from core.models.user import User
 
 
 router = APIRouter(prefix="/api/users", tags=["users"])

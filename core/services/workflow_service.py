@@ -6,7 +6,8 @@ import logging
 from datetime import datetime
 from typing import Optional
 from sqlalchemy.orm import Session
-from backend.db.models import Workflow, WorkflowStep
+from core.models.workflow import Workflow
+from core.models.workflow_step import WorkflowStep
 
 logger = logging.getLogger("WorkflowService")
 
@@ -117,7 +118,7 @@ class WorkflowService:
             workflow.completed_at = datetime.utcnow()
             logger.info("Workflow %s completed", workflow_id)
             try:
-                from backend.services.event_bus import event_bus
+                from core.events.event_bus import event_bus
 
                 event_bus.publish("workflow.completed", {"workflow_id": workflow_id})
             except Exception:
@@ -189,7 +190,7 @@ class WorkflowService:
         self.db.refresh(workflow)
 
         try:
-            from backend.services.event_bus import event_bus
+            from core.events.event_bus import event_bus
 
             event_bus.publish("workflow.failed", {"workflow_id": workflow_id, "error": error})
         except Exception:
@@ -256,7 +257,7 @@ class WorkflowService:
         if step_index is None:
             step_index = workflow.current_step
         try:
-            from backend.tasks.workflow_tasks import execute_workflow_step
+            from infrastructure.celery.workflow_tasks import execute_workflow_step
 
             steps = self._get_steps(workflow.id)
             if step_index < len(steps):

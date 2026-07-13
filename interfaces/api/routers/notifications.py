@@ -4,9 +4,9 @@ Notifications API — list, mark-read, and delete user notifications.
 import json
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from backend.db.session import get_db
-from backend.db.models import Notification
-from backend.auth.middleware import get_current_active_user
+from core.persistence.session import get_db
+from core.models.notification import Notification
+from interfaces.api.auth.middleware import get_current_active_user
 
 router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
 

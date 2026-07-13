@@ -5,10 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
-from backend.auth.jwt_handler import create_access_token, create_refresh_token, refresh_access_token
-from backend.auth.user_service import UserService, UserCreate, UserResponse
-from backend.auth.middleware import get_current_user, get_current_active_user
-from backend.db.session import get_db
+from interfaces.api.auth.jwt_handler import create_access_token, create_refresh_token, refresh_access_token
+from interfaces.api.auth.user_service import UserService, UserCreate, UserResponse
+from interfaces.api.auth.middleware import get_current_user, get_current_active_user
+from core.persistence.session import get_db
 
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
@@ -119,7 +119,7 @@ async def logout(
     """
     Logout current user (revoke token)
     """
-    from backend.auth.jwt_handler import revoke_token
+    from interfaces.api.auth.jwt_handler import revoke_token
 
     token = credentials.credentials
     success = revoke_token(token)

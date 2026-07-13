@@ -8,8 +8,8 @@ from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
-from backend.db.models import CompanyTenant
-from backend.db.session import SessionLocal
+from core.models.tenant import CompanyTenant
+from core.persistence.session import SessionLocal
 from backend.orchestration.box_deployer import BoxDeployer, _slugify
 
 logger = logging.getLogger("tenants")

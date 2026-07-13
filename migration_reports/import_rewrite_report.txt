@@ -1,0 +1,10 @@
+interfaces\api\routers\tenants.py: backend.core.tenants -> core.services.tenant_service
+REWRITE interfaces\api\routers\tenants.py
+
+SUMMARY
+{
+  "files_scanned": 45,
+  "files_rewritten": 1,
+  "imports_rewritten": 1,
+  "syntax_failures": 0
+}

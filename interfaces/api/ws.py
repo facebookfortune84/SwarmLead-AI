@@ -131,8 +131,8 @@ async def ws_messages(thread_id: str, websocket: WebSocket):
 
             # Persist message
             try:
-                from backend.db.session import SessionLocal
-                from backend.db.models import Message
+                from core.persistence.session import SessionLocal
+                from core.models.message import Message
 
                 db = SessionLocal()
                 try:

@@ -189,6 +189,9 @@ COPY_FILES = [
     ("api/reporting.py", "interfaces/api/routers/reporting.py"),
     ("core/tenants.py", "core/services/tenant_service.py"),
     ("api/ws.py", "interfaces/api/ws.py"),
+    ("services/ticket_service.py", "core/services/ticket_service.py"),
+    ("db/ticket_history.py", "core/persistence/ticket_history.py"),
+    ("db/models_outreach.py", "core/models/outreach.py"),
 ]
 
 # ============================================================

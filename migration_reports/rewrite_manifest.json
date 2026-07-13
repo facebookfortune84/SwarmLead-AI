@@ -1,0 +1,8 @@
+{
+  "interfaces\\api\\routers\\tenants.py": [
+    {
+      "new": "core.services.tenant_service",
+      "old": "backend.core.tenants"
+    }
+  ]
+}

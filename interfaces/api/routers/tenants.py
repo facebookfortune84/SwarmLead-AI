@@ -3,7 +3,7 @@
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 
-from backend.core.tenants import tenant_service
+from core.services.tenant_service import tenant_service
 
 router = APIRouter(prefix="/api/tenants", tags=["Tenants"])
 

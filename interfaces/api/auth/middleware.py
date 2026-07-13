@@ -9,7 +9,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from .jwt_handler import decode_token, is_token_revoked
-from backend.db.session import get_db as _get_db
+from core.persistence.session import get_db as _get_db
 
 
 security = HTTPBearer()
@@ -72,7 +72,7 @@ async def get_current_active_user(
 
     Uses `get_db` via dependency injection so test overrides work correctly.
     """
-    from backend.db.models import User
+    from core.models.user import User
 
     user = db.query(User).filter(User.id == current_user["id"]).first()
     if not user:
@@ -185,7 +185,7 @@ def verify_api_key_in_db(api_key: str, db) -> bool:
     Returns:
         True if valid, False otherwise
     """
-    from backend.db.models import APIKey
+    from core.models.api_key import APIKey
     from datetime import datetime
 
     api_key_record = db.query(APIKey).filter(APIKey.key == api_key).first()
@@ -210,7 +210,7 @@ def verify_api_key_in_db(api_key: str, db) -> bool:
 # Keep backward-compatible alias (used in non-request contexts only, e.g. scripts)
 def verify_api_key(api_key: str) -> bool:
     """Verify API key — opens its own short-lived session. Use verify_api_key_in_db in FastAPI routes."""
-    from backend.db.session import SessionLocal
+    from core.persistence.session import SessionLocal
 
     db = SessionLocal()
     try:
@@ -250,7 +250,7 @@ async def verify_api_key_auth(
     Raises:
         HTTPException: If API key is invalid
     """
-    from backend.db.models import APIKey
+    from core.models.api_key import APIKey
 
     if not api_key or not verify_api_key_in_db(api_key, db):
         raise HTTPException(

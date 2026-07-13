@@ -136,7 +136,7 @@ def dead_letter_handler(self, task_name: str, args, kwargs, exc_info: str):
     )
     # Fire event so the event bus can create an incident ticket
     try:
-        from backend.services.event_bus import event_bus
+        from core.events.event_bus import event_bus
 
         event_bus.publish("task.failed", {"task_id": task_name, "error": exc_info})
     except Exception:

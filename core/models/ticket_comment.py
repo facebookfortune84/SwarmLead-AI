@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from sqlalchemy import Column, String, Text, DateTime, Boolean, ForeignKey, Integer, Float
-from backend.db.base import Base
+from core.persistence.base import Base
 
 
 class TicketComment(Base):
