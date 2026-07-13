@@ -1,10 +1,12 @@
-interfaces\api\routers\tenants.py: backend.core.tenants -> core.services.tenant_service
-REWRITE interfaces\api\routers\tenants.py
+interfaces\api\routers\leads.py: backend.db.linear_engine -> core.persistence.linear_engine
+REWRITE interfaces\api\routers\leads.py
+interfaces\api\routers\usage.py: backend.db.linear_engine -> core.persistence.linear_engine
+REWRITE interfaces\api\routers\usage.py
 
 SUMMARY
 {
   "files_scanned": 45,
-  "files_rewritten": 1,
-  "imports_rewritten": 1,
+  "files_rewritten": 2,
+  "imports_rewritten": 2,
   "syntax_failures": 0
 }

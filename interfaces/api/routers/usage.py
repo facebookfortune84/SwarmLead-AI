@@ -9,7 +9,7 @@ system-level analytics.
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from backend.db.linear_engine import get_swarm_db
+from core.persistence.linear_engine import get_swarm_db
 
 router = APIRouter(prefix="/api/usage", tags=["Usage"])
 

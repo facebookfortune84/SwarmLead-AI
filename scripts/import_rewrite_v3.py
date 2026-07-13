@@ -85,6 +85,7 @@ IMPORT_REWRITES = {
     "backend.tasks.workflow_tasks": "infrastructure.celery.workflow_tasks",
     "backend.celery_app": "infrastructure.celery.celery_app",
     "backend.core.tenants": "core.services.tenant_service",
+    "backend.db.linear_engine": "core.persistence.linear_engine",
 }
 
 # ============================================================

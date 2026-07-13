@@ -9,7 +9,7 @@ tickets for a given lead.
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from backend.db.linear_engine import get_swarm_db
+from core.persistence.linear_engine import get_swarm_db
 
 router = APIRouter(prefix="/api/leads", tags=["Leads"])
 
