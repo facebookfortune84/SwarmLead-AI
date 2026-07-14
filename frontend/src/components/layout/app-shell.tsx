@@ -1,13 +1,17 @@
-import type { ReactNode } from "react";
+import { Sidebar } from "./sidebar";
 
-interface AppShellProps {
-  children?: ReactNode;
-}
-
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <div className="min-h-screen bg-background">
-      {children}
+    <div className="flex min-h-screen">
+      <Sidebar />
+
+      <main className="flex-1 p-6">
+        {children}
+      </main>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import "./globals.css";
 
-import { QueryProvider } from "@/components/providers/query-provider";
 import { AppThemeProvider } from "@/components/providers/theme-provider";
+import { QueryProvider } from "@/components/providers/query-provider";
 
 export default function RootLayout({
   children,
@@ -10,7 +10,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>
+      <body suppressHydrationWarning>
         <AppThemeProvider>
           <QueryProvider>
             {children}
