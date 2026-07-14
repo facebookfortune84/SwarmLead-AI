@@ -266,6 +266,3 @@ async def verify_api_key_auth(
         "scope": api_key_record.scope,
         "api_key_id": api_key_record.id,
     }
-
-
-# Made with Bob

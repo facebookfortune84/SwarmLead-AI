@@ -1,6 +1,7 @@
 """
 User service for authentication and user management
 """
+
 from datetime import datetime
 from typing import Optional
 import bcrypt
@@ -251,6 +252,3 @@ class UserService:
             User response object without password
         """
         return UserResponse.model_validate(user)
-
-
-# Made with Bob

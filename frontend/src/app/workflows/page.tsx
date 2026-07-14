@@ -1,21 +1,13 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 
 import { useWorkflows } from "@/hooks/use-workflows";
 
-import {
-  useStartWorkflow,
-  usePauseWorkflow,
-  useResumeWorkflow,
-} from "@/hooks/use-run-workflow";
+import { WorkflowCard } from "@/components/workflows/workflow-card";
+import { WorkflowCreateDialog } from "@/components/workflows/workflow-create-dialog";
 
-type Workflow = {
-  id: string;
-  name: string;
-  status: string;
-};
+import { Workflow } from "@/types/workflow";
 
 export default function WorkflowsPage() {
   const {
@@ -24,26 +16,23 @@ export default function WorkflowsPage() {
     error,
   } = useWorkflows();
 
-  const startWorkflow =
-    useStartWorkflow();
-
-  const pauseWorkflow =
-    usePauseWorkflow();
-
-  const resumeWorkflow =
-    useResumeWorkflow();
-
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">
-          Workflow Center
-        </h1>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">
+            Workflow Center
+          </h1>
 
-        <p className="text-muted-foreground">
-          Automation engine, agent orchestration,
-          outreach execution, and future voice routing.
-        </p>
+          <p className="text-muted-foreground">
+            Automation, orchestration,
+            outreach execution,
+            qualification pipelines,
+            and future voice routing.
+          </p>
+        </div>
+
+        <WorkflowCreateDialog />
       </div>
 
       {error ? (
@@ -63,82 +52,25 @@ export default function WorkflowsPage() {
         <Card className="p-6">
           Loading workflows...
         </Card>
+      ) : data.length === 0 ? (
+        <Card className="p-6">
+          <div className="font-medium">
+            No workflows found
+          </div>
+
+          <div className="mt-2 text-sm text-muted-foreground">
+            Create a workflow to begin
+            automation.
+          </div>
+        </Card>
       ) : (
         <div className="space-y-4">
-          {data.length === 0 ? (
-            <Card className="p-6">
-              <div className="font-medium">
-                No workflows found
-              </div>
-
-              <div className="mt-2 text-sm text-muted-foreground">
-                Create a workflow to begin
-                automation.
-              </div>
-            </Card>
-          ) : (
-            data.map((workflow: Workflow) => (
-                <Card
-                  key={
-                    workflow.id
-                  }
-                  className="p-6"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="font-semibold">
-                        {
-                          workflow.name
-                        }
-                      </h2>
-
-                      <div className="mt-1 text-sm text-muted-foreground">
-                        Status:{" "}
-                        {
-                          workflow.status
-                        }
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          startWorkflow.mutate(
-                            workflow.id
-                          )
-                        }
-                      >
-                        Start
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          pauseWorkflow.mutate(
-                            workflow.id
-                          )
-                        }
-                      >
-                        Pause
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          resumeWorkflow.mutate(
-                            workflow.id
-                          )
-                        }
-                      >
-                        Resume
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              )
+          {data.map(
+            (workflow: Workflow) => (
+              <WorkflowCard
+                key={workflow.id}
+                workflow={workflow}
+              />
             )
           )}
         </div>
