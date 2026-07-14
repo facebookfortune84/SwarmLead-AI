@@ -7,8 +7,10 @@ import { Lead } from "@/types/lead";
 import { Button } from "@/components/ui/button";
 
 import { LeadEditDialog } from "./lead-edit-dialog";
+import { LeadStatusMenu } from "./lead-status-menu";
 
 import { useDeleteLead } from "@/hooks/use-delete-lead";
+import { useUpdateLead } from "@/hooks/use-update-lead";
 
 interface Props {
   lead: Lead;
@@ -22,6 +24,9 @@ export function LeadActions({
 
   const deleteLead =
     useDeleteLead();
+
+  const updateLead =
+    useUpdateLead();
 
   async function handleDelete() {
     const confirmed =
@@ -38,9 +43,26 @@ export function LeadActions({
     );
   }
 
+  async function updateStatus(
+    status: string
+  ) {
+    await updateLead.mutateAsync({
+      id: lead.id,
+
+      payload: {
+        status,
+      },
+    });
+  }
+
   return (
     <>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
+        <LeadStatusMenu
+          value={lead.status}
+          onChange={updateStatus}
+        />
+
         <Button
           variant="outline"
           onClick={() =>
