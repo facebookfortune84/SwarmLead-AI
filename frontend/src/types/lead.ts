@@ -1,3 +1,12 @@
+export type LeadStatus =
+  | "NEW"
+  | "CONTACTED"
+  | "QUALIFIED"
+  | "MEETING"
+  | "PROPOSAL"
+  | "CUSTOMER"
+  | "LOST";
+
 export interface Lead {
   id: string;
 
@@ -7,7 +16,7 @@ export interface Lead {
 
   company: string | null;
 
-  status: string;
+  status: LeadStatus | string;
 
   metadata: Record<
     string,
@@ -16,11 +25,19 @@ export interface Lead {
 
   created_at: string;
 
-  agent_source?: string;
-
-  owner?: string;
+  owner?: string | null;
 
   tags?: string[];
 
-  last_contacted?: string;
+  score?: number | null;
+
+  agent_source?: string | null;
+
+  discovery_agent?: string | null;
+
+  last_contacted?: string | null;
+
+  next_action?: string | null;
+
+  notes?: string | null;
 }

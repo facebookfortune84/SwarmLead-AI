@@ -11,11 +11,11 @@ export function useDeleteLead() {
 
   return useMutation({
     mutationFn: async (
-      id: string
+      leadId: string
     ) => {
       const response =
         await api.delete(
-          `/api/leads/${id}`
+          `/api/leads/${leadId}`
         );
 
       return response.data;

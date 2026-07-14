@@ -54,10 +54,22 @@ export function LeadCreateDialog() {
       open={open}
       onOpenChange={setOpen}
     >
-      <DialogTrigger>
-        <Button>
-          Create Lead
-        </Button>
+      <DialogTrigger
+        className="
+          inline-flex
+          items-center
+          justify-center
+          rounded-md
+          px-4
+          py-2
+          text-sm
+          font-medium
+          bg-primary
+          text-primary-foreground
+          hover:opacity-90
+        "
+      >
+        Create Lead
       </DialogTrigger>
 
       <DialogContent>
@@ -101,8 +113,13 @@ export function LeadCreateDialog() {
           <Button
             className="w-full"
             onClick={handleSave}
+            disabled={
+              createLead.isPending
+            }
           >
-            Save Lead
+            {createLead.isPending
+              ? "Saving..."
+              : "Save Lead"}
           </Button>
         </div>
       </DialogContent>

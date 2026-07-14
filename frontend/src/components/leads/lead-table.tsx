@@ -1,11 +1,23 @@
 "use client";
 
 import { Lead } from "@/types/lead";
+
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
+
 import { LeadStatusBadge } from "./lead-status-badge";
 
 interface Props {
   leads: Lead[];
-  onSelect: (lead: Lead) => void;
+  onSelect: (
+    lead: Lead
+  ) => void;
 }
 
 export function LeadTable({
@@ -13,74 +25,89 @@ export function LeadTable({
   onSelect,
 }: Props) {
   return (
-    <div className="overflow-hidden rounded-lg border">
-      <table className="w-full text-sm">
-        <thead className="border-b bg-muted/20">
-          <tr>
-            <th className="p-3 text-left">
+    <div className="rounded-xl border bg-card">
+      <Table>
+        <TableHeader className="sticky top-0 z-10 bg-background">
+          <TableRow>
+            <TableHead>
               Name
-            </th>
+            </TableHead>
 
-            <th className="p-3 text-left">
+            <TableHead>
               Email
-            </th>
+            </TableHead>
 
-            <th className="p-3 text-left">
+            <TableHead>
               Company
-            </th>
+            </TableHead>
 
-            <th className="p-3 text-left">
+            <TableHead>
+              Owner
+            </TableHead>
+
+            <TableHead>
+              Score
+            </TableHead>
+
+            <TableHead>
               Status
-            </th>
+            </TableHead>
 
-            <th className="p-3 text-left">
+            <TableHead>
               Created
-            </th>
-          </tr>
-        </thead>
+            </TableHead>
+          </TableRow>
+        </TableHeader>
 
-        <tbody>
+        <TableBody>
           {leads.map((lead) => (
-            <tr
+            <TableRow
               key={lead.id}
               onClick={() =>
                 onSelect(lead)
               }
-              className="
-                cursor-pointer
-                border-b
-                transition-colors
-                hover:bg-muted/50
-              "
+              className="cursor-pointer"
             >
-              <td className="p-3">
+              <TableCell>
                 {lead.name ?? "-"}
-              </td>
+              </TableCell>
 
-              <td className="p-3">
+              <TableCell>
                 {lead.email}
-              </td>
+              </TableCell>
 
-              <td className="p-3">
-                {lead.company ?? "-"}
-              </td>
+              <TableCell>
+                {lead.company ??
+                  "-"}
+              </TableCell>
 
-              <td className="p-3">
+              <TableCell>
+                {lead.owner ??
+                  "-"}
+              </TableCell>
+
+              <TableCell>
+                {lead.score ??
+                  "-"}
+              </TableCell>
+
+              <TableCell>
                 <LeadStatusBadge
-                  status={lead.status}
+                  status={
+                    lead.status
+                  }
                 />
-              </td>
+              </TableCell>
 
-              <td className="p-3">
+              <TableCell>
                 {new Date(
                   lead.created_at
                 ).toLocaleDateString()}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }
-

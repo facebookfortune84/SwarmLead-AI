@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
 
 import { Lead } from "@/types/lead";
 
@@ -18,11 +21,12 @@ import { useUpdateLead } from "@/hooks/use-update-lead";
 
 interface Props {
   open: boolean;
+
   onOpenChange: (
     open: boolean
   ) => void;
 
-  lead: Lead;
+  lead: Lead | null;
 }
 
 export function LeadEditDialog({
@@ -33,28 +37,44 @@ export function LeadEditDialog({
   const updateLead =
     useUpdateLead();
 
-  const [
-    email,
-    setEmail,
-  ] = useState(
-    lead.email
-  );
+  const [email, setEmail] =
+    useState("");
 
-  const [
-    name,
-    setName,
-  ] = useState(
-    lead.name ?? ""
-  );
+  const [name, setName] =
+    useState("");
 
-  const [
-    company,
-    setCompany,
-  ] = useState(
-    lead.company ?? ""
-  );
+  const [company, setCompany] =
+    useState("");
 
-  async function save() {
+  const [status, setStatus] =
+    useState("NEW");
+
+  const [owner, setOwner] =
+    useState("");
+
+  const [notes, setNotes] =
+    useState("");
+
+  useEffect(() => {
+    if (!lead) return;
+    // Defer state updates to avoid synchronous setState within effect
+    const t = setTimeout(() => {
+      setEmail(lead.email ?? "");
+      setName(lead.name ?? "");
+      setCompany(lead.company ?? "");
+      setStatus(lead.status ?? "NEW");
+      setOwner(lead.owner ?? "");
+      setNotes(lead.notes ?? "");
+    }, 0);
+
+    return () => clearTimeout(t);
+  }, [lead]);
+
+  if (!lead) return null;
+
+  async function handleSave() {
+    if (!lead) return;
+
     await updateLead.mutateAsync({
       id: lead.id,
 
@@ -62,6 +82,9 @@ export function LeadEditDialog({
         email,
         name,
         company,
+        status,
+        owner,
+        notes,
       },
     });
 
@@ -71,11 +94,9 @@ export function LeadEditDialog({
   return (
     <Dialog
       open={open}
-      onOpenChange={
-        onOpenChange
-      }
+      onOpenChange={onOpenChange}
     >
-      <DialogContent>
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>
             Edit Lead
@@ -84,6 +105,7 @@ export function LeadEditDialog({
 
         <div className="space-y-4">
           <Input
+            placeholder="Email"
             value={email}
             onChange={(e) =>
               setEmail(
@@ -93,6 +115,7 @@ export function LeadEditDialog({
           />
 
           <Input
+            placeholder="Name"
             value={name}
             onChange={(e) =>
               setName(
@@ -102,6 +125,7 @@ export function LeadEditDialog({
           />
 
           <Input
+            placeholder="Company"
             value={company}
             onChange={(e) =>
               setCompany(
@@ -110,12 +134,59 @@ export function LeadEditDialog({
             }
           />
 
-          <Button
-            className="w-full"
-            onClick={save}
-          >
-            Save Changes
-          </Button>
+          <Input
+            placeholder="Status"
+            value={status}
+            onChange={(e) =>
+              setStatus(
+                e.target.value
+              )
+            }
+          />
+
+          <Input
+            placeholder="Owner"
+            value={owner}
+            onChange={(e) =>
+              setOwner(
+                e.target.value
+              )
+            }
+          />
+
+          <Input
+            placeholder="Notes"
+            value={notes}
+            onChange={(e) =>
+              setNotes(
+                e.target.value
+              )
+            }
+          />
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() =>
+                onOpenChange(false)
+              }
+            >
+              Cancel
+            </Button>
+
+            <Button
+              className="flex-1"
+              onClick={handleSave}
+              disabled={
+                updateLead.isPending
+              }
+            >
+              {updateLead.isPending
+                ? "Saving..."
+                : "Save Changes"}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

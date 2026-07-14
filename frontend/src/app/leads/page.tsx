@@ -11,6 +11,7 @@ import { LeadTable } from "@/components/leads/lead-table";
 import { LeadSearch } from "@/components/leads/lead-search";
 import { LeadCreateDialog } from "@/components/leads/lead-create-dialog";
 import { LeadDetailSheet } from "@/components/leads/lead-detail-sheet";
+import { LeadMetrics } from "@/components/leads/lead-metrics";
 
 import { Button } from "@/components/ui/button";
 
@@ -90,9 +91,12 @@ export default function LeadsPage() {
     }, [data, search, sortBy]);
 
   const pageCount =
-    Math.ceil(
-      filteredLeads.length /
-        PAGE_SIZE
+    Math.max(
+      1,
+      Math.ceil(
+        filteredLeads.length /
+          PAGE_SIZE
+      )
     );
 
   const paginatedLeads =
@@ -112,19 +116,22 @@ export default function LeadsPage() {
             </h1>
 
             <p className="text-muted-foreground">
-              Manage lead
-              records,
+              Manage lead discovery,
+              qualification,
               outreach,
               ownership,
-              and agent
-              discovery.
+              and future AI agent activity.
             </p>
           </div>
 
           <LeadCreateDialog />
         </div>
 
-        <div className="flex gap-2">
+        <LeadMetrics
+          leads={filteredLeads}
+        />
+
+        <div className="flex flex-wrap gap-2">
           <Button
             variant={
               sortBy ===
@@ -159,15 +166,26 @@ export default function LeadsPage() {
 
         <LeadSearch
           value={search}
-          onChange={(v) => {
-            setSearch(v);
+          onChange={(value) => {
+            setSearch(value);
             setPage(1);
           }}
         />
 
         {isLoading ? (
-          <div>
+          <div className="rounded-xl border p-8 text-center">
             Loading leads...
+          </div>
+        ) : filteredLeads.length === 0 ? (
+          <div className="rounded-xl border p-8 text-center">
+            <div className="text-lg font-semibold">
+              No leads found
+            </div>
+
+            <div className="mt-1 text-sm text-muted-foreground">
+              Try adjusting your search
+              or create a new lead.
+            </div>
           </div>
         ) : (
           <>
@@ -193,7 +211,7 @@ export default function LeadsPage() {
                 leads
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   disabled={
@@ -209,9 +227,9 @@ export default function LeadsPage() {
                   Previous
                 </Button>
 
-                <div className="flex items-center px-3 text-sm">
-                  {page} /{" "}
-                  {pageCount || 1}
+                <div className="px-3 text-sm">
+                  Page {page} of{" "}
+                  {pageCount}
                 </div>
 
                 <Button
