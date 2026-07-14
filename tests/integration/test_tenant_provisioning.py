@@ -2,8 +2,6 @@
 Integration Test
 """
 
-from unittest.mock import Mock
-
 from core.persistence.session import (
     SessionLocal,
     init_db,
