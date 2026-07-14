@@ -19,7 +19,7 @@ def get_db_url() -> str:
 
         SWARM_DB_URL
 
-    Falls back to SQLite for local development.
+    Falls back to SQLite.
     """
 
     url = os.getenv("SWARM_DB_URL")
@@ -27,7 +27,12 @@ def get_db_url() -> str:
     if url:
         return url
 
-    db_dir = Path(os.getenv("SWARM_DB_DIR", Path(__file__).resolve().parents[2] / "data"))
+    db_dir = Path(
+        os.getenv(
+            "SWARM_DB_DIR",
+            Path(__file__).resolve().parents[2] / "data",
+        )
+    )
 
     db_dir.mkdir(
         parents=True,
@@ -43,7 +48,7 @@ DATABASE_URL = get_db_url()
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {},
+    connect_args=({"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}),
 )
 
 SessionLocal = sessionmaker(
@@ -54,9 +59,6 @@ SessionLocal = sessionmaker(
 
 
 def get_db():
-    """
-    FastAPI dependency.
-    """
 
     db = SessionLocal()
 
@@ -69,7 +71,18 @@ def get_db():
 
 def init_db():
     """
-    Initialize all loaded models.
+    Initialize schema.
+
+    IMPORTANT:
+
+    Models must be imported before
+    create_all() so they register
+    with SQLAlchemy metadata.
     """
+
+    #
+    # Force model registration
+    #
+    import core.models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)

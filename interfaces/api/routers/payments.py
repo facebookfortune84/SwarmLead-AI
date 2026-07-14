@@ -7,13 +7,17 @@ It supports both predefined price IDs and dynamic product/price creation.
 
 import logging
 import os
+from types import ModuleType
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 # Lazy import to avoid hard dependency at import time
+stripe: ModuleType | None = None
 try:
-    import stripe
+    import stripe as _stripe
+
+    stripe = _stripe
 except Exception:  # pylint: disable=broad-except
     stripe = None
 
@@ -21,8 +25,10 @@ router = APIRouter(prefix="/api/stripe", tags=["Stripe"])
 logger = logging.getLogger("StripeAPI")
 
 # Configure Stripe API key if available
+# Use setattr to avoid static-analysis errors when the stripe module
+# may not expose api_key at type-check time.
 if stripe is not None:
-    stripe.api_key = os.getenv("STRIPE_API_KEY")
+    setattr(stripe, "api_key", os.getenv("STRIPE_API_KEY"))
 
 
 class CheckoutCreate(BaseModel):
@@ -54,7 +60,10 @@ async def create_checkout_session(payload: CheckoutCreate):
         )
 
     try:
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+        frontend_url = os.getenv(
+            "FRONTEND_URL",
+            "http://localhost:3000",
+        )
         success_url = f"{frontend_url}/success?session_id={{CHECKOUT_SESSION_ID}}"
         cancel_url = f"{frontend_url}/cancel"
 
@@ -66,7 +75,7 @@ async def create_checkout_session(payload: CheckoutCreate):
             if not payload.product_name or not payload.amount_cents:
                 raise HTTPException(
                     status_code=400,
-                    detail=("Either price_id or " "(product_name and amount_cents) is required"),
+                    detail=("Either price_id or (product_name and amount_cents) is required"),
                 )
 
             product = stripe.Product.create(name=payload.product_name)

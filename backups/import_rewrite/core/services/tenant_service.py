@@ -8,9 +8,12 @@ from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
-from backend.db.models import CompanyTenant
-from backend.db.session import SessionLocal
-from backend.orchestration.box_deployer import BoxDeployer, _slugify
+from core.models.tenant import CompanyTenant
+from core.persistence.session import SessionLocal
+from infrastructure.deployment.box_deployer import (
+    BoxDeployer,
+    _slugify,
+)
 
 logger = logging.getLogger("tenants")
 
@@ -120,16 +123,17 @@ class TenantService:
         if not tenant:
             raise ValueError("tenant not found")
 
-        tenant.status = "provisioning"
+        setattr(tenant, "status", "provisioning")
         self.db.commit()
 
         vm_result = None
         try:
             if use_vm:
-                vm_result = self.deployer.provision_hyperv_vm(tenant.id, f"r2r-{tenant.slug}")
+                vm_result = self.deployer.provision_hyperv_vm(str(tenant.id), f"r2r-{tenant.slug}")
 
             try:
-                deploy = self.deployer.deploy_docker_box(tenant.slug, tenant.id)
+                # tenant.id can be a SQLAlchemy Column type in some typings; ensure it's a string
+                deploy = self.deployer.deploy_docker_box(str(tenant.slug), str(tenant.id))
             except Exception as deployer_exc:
                 logger.warning(
                     f"BoxDeployer.deploy_docker_box failed ({deployer_exc}); using Docker fallback"
@@ -137,22 +141,22 @@ class TenantService:
                 deploy = self._deploy_docker_fallback(tenant)
 
             if deploy.get("status") == "running":
-                tenant.status = "running"
-                tenant.container_id = deploy.get("container_id")
-                tenant.box_url = deploy.get("box_url", tenant.box_url)
-                tenant.last_error = None
+                setattr(tenant, "status", "running")
+                setattr(tenant, "container_id", deploy.get("container_id"))
+                setattr(tenant, "box_url", deploy.get("box_url", tenant.box_url))
+                setattr(tenant, "last_error", None)
             else:
-                tenant.status = "failed"
-                tenant.last_error = deploy.get("error", "deploy failed")
+                setattr(tenant, "status", "failed")
+                setattr(tenant, "last_error", deploy.get("error", "deploy failed"))
 
             meta = {"vm": vm_result, "docker": deploy}
-            tenant.metadata_json = json.dumps(meta)
+            setattr(tenant, "metadata_json", json.dumps(meta))
             self.db.commit()
             self.db.refresh(tenant)
             return tenant
         except Exception as e:
-            tenant.status = "failed"
-            tenant.last_error = str(e)
+            setattr(tenant, "status", "failed")
+            setattr(tenant, "last_error", str(e))
             self.db.commit()
             raise
 
@@ -161,12 +165,12 @@ class TenantService:
         if not tenant:
             return None
 
-        docker_status = self.deployer.box_status(tenant.slug)
+        docker_status = self.deployer.box_status(str(tenant.slug))
         if docker_status.get("status") == "running":
-            tenant.status = "running"
+            setattr(tenant, "status", "running")
         elif docker_status.get("status") in ("exited", "dead"):
-            tenant.status = "failed"
-            tenant.last_error = f"container {docker_status.get('status')}"
+            setattr(tenant, "status", "failed")
+            setattr(tenant, "last_error", f"container {docker_status.get('status')}")
 
         self.db.commit()
         self.db.refresh(tenant)
