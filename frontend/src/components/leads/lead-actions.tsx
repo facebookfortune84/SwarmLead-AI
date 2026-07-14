@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { LeadEditDialog } from "./lead-edit-dialog";
 import { LeadStatusMenu } from "./lead-status-menu";
 
+import { WorkflowLauncher } from "@/components/workflows/workflow-launcher";
+
 import { useDeleteLead } from "@/hooks/use-delete-lead";
 import { useUpdateLead } from "@/hooks/use-update-lead";
 
@@ -61,6 +63,10 @@ export function LeadActions({
         <LeadStatusMenu
           value={lead.status}
           onChange={updateStatus}
+        />
+
+        <WorkflowLauncher
+          leadId={lead.id}
         />
 
         <Button

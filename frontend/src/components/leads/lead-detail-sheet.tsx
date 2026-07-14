@@ -9,12 +9,15 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 
-import { Badge } from "@/components/ui/badge";
+import { LeadStatusBadge } from "./lead-status-badge";
 import { LeadActions } from "./lead-actions";
+import { LeadActivityFeed } from "./lead-activity-feed";
 
 interface Props {
   lead: Lead | null;
+
   open: boolean;
+
   onOpenChange: (
     open: boolean
   ) => void;
@@ -38,44 +41,37 @@ export function LeadDetailSheet({
       open={open}
       onOpenChange={onOpenChange}
     >
-      <SheetContent
-        className="overflow-y-auto"
-      >
+      <SheetContent className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle>
             Lead Profile
           </SheetTitle>
-              </SheetHeader>
-
-        
-        <div className="mt-4">
-            <LeadActions lead={lead} />
-        </div>
+        </SheetHeader>
 
         <div className="mt-6 space-y-6">
           <div>
-            <h2 className="text-xl font-bold">
-              {lead.name ??
-                "Unknown Lead"}
-            </h2>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">
+                  {lead.name ??
+                    "Unknown Lead"}
+                </h2>
 
-            <div className="text-sm text-muted-foreground">
-              {lead.email}
+                <div className="text-sm text-muted-foreground">
+                  {lead.email}
+                </div>
+              </div>
+
+              <LeadStatusBadge
+                status={lead.status}
+              />
             </div>
           </div>
 
-          <div className="rounded-lg border p-4">
-            <div className="mb-2 text-sm font-semibold">
-              Status
-            </div>
-
-            <Badge>
-              {lead.status}
-            </Badge>
-          </div>
+          <LeadActions lead={lead} />
 
           <div className="rounded-lg border p-4">
-            <div className="mb-2 text-sm font-semibold">
+            <div className="mb-3 text-sm font-semibold">
               Company
             </div>
 
@@ -87,11 +83,11 @@ export function LeadDetailSheet({
           </div>
 
           <div className="rounded-lg border p-4">
-            <div className="mb-2 text-sm font-semibold">
+            <div className="mb-3 text-sm font-semibold">
               Ownership
             </div>
 
-            <div className="text-sm space-y-1">
+            <div className="space-y-2 text-sm">
               <div>
                 <strong>
                   Owner:
@@ -103,7 +99,7 @@ export function LeadDetailSheet({
 
               <div>
                 <strong>
-                  Source:
+                  Agent Source:
                 </strong>{" "}
                 {display(
                   lead.agent_source
@@ -122,17 +118,17 @@ export function LeadDetailSheet({
           </div>
 
           <div className="rounded-lg border p-4">
-            <div className="mb-2 text-sm font-semibold">
-              Activity
+            <div className="mb-3 text-sm font-semibold">
+              Lead Intelligence
             </div>
 
-            <div className="text-sm space-y-1">
+            <div className="space-y-2 text-sm">
               <div>
                 <strong>
-                  Last Contact:
+                  Lead Score:
                 </strong>{" "}
                 {display(
-                  lead.last_contacted
+                  lead.score
                 )}
               </div>
 
@@ -147,42 +143,52 @@ export function LeadDetailSheet({
 
               <div>
                 <strong>
-                  Lead Score:
+                  Last Contact:
                 </strong>{" "}
                 {display(
-                  lead.score
+                  lead.last_contacted
                 )}
               </div>
             </div>
           </div>
 
+          <LeadActivityFeed
+            lead={lead}
+          />
+
           <div className="rounded-lg border p-4">
-            <div className="mb-2 text-sm font-semibold">
+            <div className="mb-3 text-sm font-semibold">
               Tags
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              {lead.tags?.length ? (
-                lead.tags.map(
+            {lead.tags?.length ? (
+              <div className="flex flex-wrap gap-2">
+                {lead.tags.map(
                   (tag) => (
-                    <Badge
+                    <span
                       key={tag}
-                      variant="outline"
+                      className="
+                        rounded-full
+                        border
+                        px-2
+                        py-1
+                        text-xs
+                      "
                     >
                       {tag}
-                    </Badge>
+                    </span>
                   )
-                )
-              ) : (
-                <span className="text-sm text-muted-foreground">
-                  No tags
-                </span>
-              )}
-            </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                No tags assigned
+              </div>
+            )}
           </div>
 
           <div className="rounded-lg border p-4">
-            <div className="mb-2 text-sm font-semibold">
+            <div className="mb-3 text-sm font-semibold">
               Notes
             </div>
 
@@ -194,11 +200,11 @@ export function LeadDetailSheet({
           </div>
 
           <div className="rounded-lg border p-4">
-            <div className="mb-2 text-sm font-semibold">
-              Audit
+            <div className="mb-3 text-sm font-semibold">
+              Audit Information
             </div>
 
-            <div className="text-sm space-y-1">
+            <div className="space-y-2 text-sm">
               <div>
                 <strong>ID:</strong>{" "}
                 {lead.id}

@@ -10,12 +10,28 @@ async function fetchDashboard() {
       api.get("/api/tenants"),
     ]);
 
-  return {
-    leads:
-      leadsResponse.data?.leads?.length ?? 0,
+  const leads =
+    leadsResponse.data?.leads ?? [];
 
-    tenants:
-      tenantsResponse.data?.tenants?.length ?? 0,
+  const tenants =
+    tenantsResponse.data?.tenants ?? [];
+
+  return {
+    leads: leads.length,
+
+    tenants: tenants.length,
+
+    qualifiedLeads: leads.filter(
+      (lead: { status?: string }) =>
+        lead.status ===
+        "QUALIFIED"
+    ).length,
+
+    customers: leads.filter(
+      (lead: { status?: string }) =>
+        lead.status ===
+        "CUSTOMER"
+    ).length,
 
     workflows: "Locked",
 
@@ -28,5 +44,6 @@ export function useDashboard() {
     queryKey: ["dashboard"],
     queryFn: fetchDashboard,
     retry: false,
+    staleTime: 60_000,
   });
 }
