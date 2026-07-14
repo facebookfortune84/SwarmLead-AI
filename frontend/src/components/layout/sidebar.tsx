@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { UserMenu } from "./user-menu";
 
 const items = [
   {
@@ -73,8 +74,9 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t p-4">
-        <div className="text-xs text-muted-foreground">
-          v0.5.x Development
+        <UserMenu />
+        <div className="mt-4 text xs text-muted-foreground">
+          v0.6.x
         </div>
       </div>
     </aside>

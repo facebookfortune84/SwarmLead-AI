@@ -1,12 +1,15 @@
-"""  # noqa: E501
+"""# noqa: E501
 Workflows API — create, inspect, and control multi-step workflows.
 """
-from typing import Optional, List
+
+from typing import List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from core.persistence.session import get_db
+
 from core.models.workflow import Workflow
+from core.persistence.session import get_db
 from core.services.workflow_service import WorkflowService
 from interfaces.api.auth.middleware import get_current_active_user
 
@@ -35,7 +38,7 @@ class WorkflowCreate(BaseModel):
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_workflow(
     body: WorkflowCreate,
     current_user: dict = Depends(get_current_active_user),
@@ -46,12 +49,26 @@ async def create_workflow(
     wf = svc.create_workflow(
         name=body.name,
         steps=[s.model_dump() for s in body.steps],
-        company_id=body.company_id,
+        company_id=body.company_id or "",
     )
-    return svc.get_status(wf.id)
+    if wf is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Unable to create workflow"
+        )
+    if hasattr(wf, "id"):
+        workflow_id = wf.id
+    elif isinstance(wf, str):
+        workflow_id = wf
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unexpected workflow creation result",
+        )
+    # normalize id to string for the status lookup
+    return svc.get_status(str(workflow_id))
 
 
-@router.get("")
+@router.get("/")
 async def list_workflows(
     skip: int = 0,
     limit: int = 50,
@@ -65,7 +82,7 @@ async def list_workflows(
     return {
         "skip": skip,
         "limit": limit,
-        "items": [svc.get_status(w.id) for w in rows],
+        "items": [svc.get_status(str(w.id)) for w in rows],
     }
 
 
@@ -94,7 +111,7 @@ async def start_workflow(
     wf = svc.start_workflow(workflow_id)
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    return svc.get_status(workflow_id)
+    return svc.get_status(str(workflow_id))
 
 
 @router.post("/{workflow_id}/pause")
@@ -108,7 +125,7 @@ async def pause_workflow(
     wf = svc.pause_workflow(workflow_id)
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    return svc.get_status(workflow_id)
+    return svc.get_status(str(workflow_id))
 
 
 @router.post("/{workflow_id}/resume")
@@ -122,7 +139,7 @@ async def resume_workflow(
     wf = svc.resume_workflow(workflow_id)
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    return svc.get_status(workflow_id)
+    return svc.get_status(str(workflow_id))
 
 
 @router.post("/{workflow_id}/cancel")
@@ -136,4 +153,4 @@ async def cancel_workflow(
     wf = svc.cancel_workflow(workflow_id, user_id=current_user["id"])
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    return svc.get_status(workflow_id)
+    return svc.get_status(str(workflow_id))

@@ -1,15 +1,20 @@
 """
 Authentication API endpoints
 """
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.orm import Session
-from pydantic import BaseModel, EmailStr
-from interfaces.api.auth.jwt_handler import create_access_token, create_refresh_token, refresh_access_token
-from interfaces.api.auth.user_service import UserService, UserCreate, UserResponse
-from interfaces.api.auth.middleware import get_current_user, get_current_active_user
-from core.persistence.session import get_db
 
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import BaseModel, EmailStr
+from sqlalchemy.orm import Session
+
+from core.persistence.session import get_db
+from interfaces.api.auth.jwt_handler import (
+    create_access_token,
+    create_refresh_token,
+    refresh_access_token,
+)
+from interfaces.api.auth.middleware import get_current_active_user, get_current_user
+from interfaces.api.auth.user_service import UserCreate, UserResponse, UserService
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 security = HTTPBearer()
@@ -171,6 +176,3 @@ async def get_current_user_info(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     return user_service.to_response(user)
-
-
-# Made with Bob

@@ -1,6 +1,7 @@
 """
 Workflow service — create, advance, and handle failures for multi-step workflows.
 """
+
 import json
 import logging
 from datetime import datetime
@@ -26,7 +27,7 @@ class WorkflowService:
         self,
         name: str,
         steps: list[dict],
-        company_id: str = None,
+        company_id: Optional[str] = None,
     ) -> Workflow:
         """
         Persist a workflow definition and its step rows.
@@ -151,7 +152,9 @@ class WorkflowService:
             self._enqueue_step(workflow)
         return workflow
 
-    def cancel_workflow(self, workflow_id: str, user_id: str = None) -> Optional[Workflow]:
+    def cancel_workflow(
+        self, workflow_id: str, user_id: Optional[str] = None
+    ) -> Optional[Workflow]:
         workflow = self._get(workflow_id)
         if workflow and workflow.status not in ("completed", "failed"):
             workflow.status = "failed"
@@ -252,7 +255,7 @@ class WorkflowService:
             .all()
         )
 
-    def _enqueue_step(self, workflow: Workflow, step_index: int = None) -> None:
+    def _enqueue_step(self, workflow: Workflow, step_index: Optional[int] = None) -> None:
         """Fire the Celery task for the given step (best-effort)."""
         if step_index is None:
             step_index = workflow.current_step

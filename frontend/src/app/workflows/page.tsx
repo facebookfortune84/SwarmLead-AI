@@ -1,67 +1,148 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+
+import { useWorkflows } from "@/hooks/use-workflows";
+
+import {
+  useStartWorkflow,
+  usePauseWorkflow,
+  useResumeWorkflow,
+} from "@/hooks/use-run-workflow";
+
+type Workflow = {
+  id: string;
+  name: string;
+  status: string;
+};
 
 export default function WorkflowsPage() {
+  const {
+    data = [],
+    isLoading,
+    error,
+  } = useWorkflows();
+
+  const startWorkflow =
+    useStartWorkflow();
+
+  const pauseWorkflow =
+    usePauseWorkflow();
+
+  const resumeWorkflow =
+    useResumeWorkflow();
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">
-          Workflows
+          Workflow Center
         </h1>
 
         <p className="text-muted-foreground">
-          Automation, outreach, qualification,
-          voice agents, and human escalation.
+          Automation engine, agent orchestration,
+          outreach execution, and future voice routing.
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      {error ? (
         <Card className="p-6">
-          <h2 className="font-semibold">
-            Lead Qualification
-          </h2>
+          <div className="font-medium">
+            Authentication Required
+          </div>
 
-          <p className="mt-2 text-sm text-muted-foreground">
-            Automatically score and qualify
-            incoming leads.
-          </p>
+          <div className="mt-2 text-sm text-muted-foreground">
+            Login is required before workflows
+            can be viewed or executed.
+          </div>
         </Card>
+      ) : null}
 
+      {isLoading ? (
         <Card className="p-6">
-          <h2 className="font-semibold">
-            Outreach Campaign
-          </h2>
-
-          <p className="mt-2 text-sm text-muted-foreground">
-            Email and multi-channel outbound
-            automation.
-          </p>
+          Loading workflows...
         </Card>
+      ) : (
+        <div className="space-y-4">
+          {data.length === 0 ? (
+            <Card className="p-6">
+              <div className="font-medium">
+                No workflows found
+              </div>
 
-        <Card className="p-6">
-          <h2 className="font-semibold">
-            Voice Agent
-          </h2>
+              <div className="mt-2 text-sm text-muted-foreground">
+                Create a workflow to begin
+                automation.
+              </div>
+            </Card>
+          ) : (
+            data.map((workflow: Workflow) => (
+                <Card
+                  key={
+                    workflow.id
+                  }
+                  className="p-6"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="font-semibold">
+                        {
+                          workflow.name
+                        }
+                      </h2>
 
-          <p className="mt-2 text-sm text-muted-foreground">
-            Future outbound calling,
-            qualification and barge-in support.
-          </p>
-        </Card>
-      </div>
+                      <div className="mt-1 text-sm text-muted-foreground">
+                        Status:{" "}
+                        {
+                          workflow.status
+                        }
+                      </div>
+                    </div>
 
-      <Card className="p-6">
-        <h2 className="font-semibold">
-          Workflow Status
-        </h2>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          startWorkflow.mutate(
+                            workflow.id
+                          )
+                        }
+                      >
+                        Start
+                      </Button>
 
-        <p className="mt-2 text-muted-foreground">
-          Authentication integration is the next
-          milestone before workflow execution can
-          be enabled.
-        </p>
-      </Card>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          pauseWorkflow.mutate(
+                            workflow.id
+                          )
+                        }
+                      >
+                        Pause
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          resumeWorkflow.mutate(
+                            workflow.id
+                          )
+                        }
+                      >
+                        Resume
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              )
+            )
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -4,20 +4,17 @@ import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
 
-export function useWorkflows() {
+export function useCurrentUser() {
   return useQuery({
-    queryKey: ["workflows"],
+    queryKey: ["current-user"],
 
     queryFn: async () => {
       const response =
         await api.get(
-          "/api/workflows"
+          "/api/auth/me"
         );
 
-      return (
-        response.data
-          ?.items ?? []
-      );
+      return response.data;
     },
 
     retry: false,
