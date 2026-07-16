@@ -1,113 +1,74 @@
 "use client";
 
-import { Lead } from "@/types/lead";
-
 import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableCell,
-} from "@/components/ui/table";
-
-import { LeadStatusBadge } from "./lead-status-badge";
+  LeadTicketButton,
+} from "./lead-ticket-button";
 
 interface Props {
-  leads: Lead[];
-  onSelect: (
-    lead: Lead
-  ) => void;
+  leads: any[];
 }
 
 export function LeadTable({
   leads,
-  onSelect,
 }: Props) {
   return (
-    <div className="rounded-xl border bg-card">
-      <Table>
-        <TableHeader className="sticky top-0 z-10 bg-background">
-          <TableRow>
-            <TableHead>
-              Name
-            </TableHead>
-
-            <TableHead>
+    <div className="overflow-x-auto rounded-lg border">
+      <table className="w-full">
+        <thead>
+          <tr className="border-b">
+            <th className="p-4 text-left">
               Email
-            </TableHead>
+            </th>
 
-            <TableHead>
+            <th className="p-4 text-left">
+              Name
+            </th>
+
+            <th className="p-4 text-left">
               Company
-            </TableHead>
+            </th>
 
-            <TableHead>
-              Owner
-            </TableHead>
+            <th className="p-4 text-left">
+              Actions
+            </th>
+          </tr>
+        </thead>
 
-            <TableHead>
-              Score
-            </TableHead>
+        <tbody>
+          {leads.map(
+            (
+              lead: any
+            ) => (
+              <tr
+                key={lead.id}
+                className="border-b"
+              >
+                <td className="p-4">
+                  {lead.email}
+                </td>
 
-            <TableHead>
-              Status
-            </TableHead>
+                <td className="p-4">
+                  {lead.name}
+                </td>
 
-            <TableHead>
-              Created
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-
-        <TableBody>
-          {leads.map((lead) => (
-            <TableRow
-              key={lead.id}
-              onClick={() =>
-                onSelect(lead)
-              }
-              className="cursor-pointer"
-            >
-              <TableCell>
-                {lead.name ?? "-"}
-              </TableCell>
-
-              <TableCell>
-                {lead.email}
-              </TableCell>
-
-              <TableCell>
-                {lead.company ??
-                  "-"}
-              </TableCell>
-
-              <TableCell>
-                {lead.owner ??
-                  "-"}
-              </TableCell>
-
-              <TableCell>
-                {lead.score ??
-                  "-"}
-              </TableCell>
-
-              <TableCell>
-                <LeadStatusBadge
-                  status={
-                    lead.status
+                <td className="p-4">
+                  {
+                    lead.company
                   }
-                />
-              </TableCell>
+                </td>
 
-              <TableCell>
-                {new Date(
-                  lead.created_at
-                ).toLocaleDateString()}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                <td className="p-4">
+                  <LeadTicketButton
+                    leadId={
+                      lead.id
+                    }
+                  />
+                </td>
+              </tr>
+            )
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }

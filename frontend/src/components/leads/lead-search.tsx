@@ -1,5 +1,10 @@
+"use client";
+
+import { Input } from "@/components/ui/input";
+
 interface Props {
   value: string;
+
   onChange: (
     value: string
   ) => void;
@@ -10,12 +15,13 @@ export function LeadSearch({
   onChange,
 }: Props) {
   return (
-    <input
-      className="w-full rounded-lg border px-4 py-2"
-      placeholder="Search leads..."
+    <Input
+      placeholder="Search Leads"
       value={value}
       onChange={(e) =>
-        onChange(e.target.value)
+        onChange(
+          e.target.value
+        )
       }
     />
   );

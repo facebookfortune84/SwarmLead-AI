@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,25 +10,45 @@ import { Input } from "@/components/ui/input";
 import { useLogin } from "@/hooks/use-auth";
 
 export default function LoginPage() {
+  const router = useRouter();
+
   const [email, setEmail] =
     useState("");
 
-  const [
-    password,
-    setPassword,
-  ] = useState("");
+  const [password, setPassword] =
+    useState("");
 
-  const login =
-    useLogin();
+  const login = useLogin();
 
   async function submit() {
-    await login.mutateAsync({
-      email,
-      password,
-    });
+    try {
+      const result =
+        await login.mutateAsync({
+          email,
+          password,
+        });
 
-    window.location.href =
-      "/dashboard";
+      console.log(
+        "LOGIN SUCCESS",
+        result
+      );
+
+      console.log(
+        "TOKEN EXISTS",
+        !!localStorage.getItem(
+          "swarmlead_access_token"
+        )
+      );
+
+      router.replace(
+        "/dashboard"
+      );
+    } catch (error) {
+      console.error(
+        "LOGIN FAILURE",
+        error
+      );
+    }
   }
 
   return (
@@ -42,9 +63,7 @@ export default function LoginPage() {
             placeholder="Email"
             value={email}
             onChange={(e) =>
-              setEmail(
-                e.target.value
-              )
+              setEmail(e.target.value)
             }
           />
 

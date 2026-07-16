@@ -1,45 +1,35 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
-
-interface WorkflowStep {
-  step_name: string;
-
-  step_type: string;
-
-  input?: Record<
-    string,
-    unknown
-  >;
-}
 
 export function useCreateWorkflow() {
   const qc =
     useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      name,
-      steps,
-      company_id,
-    }: {
-      name: string;
+    mutationFn: async (
+      payload: {
+        name: string;
 
-      steps: WorkflowStep[];
-
-      company_id?: string;
-    }) => {
+        steps: {
+          step_name: string;
+          step_type: string;
+          input?: Record<
+            string,
+            unknown
+          >;
+        }[];
+      }
+    ) => {
       const response =
         await api.post(
-          "/api/workflows",
-          {
-            name,
-            steps,
-            company_id,
-          }
+          "/api/workflows/",
+          payload
         );
 
       return response.data;
@@ -47,7 +37,9 @@ export function useCreateWorkflow() {
 
     onSuccess: () => {
       qc.invalidateQueries({
-        queryKey: ["workflows"],
+        queryKey: [
+          "workflows",
+        ],
       });
     },
   });

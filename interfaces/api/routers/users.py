@@ -1,16 +1,18 @@
 """
 User management API endpoints
 """
+
+from typing import List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
-from typing import Optional, List
 from sqlalchemy.orm import Session
-from interfaces.api.auth.user_service import UserService, UserUpdate, UserResponse
+
+from core.models.user import User
+from core.persistence.session import get_db
 from interfaces.api.auth.middleware import get_current_active_user, get_current_admin_user
 from interfaces.api.auth.permissions import can_access_resource
-from core.persistence.session import get_db
-from core.models.user import User
-
+from interfaces.api.auth.user_service import UserResponse, UserService, UserUpdate
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -163,7 +165,8 @@ async def suspend_user(
     user = user_service.get_user_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    user.is_active = False
+    # mypy may report incompatible assignment to SQLAlchemy Column type; this assignment is valid at runtime
+    user.is_active = False  # type: ignore[assignment]
     db.commit()
 
     return {"message": "User suspended successfully"}
@@ -182,10 +185,8 @@ async def activate_user(
     user = user_service.get_user_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    user.is_active = True
+    # mypy may report incompatible assignment to SQLAlchemy Column type; this assignment is valid at runtime
+    user.is_active = True  # type: ignore[assignment]
     db.commit()
 
     return {"message": "User activated successfully"}
-
-
-# Made with Bob

@@ -5,26 +5,25 @@ import { useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
 import {
-  saveTokens,
   clearTokens,
+  saveTokens,
 } from "@/lib/auth";
+
+export interface LoginPayload {
+  email: string;
+
+  password: string;
+}
 
 export function useLogin() {
   return useMutation({
-    mutationFn: async ({
-      email,
-      password,
-    }: {
-      email: string;
-      password: string;
-    }) => {
+    mutationFn: async (
+      payload: LoginPayload
+    ) => {
       const response =
         await api.post(
           "/api/auth/login",
-          {
-            email,
-            password,
-          }
+          payload
         );
 
       return response.data;
@@ -42,13 +41,21 @@ export function useLogin() {
 export function useLogout() {
   return useMutation({
     mutationFn: async () => {
-      await api.post(
-        "/api/auth/logout"
-      );
+      try {
+        await api.post(
+          "/api/auth/logout"
+        );
+      } finally {
+        clearTokens();
+      }
     },
 
     onSettled: () => {
       clearTokens();
+
+      window.location.assign(
+        "/login"
+      );
     },
   });
 }

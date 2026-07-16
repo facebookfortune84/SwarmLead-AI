@@ -1,8 +1,20 @@
 "use client";
 
 import { AppShell } from "@/components/layout/app-shell";
+
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+
+import {
+  OutreachForm,
+} from "@/components/outreach/outreach-form";
+
+import {
+  CampaignForm,
+} from "@/components/outreach/campaign-form";
+
+import {
+  CampaignTemplateGrid,
+} from "@/components/outreach/campaign-template-grid";
 
 export default function OutreachPage() {
   return (
@@ -14,134 +26,77 @@ export default function OutreachPage() {
           </h1>
 
           <p className="text-muted-foreground">
-            Multi-channel campaign management,
-            AI outreach agents, workflow automation,
-            and future voice operations.
+            Campaign execution,
+            lead engagement,
+            AI-assisted prospecting,
+            and future voice automation.
           </p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
           <Card className="p-6">
             <div className="text-sm text-muted-foreground">
-              Active Campaigns
+              Campaigns
             </div>
 
             <div className="mt-2 text-3xl font-bold">
-              0
+              Live
             </div>
           </Card>
 
           <Card className="p-6">
             <div className="text-sm text-muted-foreground">
-              Emails Sent
+              Outreach
             </div>
 
             <div className="mt-2 text-3xl font-bold">
-              0
+              Ready
             </div>
           </Card>
 
           <Card className="p-6">
             <div className="text-sm text-muted-foreground">
-              Voice Calls
+              Workflow Engine
             </div>
 
             <div className="mt-2 text-3xl font-bold">
-              0
+              Online
             </div>
           </Card>
 
           <Card className="p-6">
             <div className="text-sm text-muted-foreground">
-              Replies
+              Voice
             </div>
 
             <div className="mt-2 text-3xl font-bold">
-              0
+              Planned
             </div>
           </Card>
         </div>
 
         <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="font-semibold">
-                Campaign Templates
-              </h2>
+          <h2 className="mb-4 font-semibold">
+            Campaign Templates
+          </h2>
 
-              <p className="text-sm text-muted-foreground">
-                Reusable outreach patterns.
-              </p>
-            </div>
-
-            <Button>
-              Create Campaign
-            </Button>
-          </div>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            <Card className="p-4">
-              <h3 className="font-medium">
-                Cold Outreach
-              </h3>
-
-              <p className="mt-2 text-sm text-muted-foreground">
-                Initial contact sequence.
-              </p>
-            </Card>
-
-            <Card className="p-4">
-              <h3 className="font-medium">
-                Follow-Up
-              </h3>
-
-              <p className="mt-2 text-sm text-muted-foreground">
-                Re-engagement workflow.
-              </p>
-            </Card>
-
-            <Card className="p-4">
-              <h3 className="font-medium">
-                Voice Qualification
-              </h3>
-
-              <p className="mt-2 text-sm text-muted-foreground">
-                Future AI voice workflow.
-              </p>
-            </Card>
-          </div>
+          <CampaignTemplateGrid />
         </Card>
 
         <Card className="p-6">
-          <h2 className="font-semibold">
-            AI Outreach Roadmap
+          <h2 className="mb-4 font-semibold">
+            Single Outreach
           </h2>
 
-          <div className="mt-4 space-y-3 text-sm">
-            <div className="rounded-lg border p-3">
-              ✅ Lead CRM Foundation
-            </div>
+          <OutreachForm />
+        </Card>
 
-            <div className="rounded-lg border p-3">
-              ✅ Workflow Launch Infrastructure
-            </div>
+        <Card className="p-6">
+          <h2 className="mb-4 font-semibold">
+            Campaign Broadcast
+          </h2>
 
-            <div className="rounded-lg border p-3">
-              ⏳ Campaign Engine
-            </div>
-
-            <div className="rounded-lg border p-3">
-              ⏳ AI Outreach Agents
-            </div>
-
-            <div className="rounded-lg border p-3">
-              ⏳ Voice Agents
-            </div>
-
-            <div className="rounded-lg border p-3">
-              ⏳ Human Barge-In Console
-            </div>
-          </div>
+          <CampaignForm />
         </Card>
       </div>
     </AppShell>

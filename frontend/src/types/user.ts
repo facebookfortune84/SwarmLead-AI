@@ -1,3 +1,8 @@
+export type UserRole =
+  | "user"
+  | "admin"
+  | "superadmin";
+
 export interface User {
   id: string;
 
@@ -5,7 +10,13 @@ export interface User {
 
   full_name: string;
 
-  is_active: boolean;
+  role: UserRole;
 
-  role?: string;
+  subscription_tier: string;
+
+  created_at: string;
+
+  updated_at: string;
+
+  is_active: boolean;
 }

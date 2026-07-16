@@ -11,12 +11,22 @@ import {
 } from "@/hooks/use-auth";
 
 export function UserMenu() {
-  const {
-    data,
-  } = useCurrentUser();
-
   const logout =
     useLogout();
+
+  const {
+    data,
+    isLoading,
+  } =
+    useCurrentUser();
+
+  if (isLoading) {
+    return (
+      <div className="text-sm text-muted-foreground">
+        Loading...
+      </div>
+    );
+  }
 
   if (!data) {
     return (
@@ -24,8 +34,9 @@ export function UserMenu() {
         size="sm"
         variant="outline"
         onClick={() =>
-          (window.location.href =
-            "/login")
+          window.location.assign(
+            "/login"
+          )
         }
       >
         Login
@@ -35,14 +46,35 @@ export function UserMenu() {
 
   return (
     <div className="space-y-2">
-      <div className="text-sm">
-        {data.full_name ??
-          data.email}
+      <div>
+        <div className="font-medium text-sm">
+          {data.full_name}
+        </div>
+
+        <div className="text-xs text-muted-foreground">
+          {data.email}
+        </div>
+
+        <div className="text-xs text-muted-foreground">
+          {data.role}
+        </div>
       </div>
 
       <Button
         size="sm"
         variant="outline"
+        onClick={() =>
+          window.location.assign(
+            "/profile"
+          )
+        }
+      >
+        Profile
+      </Button>
+
+      <Button
+        size="sm"
+        variant="destructive"
         onClick={() =>
           logout.mutate()
         }

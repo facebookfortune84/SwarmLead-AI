@@ -12,35 +12,35 @@ export interface WorkflowStep {
 
   step_type: string;
 
-  status: WorkflowStatus;
+  status: string;
 
-  retry_count?: number;
+  retry_count: number;
 
-  error_message?: string;
+  error_message: string | null;
 
-  started_at?: string | null;
+  started_at: string | null;
 
-  completed_at?: string | null;
+  completed_at: string | null;
 }
 
-export interface Workflow {
+export interface WorkflowDetail {
   id: string;
 
   name: string;
 
   status: WorkflowStatus;
 
-  current_step?: number;
+  current_step: number;
 
-  total_steps?: number;
+  total_steps: number;
 
-  error_message?: string | null;
+  error_message: string | null;
 
-  created_at?: string | null;
+  created_at: string | null;
 
-  updated_at?: string | null;
+  updated_at: string | null;
 
-  completed_at?: string | null;
+  completed_at: string | null;
 
-  steps?: WorkflowStep[];
+  steps: WorkflowStep[];
 }

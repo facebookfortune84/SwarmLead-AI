@@ -1,80 +1,56 @@
 "use client";
 
+import { AppShell } from "@/components/layout/app-shell";
+
 import { Card } from "@/components/ui/card";
 
-import { useWorkflows } from "@/hooks/use-workflows";
+import {
+  WorkflowCreateForm,
+} from "@/components/workflows/workflow-create-form";
 
-import { WorkflowCard } from "@/components/workflows/workflow-card";
-import { WorkflowCreateDialog } from "@/components/workflows/workflow-create-dialog";
+import {
+  WorkflowHistoryList,
+} from "@/components/workflows/workflow-history-list";
 
-import { Workflow } from "@/types/workflow";
+import {
+  WorkflowOverviewCard,
+} from "@/components/workflows/workflow-overview-card";
 
 export default function WorkflowsPage() {
-  const {
-    data = [],
-    isLoading,
-    error,
-  } = useWorkflows();
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <AppShell>
+      <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">
             Workflow Center
           </h1>
 
           <p className="text-muted-foreground">
-            Automation, orchestration,
-            outreach execution,
-            qualification pipelines,
-            and future voice routing.
+            Automation runtime,
+            orchestration,
+            execution,
+            and workflow operations.
           </p>
         </div>
 
-        <WorkflowCreateDialog />
+        <WorkflowOverviewCard />
+
+        <Card className="p-6">
+          <h2 className="mb-4 font-semibold">
+            Create Workflow
+          </h2>
+
+          <WorkflowCreateForm />
+        </Card>
+
+        <Card className="p-6">
+          <h2 className="mb-4 font-semibold">
+            Workflow History
+          </h2>
+
+          <WorkflowHistoryList />
+        </Card>
       </div>
-
-      {error ? (
-        <Card className="p-6">
-          <div className="font-medium">
-            Authentication Required
-          </div>
-
-          <div className="mt-2 text-sm text-muted-foreground">
-            Login is required before workflows
-            can be viewed or executed.
-          </div>
-        </Card>
-      ) : null}
-
-      {isLoading ? (
-        <Card className="p-6">
-          Loading workflows...
-        </Card>
-      ) : data.length === 0 ? (
-        <Card className="p-6">
-          <div className="font-medium">
-            No workflows found
-          </div>
-
-          <div className="mt-2 text-sm text-muted-foreground">
-            Create a workflow to begin
-            automation.
-          </div>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {data.map(
-            (workflow: Workflow) => (
-              <WorkflowCard
-                key={workflow.id}
-                workflow={workflow}
-              />
-            )
-          )}
-        </div>
-      )}
-    </div>
+    </AppShell>
   );
 }

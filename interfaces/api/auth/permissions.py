@@ -227,6 +227,3 @@ def filter_sensitive_data(data: dict, user_role: str) -> dict:
             del filtered[field]
 
     return filtered
-
-
-# Made with Bob

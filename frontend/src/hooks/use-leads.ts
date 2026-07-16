@@ -1,17 +1,36 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+
 import { api } from "@/lib/api";
-import { Lead } from "@/types/lead";
 
-export function useLeads() {
-  return useQuery<Lead[]>({
-    queryKey: ["leads"],
+export function useLeads(
+  limit = 100
+) {
+  return useQuery({
+    queryKey: [
+      "leads",
+      limit,
+    ],
+
     queryFn: async () => {
-      const response = await api.get("/api/leads/");
+      const response =
+        await api.get(
+          "/api/leads/",
+          {
+            params: {
+              limit,
+            },
+          }
+        );
 
-      return response.data.leads;
+      return (
+        response.data
+          ?.leads ?? []
+      );
     },
-    staleTime: 30_000,
+
+    staleTime:
+      30000,
   });
 }

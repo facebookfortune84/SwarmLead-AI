@@ -6,12 +6,14 @@ import { api } from "@/lib/api";
 
 export function useWorkflows() {
   return useQuery({
-    queryKey: ["workflows"],
+    queryKey: [
+      "workflows",
+    ],
 
     queryFn: async () => {
       const response =
         await api.get(
-          "/api/workflows"
+          "/api/workflows/"
         );
 
       return (
@@ -20,6 +22,9 @@ export function useWorkflows() {
       );
     },
 
-    retry: false,
+    staleTime: 15000,
+
+    refetchInterval:
+      10000,
   });
 }
