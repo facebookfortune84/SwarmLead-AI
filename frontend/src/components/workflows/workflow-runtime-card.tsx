@@ -10,7 +10,9 @@ import {
 
 interface WorkflowRuntime {
   id: string;
+
   name: string;
+
   status: string;
 }
 
@@ -35,12 +37,13 @@ export function WorkflowRuntimeCard({
             />
           </div>
         </div>
-        <div>
-            <Link href>
-            
-                {`/workflows/${workflow.id}`}
-                View
-            </Link>
+
+        <Link
+          href={`/workflows/${workflow.id}`}
+          className="text-sm font-medium text-primary-600 hover:underline"
+        >
+          View
+        </Link>
       </div>
     </Card>
   );

@@ -4,8 +4,12 @@ import {
   LeadTicketButton,
 } from "./lead-ticket-button";
 
+import {
+  Lead,
+} from "@/types/lead";
+
 interface Props {
-  leads: any[];
+  leads: Lead[];
 }
 
 export function LeadTable({
@@ -37,7 +41,7 @@ export function LeadTable({
         <tbody>
           {leads.map(
             (
-              lead: any
+              lead
             ) => (
               <tr
                 key={lead.id}
@@ -48,12 +52,16 @@ export function LeadTable({
                 </td>
 
                 <td className="p-4">
-                  {lead.name}
+                  {
+                    lead.name ??
+                    "-"
+                  }
                 </td>
 
                 <td className="p-4">
                   {
-                    lead.company
+                    lead.company ??
+                    "-"
                   }
                 </td>
 

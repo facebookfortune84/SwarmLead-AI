@@ -89,10 +89,10 @@ export function WorkflowDetails({
         <div className="mt-6">
           <WorkflowProgress
             currentStep={
-              data.current_step
+              data.current_step ?? 0
             }
             totalSteps={
-              data.total_steps
+              data.total_steps ?? 0
             }
           />
         </div>

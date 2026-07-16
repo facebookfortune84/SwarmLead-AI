@@ -10,10 +10,8 @@ export interface DailyOutreachMetric {
   replied: number;
 }
 
-export interface DailyOutreachResponse
-  extends Array<
-    DailyOutreachMetric
-  > {}
+export type DailyOutreachResponse =
+  DailyOutreachMetric[];
 
 export interface AnalyticsSummary {
   totalSent: number;

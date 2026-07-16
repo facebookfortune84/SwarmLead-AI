@@ -17,7 +17,9 @@ import { Button } from "@/components/ui/button";
 
 import { useLeads } from "@/hooks/use-leads";
 
-import { Lead } from "@/types/lead";
+import {
+  Lead,
+} from "@/types/lead";
 
 const PAGE_SIZE = 15;
 
@@ -46,14 +48,17 @@ export default function LeadsPage() {
     isLoading,
   } = useLeads();
 
+  const leads =
+    data as Lead[];
+
   const filteredLeads =
     useMemo(() => {
       const query =
         search.toLowerCase();
 
-      return data
+      return leads
         .filter(
-          (lead) =>
+          (lead: Lead) =>
             lead.email
               .toLowerCase()
               .includes(query) ||
@@ -68,27 +73,37 @@ export default function LeadsPage() {
               .toLowerCase()
               .includes(query)
         )
-        .sort((a, b) => {
-          if (
-            sortBy === "created"
-          ) {
+        .sort(
+          (
+            a: Lead,
+            b: Lead
+          ) => {
+            if (
+              sortBy ===
+              "created"
+            ) {
+              return (
+                new Date(
+                  b.created_at
+                ).getTime() -
+                new Date(
+                  a.created_at
+                ).getTime()
+              );
+            }
+
             return (
-              new Date(
-                b.created_at
-              ).getTime() -
-              new Date(
-                a.created_at
-              ).getTime()
+              a.name ?? ""
+            ).localeCompare(
+              b.name ?? ""
             );
           }
-
-          return (
-            a.name ?? ""
-          ).localeCompare(
-            b.name ?? ""
-          );
-        });
-    }, [data, search, sortBy]);
+        );
+    }, [
+      leads,
+      search,
+      sortBy,
+    ]);
 
   const pageCount =
     Math.max(
@@ -176,15 +191,17 @@ export default function LeadsPage() {
           <div className="rounded-xl border p-8 text-center">
             Loading leads...
           </div>
-        ) : filteredLeads.length === 0 ? (
+        ) : filteredLeads.length ===
+          0 ? (
           <div className="rounded-xl border p-8 text-center">
             <div className="text-lg font-semibold">
               No leads found
             </div>
 
             <div className="mt-1 text-sm text-muted-foreground">
-              Try adjusting your search
-              or create a new lead.
+              Try adjusting your
+              search or create a
+              new lead.
             </div>
           </div>
         ) : (
@@ -192,9 +209,6 @@ export default function LeadsPage() {
             <LeadTable
               leads={
                 paginatedLeads
-              }
-              onSelect={
-                setSelectedLead
               }
             />
 
@@ -219,7 +233,9 @@ export default function LeadsPage() {
                   }
                   onClick={() =>
                     setPage(
-                      (p) =>
+                      (
+                        p
+                      ) =>
                         p - 1
                     )
                   }
@@ -240,7 +256,9 @@ export default function LeadsPage() {
                   }
                   onClick={() =>
                     setPage(
-                      (p) =>
+                      (
+                        p
+                      ) =>
                         p + 1
                     )
                   }

@@ -1,6 +1,9 @@
 "use client";
 
-import { createElement, useState } from "react";
+import {
+  createElement,
+  useState,
+} from "react";
 
 import {
   DropdownMenu,
@@ -9,9 +12,13 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 
-import { Button } from "@/components/ui/button";
+import {
+  Button,
+} from "@/components/ui/button";
 
-import { useWorkflows } from "@/hooks/use-workflows";
+import {
+  useWorkflows,
+} from "@/hooks/use-workflows";
 
 interface Props {
   leadId: string;
@@ -25,7 +32,9 @@ interface Workflow {
 export function WorkflowLauncher({
   leadId,
 }: Props) {
-  const { data = [] } =
+  const {
+    data = [],
+  } =
     useWorkflows();
 
   const [
@@ -51,27 +60,52 @@ export function WorkflowLauncher({
 
   return createElement(
     DropdownMenu,
+
     null,
+
     createElement(
       DropdownMenuTrigger,
-      {
-        className:
-          "inline-flex items-center rounded-md border px-3 py-2 text-sm",
-      },
-      launching ? "Launching..." : "Run Workflow"
+
+      null,
+
+      createElement(
+        Button,
+
+        {
+          disabled: launching,
+          variant: "outline",
+          size: "sm",
+        },
+
+        launching ? "Launching..." : "Run Workflow"
+      )
     ),
+
     createElement(
       DropdownMenuContent,
+
       null,
-      ...data.map((workflow: Workflow) =>
-        createElement(
-          DropdownMenuItem,
-          {
-            key: workflow.id,
-            onClick: () => launch(workflow.id),
-          },
-          workflow.name
-        )
+
+      ...data.map(
+        (
+          workflow: Workflow
+        ) =>
+          createElement(
+            DropdownMenuItem,
+
+            {
+              key:
+                workflow.id,
+
+              onClick:
+                () =>
+                  launch(
+                    workflow.id
+                  ),
+            },
+
+            workflow.name
+          )
       )
     )
   );

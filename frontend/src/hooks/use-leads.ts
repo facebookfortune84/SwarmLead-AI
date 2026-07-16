@@ -4,10 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
 
+import { Lead } from "@/types/lead";
+
 export function useLeads(
   limit = 100
 ) {
-  return useQuery({
+  return useQuery<Lead[]>({
     queryKey: [
       "leads",
       limit,
@@ -27,10 +29,7 @@ export function useLeads(
       return (
         response.data
           ?.leads ?? []
-      );
+      ) as Lead[];
     },
-
-    staleTime:
-      30000,
   });
 }

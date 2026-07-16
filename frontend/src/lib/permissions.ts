@@ -3,15 +3,20 @@ import {
   UserRole,
 } from "@/types/rbac";
 
-const ROLE_MAP = {
+const ROLE_MAP: Record<
+  UserRole,
+  Permission[]
+> = {
   user: [
     Permission.READ_OWN_DATA,
     Permission.WRITE_OWN_DATA,
     Permission.DELETE_OWN_DATA,
+
     Permission.CREATE_COMPANY,
     Permission.READ_COMPANY,
     Permission.UPDATE_COMPANY,
     Permission.DELETE_COMPANY,
+
     Permission.CREATE_DEPLOYMENT,
     Permission.READ_DEPLOYMENT,
     Permission.UPDATE_DEPLOYMENT,
@@ -44,17 +49,16 @@ const ROLE_MAP = {
   superadmin:
     Object.values(
       Permission
-    ),
+    ) as Permission[],
 };
 
 export function hasPermission(
   role: UserRole,
   permission: Permission
-) {
-  return (
-    ROLE_MAP[
-      role
-    ]?.includes(permission) ??
-    false
+): boolean {
+  return ROLE_MAP[
+    role
+  ].includes(
+    permission
   );
 }

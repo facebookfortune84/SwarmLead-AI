@@ -6,15 +6,15 @@ import {
 
 import {
   Permission,
-} from "../../types/rbac";
+} from "@/types/rbac";
 
 import {
   useCurrentUser,
-} from "../../hooks/use-current-user";
+} from "@/hooks/use-current-user";
 
 import {
   hasPermission,
-} from "../../utils/permissions";
+} from "@/lib/permissions";
 
 interface Props {
   permission: Permission;
@@ -44,7 +44,7 @@ export function PermissionGate({
   if (
     !data
   ) {
-    return fallback;
+    return <>{fallback}</>;
   }
 
   if (
@@ -53,7 +53,7 @@ export function PermissionGate({
       permission
     )
   ) {
-    return fallback;
+    return <>{fallback}</>;
   }
 
   return <>{children}</>;
