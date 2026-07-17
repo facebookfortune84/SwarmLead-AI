@@ -3,10 +3,12 @@ User service for authentication and user management
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import Optional, cast
+
 import bcrypt
-from pydantic import BaseModel, EmailStr, field_validator, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
 from sqlalchemy.orm import Session
+
 from core.models.user import User
 
 
@@ -159,7 +161,7 @@ class UserService:
         if not user:
             return None
 
-        if not self.verify_password(password, user.password_hash):
+        if not self.verify_password(password, cast(str, user.password_hash)):
             return None
 
         if not user.is_active:
@@ -185,11 +187,11 @@ class UserService:
 
         # Update fields
         if user_data.full_name is not None:
-            user.full_name = user_data.full_name
+            setattr(user, "full_name", user_data.full_name)
         if user_data.email is not None:
-            user.email = user_data.email
+            setattr(user, "email", user_data.email)
 
-        user.updated_at = datetime.utcnow()
+        setattr(user, "updated_at", datetime.utcnow())
 
         self.db.commit()
         self.db.refresh(user)
@@ -211,8 +213,8 @@ class UserService:
         if not user:
             return False
 
-        user.is_active = False
-        user.updated_at = datetime.utcnow()
+        setattr(user, "is_active", False)
+        setattr(user, "updated_at", datetime.utcnow())
 
         self.db.commit()
 
@@ -234,8 +236,8 @@ class UserService:
         if not user:
             return False
 
-        user.password_hash = self.hash_password(new_password)
-        user.updated_at = datetime.utcnow()
+        setattr(user, "password_hash", self.hash_password(new_password))
+        setattr(user, "updated_at", datetime.utcnow())
 
         self.db.commit()
 

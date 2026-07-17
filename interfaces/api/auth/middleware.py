@@ -8,9 +8,9 @@ from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from .jwt_handler import decode_token, is_token_revoked
 from core.persistence.session import get_db as _get_db
 
+from .jwt_handler import decode_token, is_token_revoked
 
 security = HTTPBearer()
 
@@ -185,8 +185,9 @@ def verify_api_key_in_db(api_key: str, db) -> bool:
     Returns:
         True if valid, False otherwise
     """
-    from core.models.api_key import APIKey
     from datetime import datetime
+
+    from core.models.api_key import APIKey
 
     api_key_record = db.query(APIKey).filter(APIKey.key == api_key).first()
 

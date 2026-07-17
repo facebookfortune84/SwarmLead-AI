@@ -1,11 +1,13 @@
 """
 JWT token handling for authentication
 """
-import os
-import redis
+
 import logging
+import os
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
+import redis
 
 try:
     import jwt
@@ -16,15 +18,46 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # Configuration
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
+
+SECRET_KEY = os.getenv(
+    "JWT_SECRET_KEY",
+)
+
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "15"))
-REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
+
+ACCESS_TOKEN_EXPIRE_MINUTES = int(
+    os.getenv(
+        "ACCESS_TOKEN_EXPIRE_MINUTES",
+        "15",
+    )
+)
+
+REFRESH_TOKEN_EXPIRE_DAYS = int(
+    os.getenv(
+        "REFRESH_TOKEN_EXPIRE_DAYS",
+        "7",
+    )
+)
+
+# Debug startup logging
+
+logger.warning(
+    "JWT CONFIG LOADED | SECRET_PREFIX=%s | ACCESS_MINUTES=%s | REFRESH_DAYS=%s",
+    SECRET_KEY[:10] if SECRET_KEY else "NONE",
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    REFRESH_TOKEN_EXPIRE_DAYS,
+)
 
 # Redis setup
+
 redis_client = redis.Redis(
     host=os.getenv("REDIS_HOST", "localhost"),
-    port=int(os.getenv("REDIS_PORT", 6379)),
+    port=int(
+        os.getenv(
+            "REDIS_PORT",
+            "6379",
+        )
+    ),
     db=0,
     decode_responses=True,
 )
@@ -72,13 +105,20 @@ def verify_token(token: str) -> bool:
         return False
 
 
-def decode_token(token: str) -> Optional[Dict[str, Any]]:
-    """
-    Decode and return token payload
-    """
+def decode_token(token: str):
     try:
-        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    except InvalidTokenError:
+        return jwt.decode(
+            token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM],
+        )
+
+    except InvalidTokenError as e:
+        logger.exception(
+            "JWT decode failed: %s",
+            e,
+        )
+
         return None
 
 

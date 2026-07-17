@@ -1,6 +1,10 @@
 "use client";
 
 import {
+  ReactQueryDevtools,
+} from "@tanstack/react-query-devtools";
+
+import {
   QueryClient,
   QueryClientProvider,
 } from "@tanstack/react-query";
@@ -16,7 +20,7 @@ interface Props {
 export function QueryProvider({
   children,
 }: Props) {
-  const [client] =
+  const [queryClient] =
     useState(
       () =>
         new QueryClient({
@@ -36,9 +40,13 @@ export function QueryProvider({
 
   return (
     <QueryClientProvider
-      client={client}
+      client={queryClient}
     >
       {children}
+
+      <ReactQueryDevtools
+        initialIsOpen={false}
+      />
     </QueryClientProvider>
   );
 }

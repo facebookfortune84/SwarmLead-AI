@@ -15,7 +15,7 @@ export function useCurrentUser() {
     queryFn: async () => {
       const response =
         await api.get(
-          "/api/users/me"
+          "/api/auth/me"
         );
 
       return response.data;
@@ -24,7 +24,7 @@ export function useCurrentUser() {
     staleTime:
       1000 * 60 * 5,
 
-    retry: 1,
+    retry: false,
 
     refetchOnWindowFocus:
       false,

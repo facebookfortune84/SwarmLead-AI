@@ -1,6 +1,8 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Text, DateTime, Boolean, ForeignKey, Integer, Float
+
+from sqlalchemy import Boolean, Column, DateTime, String
+
 from core.persistence.base import Base
 
 

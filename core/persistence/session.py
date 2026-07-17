@@ -22,7 +22,7 @@ def get_db_url() -> str:
     Falls back to SQLite.
     """
 
-    url = os.getenv("SWARM_DB_URL")
+    url = os.getenv("SWARM_DB_URL") or os.getenv("DATABASE_URL")
 
     if url:
         return url
@@ -45,6 +45,8 @@ def get_db_url() -> str:
 
 
 DATABASE_URL = get_db_url()
+
+print("DATABASE_URL:", DATABASE_URL)
 
 engine = create_engine(
     DATABASE_URL,

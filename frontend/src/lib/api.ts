@@ -83,6 +83,12 @@ api.interceptors.response.use(
     const status =
       error?.response
         ?.status;
+    
+    console.log(
+      "API ERROR",
+      status,
+      originalRequest?.url
+    );
 
     if (
       status !== 401 ||

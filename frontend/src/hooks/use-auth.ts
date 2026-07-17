@@ -1,6 +1,9 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
 
@@ -11,11 +14,13 @@ import {
 
 export interface LoginPayload {
   email: string;
-
   password: string;
 }
 
 export function useLogin() {
+  const queryClient =
+    useQueryClient();
+
   return useMutation({
     mutationFn: async (
       payload: LoginPayload
@@ -29,16 +34,37 @@ export function useLogin() {
       return response.data;
     },
 
-    onSuccess: (data) => {
+    onSuccess: async (
+      data
+    ) => {
       saveTokens(
         data.access_token,
         data.refresh_token
+      );
+
+      await queryClient.invalidateQueries(
+        {
+          queryKey: [
+            "current-user",
+          ],
+        }
+      );
+
+      await queryClient.refetchQueries(
+        {
+          queryKey: [
+            "current-user",
+          ],
+        }
       );
     },
   });
 }
 
 export function useLogout() {
+  const queryClient =
+    useQueryClient();
+
   return useMutation({
     mutationFn: async () => {
       try {
@@ -50,8 +76,10 @@ export function useLogout() {
       }
     },
 
-    onSettled: () => {
+    onSettled: async () => {
       clearTokens();
+
+      queryClient.clear();
 
       window.location.assign(
         "/login"
