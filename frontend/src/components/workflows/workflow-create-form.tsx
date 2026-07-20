@@ -15,6 +15,8 @@ import {
 interface FormValues {
   name: string;
 
+  company_id: string;
+
   steps: {
     step_name: string;
     step_type: string;
@@ -30,10 +32,13 @@ export function WorkflowCreateForm() {
     control,
     handleSubmit,
     reset,
+    formState: { errors },
   } =
     useForm<FormValues>({
       defaultValues: {
         name: "",
+
+        company_id: "",
 
         steps: [
           {
@@ -60,11 +65,56 @@ export function WorkflowCreateForm() {
   async function submit(
     values: FormValues
   ) {
-    await createWorkflow.mutateAsync(
-      values
-    );
+    const name =
+      values.name.trim();
 
-    reset();
+    const companyId =
+      values.company_id.trim();
+
+    if (!name) {
+      alert(
+        "Workflow name is required."
+      );
+      return;
+    }
+
+    if (!companyId) {
+      alert(
+        "Tenant ID is required."
+      );
+      return;
+    }
+
+    try {
+      // attach tenant id to each step's `input` to match createWorkflow's expected shape
+      const stepsWithInput = values.steps.map((s) => ({
+        ...s,
+        input: { company_id: companyId },
+      }));
+
+      await createWorkflow.mutateAsync({
+        name,
+        steps: stepsWithInput,
+      });
+
+      reset({
+        name: "",
+        company_id: "",
+        steps: [
+          {
+            step_name:
+              "Start",
+            step_type:
+              "notification",
+          },
+        ],
+      });
+    } catch (error) {
+      console.error(
+        "Failed to create workflow",
+        error
+      );
+    }
   }
 
   return (
@@ -74,12 +124,43 @@ export function WorkflowCreateForm() {
       )}
       className="space-y-4"
     >
-      <Input
-        placeholder="Workflow Name"
-        {...register(
-          "name"
+      <div>
+        <Input
+          placeholder="Workflow Name"
+          {...register(
+            "name",
+            {
+              required: true,
+            }
+          )}
+        />
+
+        {errors.name && (
+          <p className="mt-1 text-sm text-red-500">
+            Workflow name is
+            required
+          </p>
         )}
-      />
+      </div>
+
+      <div>
+        <Input
+          placeholder="Tenant ID (example: TEN-57253941)"
+          {...register(
+            "company_id",
+            {
+              required: true,
+            }
+          )}
+        />
+
+        {errors.company_id && (
+          <p className="mt-1 text-sm text-red-500">
+            Tenant ID is
+            required
+          </p>
+        )}
+      </div>
 
       {fields.map(
         (
@@ -137,8 +218,13 @@ export function WorkflowCreateForm() {
 
       <Button
         type="submit"
+        disabled={
+          createWorkflow.isPending
+        }
       >
-        Create Workflow
+        {createWorkflow.isPending
+          ? "Creating Workflow..."
+          : "Create Workflow"}
       </Button>
     </form>
   );

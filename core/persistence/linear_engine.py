@@ -15,6 +15,7 @@ import logging
 from sqlalchemy.orm import Session
 
 from core.models.lead import Lead
+from core.models.ticket import Ticket
 from core.models.usage import UsageEvent
 from core.persistence.session import SessionLocal
 
@@ -92,6 +93,88 @@ class LinearEngine:
             "company": row.company,
             "status": row.status,
             "metadata": row.metadata_json,
+            "created_at": (row.created_at.isoformat() if row.created_at else None),
+        }
+
+    # =====================================================
+    # TICKETS
+    # =====================================================
+
+    def create_ticket(
+        self,
+        lead_id: str,
+        department: str,
+        title: str,
+        instruction: str,
+    ) -> str:
+
+        ticket = Ticket(
+            project_id=lead_id,
+            department=department,
+            title=title,
+            instruction=instruction,
+            status="OPEN",
+        )
+
+        self.db.add(ticket)
+
+        self.db.commit()
+
+        self.db.refresh(ticket)
+
+        logger.info(
+            "Created ticket %s for lead %s",
+            ticket.id,
+            lead_id,
+        )
+
+        return str(ticket.id)
+
+    def list_tickets(
+        self,
+        limit: int = 100,
+    ):
+
+        rows = self.db.query(Ticket).order_by(Ticket.created_at.desc()).limit(limit).all()
+
+        return [
+            {
+                "id": r.id,
+                "project_id": r.project_id,
+                "department": r.department,
+                "title": r.title,
+                "instruction": r.instruction,
+                "status": r.status,
+                "priority": r.priority,
+                "assignee_id": r.assignee_id,
+                "reporter_id": r.reporter_id,
+                "due_date": (r.due_date.isoformat() if r.due_date else None),
+                "created_at": (r.created_at.isoformat() if r.created_at else None),
+            }
+            for r in rows
+        ]
+
+    def get_ticket(
+        self,
+        ticket_id: str,
+    ):
+
+        row = self.db.query(Ticket).filter(Ticket.id == ticket_id).first()
+
+        if not row:
+            return None
+
+        return {
+            "id": row.id,
+            "project_id": row.project_id,
+            "department": row.department,
+            "title": row.title,
+            "instruction": row.instruction,
+            "status": row.status,
+            "priority": row.priority,
+            "assignee_id": row.assignee_id,
+            "reporter_id": row.reporter_id,
+            "due_date": (row.due_date.isoformat() if row.due_date else None),
             "created_at": (row.created_at.isoformat() if row.created_at else None),
         }
 

@@ -22,6 +22,11 @@ let refreshPromise:
   | Promise<string>
   | null = null;
 
+console.log(
+  "API_URL",
+  API_URL
+);
+
 async function refreshAccessToken() {
   const refreshToken =
     getRefreshToken();
@@ -61,6 +66,12 @@ async function refreshAccessToken() {
 
 api.interceptors.request.use(
   (config) => {
+    console.log(
+      "REQUEST",
+      config.baseURL,
+      config.url
+    );
+
     const token =
       getAccessToken();
 

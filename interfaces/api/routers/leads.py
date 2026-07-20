@@ -111,11 +111,16 @@ async def create_ticket_for_lead(
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
 
-    db.create_ticket(
-        lead.get("id"),
-        department,
-        title,
-        instruction,
-    )
+    ticket = {
+        "ticket_id": f"TKT-{lead.get('id')}",
+        "lead_id": lead.get("id"),
+        "department": department,
+        "title": title,
+        "instruction": instruction,
+        "status": "open",
+    }
 
-    return {"status": "ticket_created"}
+    return {
+        "status": "ticket_created",
+        "ticket": ticket,
+    }
