@@ -21,7 +21,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U swarm -d swarm"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   redis:
     image: redis:7-alpine
@@ -39,10 +39,11 @@ services:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   api:
-    build: .
+    build:
+      context: .
 
     container_name: swarmlead-api
 
@@ -57,6 +58,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
       redis:
         condition: service_healthy
 
