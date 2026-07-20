@@ -1,7 +1,6 @@
-from core.config import *
+from sqlalchemy import MetaData, create_engine, select
 
-from sqlalchemy import create_engine, MetaData, Table, select
-from sqlalchemy.orm import sessionmaker
+from core.config import *
 
 # ------------------------------------------------------------------
 # SOURCE
@@ -71,7 +70,7 @@ for table_name in TABLE_ORDER:
         rows = source.execute(select(sqlite_table)).mappings().all()
 
     if not rows:
-        print(f"  No rows found")
+        print("  No rows found")
         continue
 
     inserted = 0

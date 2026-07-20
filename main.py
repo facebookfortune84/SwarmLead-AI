@@ -1,7 +1,10 @@
-from core.config import *
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from core.config import *
+from core.persistence.session import init_db
 from interfaces.api.routers.auth import router as auth_router
 from interfaces.api.routers.crm import router as crm_router
 from interfaces.api.routers.leads import router as leads_router
@@ -14,15 +17,29 @@ from interfaces.api.routers.usage import router as usage_router
 from interfaces.api.routers.users import router as users_router
 from interfaces.api.routers.workflows import router as workflows_router
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("Initializing database schema...")
+
+    init_db()
+
+    print("Database schema initialized.")
+
+    yield
+
+
 app = FastAPI(
     title="SwarmLead-AI",
     version="3.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
+        "http://127.0.0.1:3000",
     ],
     allow_credentials=True,
     allow_methods=["*"],

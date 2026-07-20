@@ -1,17 +1,17 @@
-from .user import User
 from .api_key import APIKey
-from .lead import Lead
-from .usage import UsageEvent
 from .deployment import Deployment
-from .tenant import CompanyTenant
-from .notification import Notification
+from .lead import Lead
 from .message import Message
 from .message_thread import MessageThread
+from .notification import Notification
+from .tenant import CompanyTenant
+from .ticket import Ticket
+from .ticket_comment import TicketComment
+from .ticket_history import TicketHistory
+from .usage import UsageEvent
+from .user import User
 from .workflow import Workflow
 from .workflow_step import WorkflowStep
-from .ticket import Ticket
-from .ticket_history import TicketHistory
-from .ticket_comment import TicketComment
 
 __all__ = [
     "User",
