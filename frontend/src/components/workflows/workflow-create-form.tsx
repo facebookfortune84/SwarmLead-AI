@@ -94,6 +94,7 @@ export function WorkflowCreateForm() {
 
       await createWorkflow.mutateAsync({
         name,
+        company_id: companyId,
         steps: stepsWithInput,
       });
 

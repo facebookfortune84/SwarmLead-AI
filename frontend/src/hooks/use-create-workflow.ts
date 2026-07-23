@@ -7,29 +7,29 @@ import {
 
 import { api } from "@/lib/api";
 
+export interface WorkflowStepPayload {
+  step_name: string;
+  step_type: string;
+  input?: Record<string, unknown>;
+}
+
+export interface CreateWorkflowPayload {
+  name: string;
+  company_id: string;
+  steps: WorkflowStepPayload[];
+}
+
 export function useCreateWorkflow() {
-  const qc =
-    useQueryClient();
+  const qc = useQueryClient();
 
   return useMutation({
     mutationFn: async (
-      payload: {
-        name: string;
-
-        steps: {
-          step_name: string;
-          step_type: string;
-          input?: Record<
-            string,
-            unknown
-          >;
-        }[];
-      }
+      payload: CreateWorkflowPayload,
     ) => {
       const response =
         await api.post(
           "/api/workflows/",
-          payload
+          payload,
         );
 
       return response.data;
@@ -37,9 +37,7 @@ export function useCreateWorkflow() {
 
     onSuccess: () => {
       qc.invalidateQueries({
-        queryKey: [
-          "workflows",
-        ],
+        queryKey: ["workflows"],
       });
     },
   });
