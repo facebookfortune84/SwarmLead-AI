@@ -2,13 +2,15 @@
 Authentication API endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
 from core.persistence.session import get_db
 from interfaces.api.auth.jwt_handler import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    REFRESH_TOKEN_EXPIRE_DAYS,
     create_access_token,
     create_refresh_token,
     refresh_access_token,
@@ -18,6 +20,34 @@ from interfaces.api.auth.user_service import UserCreate, UserResponse, UserServi
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 security = HTTPBearer()
+
+
+def _set_auth_cookies(
+    response: Optional[Response],
+    access_token: str,
+    refresh_token: str,
+) -> None:
+    if response is None:
+        return
+    """Set httpOnly secure cookies for token transmission."""
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 86400,
+        path="/api/auth/refresh",
+    )
 
 
 class LoginRequest(BaseModel):
@@ -61,40 +91,41 @@ class PasswordResetConfirm(BaseModel):
     token: str
     new_password: str
 
-
 @router.post("/register", response_model=LoginResponse, status_code=status.HTTP_201_CREATED)
-async def register(user_data: UserCreate, db: Session = Depends(get_db)):
-    """
-    Register a new user
-    """
+async def register(
+    user_data: UserCreate,
+    db: Session = Depends(get_db),
+    response: Response = None,
+):
     user_service = UserService(db)
-    # Check if user already exists
     existing_user = user_service.get_user_by_email(user_data.email)
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered"
         )
 
-    # Create user
     user = user_service.create_user(user_data)
 
-    # Generate tokens
     token_data = {"sub": user.id, "email": user.email, "role": user.role}
     access_token = create_access_token(token_data)
     refresh_token = create_refresh_token(token_data)
 
+    _set_auth_cookies(response, access_token, refresh_token)
+
     return LoginResponse(
-        access_token=access_token, refresh_token=refresh_token, user=user_service.to_response(user)
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=user_service.to_response(user),
     )
 
 
 @router.post("/login", response_model=LoginResponse)
-async def login(credentials: LoginRequest, db: Session = Depends(get_db)):
-    """
-    Login with email and password
-    """
+async def login(
+    credentials: LoginRequest,
+    db: Session = Depends(get_db),
+    response: Response = None,
+):
     user_service = UserService(db)
-    # Authenticate user
     user = user_service.authenticate_user(credentials.email, credentials.password)
 
     if not user:
@@ -104,10 +135,11 @@ async def login(credentials: LoginRequest, db: Session = Depends(get_db)):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Generate tokens
     token_data = {"sub": user.id, "email": user.email, "role": user.role}
     access_token = create_access_token(token_data)
     refresh_token_str = create_refresh_token(token_data)
+
+    _set_auth_cookies(response, access_token, refresh_token_str)
 
     return LoginResponse(
         access_token=access_token,

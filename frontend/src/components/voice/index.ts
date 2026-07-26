@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, MicOff, Volume2, X, Settings, ChevronDown } from "lucide-react";
+import { Mic, MicOff, Volume2, X } from "lucide-react";
 import { orbState } from "@/design-system/animations/premiumVariants";
 
 interface VoiceOrbProps {
@@ -36,12 +36,11 @@ export function VoiceOrb({ state, onClick, className = "" }: VoiceOrbProps) {
         )}
         {state === "speaking" && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 rounded-full bg-gradient-to-br from-gold-400/30 to-gold-600/30"
-            animate={{ scale: [1, 1.15, 1] }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: [1, 1.15, 1] }}
+            exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.5, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute inset-0 rounded-full bg-gradient-to-br from-gold-400/30 to-gold-600/30"
           />
         )}
       </AnimatePresence>
@@ -134,7 +133,7 @@ export function VoiceControls({
         className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
         aria-label={muted ? "Unmute" : "Mute"}
       >
-        {muted ? <Volume2 className="w-5 h-5 text-gray-600" /> : <Volume2 className="w-5 h-5 text-gray-600" />}
+        {muted ? <MicOff className="w-5 h-5 text-gray-600" /> : <Volume2 className="w-5 h-5 text-gray-600" />}
       </motion.button>
       
       <div className="flex items-center gap-2">

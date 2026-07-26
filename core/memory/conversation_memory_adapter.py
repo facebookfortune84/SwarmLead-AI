@@ -7,7 +7,7 @@ Provides session-scoped storage with audio metadata.
 
 import json
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from core.memory.long_term_memory.long_term_memory import LongTermMemory
@@ -174,8 +174,5 @@ class ConversationMemoryAdapter:
         # In production, would implement proper deletion with audit trail
         return True
 
-
-# Import datetime for type hints
-from datetime import datetime, timezone
 
 __all__ = ["ConversationMemoryAdapter"]

@@ -274,48 +274,44 @@ class ElevenLabsClient:
     # Conversation Management
     # ============================================================
     
-    def create_conversation(self, agent_config: Dict[str, Any]) -> str:
+    async def create_conversation(self, agent_config: Dict[str, Any]) -> str:
         """Create persistent conversation for session resumption."""
-        # POST /v1/conversations
-        # Returns conversation_id
-        pass
+        if not self.api_key:
+            raise RuntimeError("ELEVENLABS_API_KEY not configured")
+        session = await self._get_session()
+        url = f"{self.base_url}/conversations"
+        async with session.post(url, json=agent_config) as resp:
+            if resp.status != 200:
+                raise RuntimeError(f"ElevenLabs conversation creation error: {resp.status}")
+            data = await resp.json()
+            return data.get("conversation_id", "")
     
-    def get_conversation(self, conversation_id: str) -> Dict[str, Any]:
+    async def get_conversation(self, conversation_id: str) -> Dict[str, Any]:
         """Get conversation history."""
-        pass
+        if not self.api_key:
+            raise RuntimeError("ELEVENLABS_API_KEY not configured")
+        session = await self._get_session()
+        url = f"{self.base_url}/conversations/{conversation_id}"
+        async with session.get(url) as resp:
+            if resp.status != 200:
+                raise RuntimeError(f"ElevenLabs conversation fetch error: {resp.status}")
+            return await resp.json()
     
-    def delete_conversation(self, conversation_id: str):
+    async def delete_conversation(self, conversation_id: str):
         """Delete conversation."""
-        pass
+        if not self.api_key:
+            return
+        session = await self._get_session()
+        url = f"{self.base_url}/conversations/{conversation_id}"
+        async with session.delete(url) as resp:
+            if resp.status != 200:
+                logger.warning(f"Failed to delete conversation {conversation_id}: {resp.status}")
     
     async def __aenter__(self):
         return self
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.close()
-    
-    async def close(self):
-        """Close client and cleanup resources."""
-        # Cancel active streams
-        for stream_id, response in self._active_streams.items():
-            try:
-                await response.close()
-            except Exception:
-                pass
-        self._active_streams.clear()
-        
-        if self._session and not self._session.closed:
-            await self._session.close()
 
 
-@dataclass
-class STTResult:
-    """Speech-to-Text result."""
-    text: str
-    confidence: float
-    language: str
-    duration_ms: float
-
-
-# Export
 __all__ = ["ElevenLabsClient", "STTResult"]

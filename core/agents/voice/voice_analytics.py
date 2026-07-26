@@ -7,7 +7,6 @@ Tracks and analyzes voice session metrics for optimization.
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import List, Dict, Any
 from collections import defaultdict
 
 from core.monitoring.metrics_collector import (
@@ -67,7 +66,7 @@ class VoiceAnalytics:
         session_id: str,
         conversion: bool = False,
         conversion_value: float = 0.0
-    ) -> VoiceSessionMetrics:
+    ) -> Optional[VoiceSessionMetrics]:
         """End session and record final metrics."""
         if session_id not in self._sessions:
             return None
@@ -78,15 +77,7 @@ class VoiceAnalytics:
         session.conversion = conversion
         session.conversion_value = conversion_value
         
-        # Record to metrics
-        record_voice_session(
-            session_id=session_id,
-            duration_seconds=session.duration_seconds,
-            turns=session.turn_count,
-            barge_ins=session.barge_in_count,
-            converted=conversion,
-            value=conversion_value
-        )
+        record_voice_session(status="completed")
         
         return session
     

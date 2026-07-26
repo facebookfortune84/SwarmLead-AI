@@ -203,12 +203,12 @@ class VoiceSessionManager(Scheduler):
     
     async def _cleanup_loop(self, interval: int = 60):
         """Periodic cleanup of expired sessions."""
-        while True:
+        while self._running:
             try:
                 await self._cleanup_expired()
             except Exception as e:
                 logger.error(f"Cleanup loop error: {e}")
-            await asyncio.sleep(60)
+            await asyncio.sleep(interval)
     
     async def _cleanup_expired(self) -> int:
         """Remove expired sessions."""
@@ -223,8 +223,9 @@ class VoiceSessionManager(Scheduler):
             session = self._sessions[sid]
             session.status = VoiceSessionStatus.EXPIRED
             logger.info(f"Expired session: {sid}")
+            count += 1
         
-        return 0  # Don't delete, keep for analytics
+        return count
 
 
 # Export

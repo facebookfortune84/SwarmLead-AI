@@ -1,15 +1,16 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { VoiceOrb, VoiceWaveform } from "@/components/voice";
-import { ArrowRight, CheckCircle, Sparkles, Target, Zap, Shield, Users, BarChart3 } from "lucide-react";
+import { Mic, X, Sparkles, Zap, Shield, Target, BarChart3, Users, ArrowRight } from "lucide-react";
 
 interface VoiceLandingAgentProps {
   sessionId?: string;
   onSessionStart?: (sessionId: string) => void;
 }
 
-export function VoiceLandingAgent({ sessionId, onSessionStart }: VoiceLandingAgentProps) {
+export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
   const [state, setState] = useState<"idle" | "listening" | "speaking" | "thinking">("idle");
   const [showAgent, setShowAgent] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -140,11 +141,11 @@ export function VoiceLandingAgent({ sessionId, onSessionStart }: VoiceLandingAge
         {/* Quick Actions */}
         <div className="p-4 border-b border-gray-100">
           <div className="grid grid-cols-2 gap-2">
-            <button className="p-3 text-left bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left">
+            <button className="p-3 text-left bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
               <p className="font-medium text-gray-900">Qualify leads</p>
               <p className="text-sm text-gray-500">Find qualified prospects</p>
             </button>
-            <button className="p-3 text-left bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left">
+            <button className="p-3 text-left bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
               <p className="font-medium text-gray-900">Business launch</p>
               <p className="text-sm text-gray-500">Start your company</p>
             </button>
@@ -224,7 +225,7 @@ export function VoiceGreeting({
 
 export function FeatureShowcase() {
   const features = [
-    { icon: Voice, title: "Voice-First", desc: "Natural conversations with AI agents" },
+    { icon: Mic, title: "Voice-First", desc: "Natural conversations with AI agents" },
     { icon: Zap, title: "Instant Launch", desc: "Business live in minutes, not months" },
     { icon: Shield, title: "Constitutional AI", desc: "Built-in governance & compliance" },
     { icon: Target, title: "Precision Targeting", desc: "AI-powered lead qualification" },
@@ -249,7 +250,7 @@ export function FeatureShowcase() {
         </p>
       </motion.div>
 
-      <div className="grid md:grid-2 lg:grid-3 gap-8">
+      <div className="grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {features.map((feature, i) => (
           <motion.div
             key={feature.title}
@@ -261,7 +262,7 @@ export function FeatureShowcase() {
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-700 to-primary-900 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
               <feature.icon className="w-7 h-7 text-white" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-300 mb-2">{feature.title}</h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
             <p className="text-gray-600 leading-relaxed">{feature.desc}</p>
           </motion.div>
         ))}
