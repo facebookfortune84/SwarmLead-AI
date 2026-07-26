@@ -72,3 +72,4 @@ assets/raw/*.bak
 # OPTIONAL (toggle ON later)
 # ------------------------------
 # asset_processor/output/
+.aider*
