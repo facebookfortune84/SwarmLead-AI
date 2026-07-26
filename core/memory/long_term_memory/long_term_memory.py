@@ -170,3 +170,11 @@ class LongTermMemory:
                 results.append(record)
 
         return results
+
+    def query(
+        self,
+        query: str,
+        top_k: int = 10,
+    ) -> List[Dict[str, Any]]:
+        """Query memories by text search."""
+        return self.search_text(query)[:top_k]

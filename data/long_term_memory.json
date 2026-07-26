@@ -2642,5 +2642,301 @@
       }
     },
     "created_at": "2026-07-14T01:01:47.833016+00:00"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T16:17:33.144974+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T16:18:05.825913+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T16:41:15.082519+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T16:44:15.691719+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T16:55:16.262288+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T16:59:35.413444+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T17:10:30.415767+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T17:17:32.351693+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T17:23:47.063317+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T17:27:14.116376+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T17:33:29.947801+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T17:36:35.710737+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T17:38:22.392691+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T17:39:17.170494+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T17:46:16.836697+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T18:03:05.089515+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T18:05:25.409145+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T18:49:07.040123+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T18:55:51.248760+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T18:56:41.221806+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T19:05:23.836481+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T19:36:20.488810+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T20:48:57.633293+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T20:49:21.221995+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T20:53:54.934508+00:00",
+    "type": "general"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T21:01:58.966354+00:00",
+    "type": "general"
+  },
+  {
+    "type": "feedback",
+    "content": "Campaign feedback recorded",
+    "score": 0.8,
+    "campaign_id": null,
+    "archetypes": {
+      "planner": 1.0,
+      "researcher": 1.0
+    },
+    "metadata": {
+      "strategy": {
+        "angles": [
+          "angle1"
+        ]
+      },
+      "outreach": {
+        "messages": [
+          "msg1"
+        ]
+      }
+    },
+    "created_at": "2026-07-26T21:06:14.860449+00:00"
+  },
+  {
+    "type": "feedback",
+    "content": "Campaign feedback recorded",
+    "score": 0.8,
+    "campaign_id": null,
+    "archetypes": {
+      "architect": 1.0,
+      "planner": 1.0
+    },
+    "metadata": {
+      "strategy": {},
+      "outreach": {}
+    },
+    "created_at": "2026-07-26T21:06:14.916449+00:00"
+  },
+  {
+    "type": "feedback",
+    "content": "Campaign feedback recorded",
+    "score": 0.8,
+    "campaign_id": null,
+    "archetypes": {
+      "architect": 1.0,
+      "planner": 1.0
+    },
+    "metadata": {
+      "strategy": {
+        "angles": [
+          "a"
+        ]
+      },
+      "outreach": {}
+    },
+    "created_at": "2026-07-26T21:06:14.972454+00:00"
+  },
+  {
+    "type": "feedback",
+    "content": "Campaign feedback recorded",
+    "score": 0.8,
+    "campaign_id": null,
+    "archetypes": {
+      "planner": 1.0,
+      "researcher": 1.0
+    },
+    "metadata": {
+      "strategy": {
+        "angles": [
+          "a"
+        ]
+      },
+      "outreach": {
+        "messages": [
+          "m"
+        ]
+      }
+    },
+    "created_at": "2026-07-26T21:06:15.057450+00:00"
+  },
+  {
+    "key": "tenant:tenant_123:memory:test",
+    "content": "test content",
+    "tenant_id": "tenant_123",
+    "namespace": "tenant:tenant_123:memory",
+    "created_at": "2026-07-26T21:06:15.262453+00:00",
+    "type": "general"
   }
 ]
