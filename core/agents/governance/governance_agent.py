@@ -301,9 +301,10 @@ class GovernanceAgent:
         self.triggers = TriggerEvaluator()
         self.monetary_rules = None  # Set by PaymentService
         
-        # Load default agent identities for domain autonomy checks
+        # Load default identities if registry is empty
         from core.auth.agent_identity import AgentIdentityRegistry, DEFAULT_AGENT_CONFIG
-        AgentIdentityRegistry.load_from_config(DEFAULT_AGENT_CONFIG)
+        if not AgentIdentityRegistry._identities:
+            AgentIdentityRegistry.load_from_config(DEFAULT_AGENT_CONFIG)
     
     def pre_check(self, action: AgentAction) -> "ComplianceResult":
         """Pre-execution compliance check."""
@@ -345,3 +346,6 @@ class GovernanceAgent:
         """Register monetary rules engine."""
         self.monetary_rules = rules_engine
         self.constitution.monetary_rules = rules_engine
+
+
+governance_agent = GovernanceAgent()

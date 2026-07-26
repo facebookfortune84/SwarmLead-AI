@@ -111,6 +111,11 @@ class Scheduler:
             task.next_run = datetime.utcnow()
         
         self.tasks[task_id] = task
+
+        # Immediately execute tasks with no delay
+        if not cron_expression and not run_at and not interval_seconds:
+            asyncio.ensure_future(self._execute_task(task))
+
         return task_id
     
     def cancel_task(self, task_id: str) -> bool:
@@ -235,10 +240,11 @@ class Scheduler:
         task.run_count += 1
         
         try:
+            ctx = {"task_id": task.task_id, "name": task.name}
             if asyncio.iscoroutinefunction(task.handler):
-                await task.handler(**task.context)
+                await task.handler(task.context, ctx)
             else:
-                task.handler(**task.context)
+                task.handler(task.context, ctx)
             
             task.status = TaskStatus.COMPLETED
         except Exception as e:

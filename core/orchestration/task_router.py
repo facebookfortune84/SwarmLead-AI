@@ -33,7 +33,7 @@ class TaskRouter:
         """Register a task route to an agent."""
         if task_name in self.routes:
             raise ValueError(f"Route {task_name} already registered to {self.routes[task_name]}")
-        self.routes[task_name] = task_name
+        self.routes[task_name] = agent_name
     
     def unregister_route(self, task_name: str) -> bool:
         """Unregister a task route."""
@@ -77,14 +77,21 @@ class TaskRouter:
     
     def _domain_allowed(self, agent_name: str, domain: str) -> bool:
         """Check if agent is authorized for domain per §5."""
-        config = self.domain_config.get(agent_name, {})
-        allowed_domains = config.get("domains", [])
-        
-        # Wildcard = all domains (Governance Agent only)
-        if "*" in allowed_domains:
-            return True
-        
-        return domain in allowed_domains
+        identity = AgentIdentityRegistry.get(agent_name)
+        if not identity:
+            return False
+        domain_map = {
+            "product_code": AgentDomain.PRODUCT_CODE,
+            "security_secrets": AgentDomain.SECURITY_SECRETS,
+            "financial": AgentDomain.FINANCIAL,
+            "legal_contracts": AgentDomain.LEGAL_CONTRACTS,
+            "external_comms": AgentDomain.EXTERNAL_COMMS,
+            "simulation": AgentDomain.SIMULATION,
+        }
+        required = domain_map.get(domain)
+        if not required:
+            return False
+        return identity.has_domain(required)
     
     async def route(
         self,
@@ -141,7 +148,7 @@ class TaskRouter:
         """Get default agent for domain."""
         for agent, config in self.domain_config.items():
             if domain in config.get("domains", []):
-                return config.get("default")
+                return agent
         return None
     
     def get_agent_domains(self, agent_name: str) -> List[str]:
