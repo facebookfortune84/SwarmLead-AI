@@ -190,15 +190,68 @@ async def test_process_voice_input_failed_execution(voice_agent):
 
 
 @pytest.mark.asyncio
-async def test_handle_interruption_failed_stt(voice_agent, mock_elevenlabs):
+async def test_handle_interruption_failed_stt_degradation(voice_agent, mock_elevenlabs):
     mock_elevenlabs.speech_to_text.side_effect = RuntimeError("STT failed")
 
-    with pytest.raises(RuntimeError):
-        async for _ in voice_agent.handle_interruption(
-            session_id="s1",
-            interruption_audio=b"data"
-        ):
-            pass
+    chunks = []
+    async for chunk in voice_agent.handle_interruption(
+        session_id="s1",
+        interruption_audio=b"data"
+    ):
+        chunks.append(chunk)
+
+    assert len(chunks) == 2
+    voice_agent.execute.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_text_to_speech_success(voice_agent, mock_elevenlabs):
+    mock_elevenlabs.text_to_speech_bytes = AsyncMock(return_value=b"audio_data")
+
+    result = await voice_agent.text_to_speech("Hello, world!")
+    assert result == b"audio_data"
+    mock_elevenlabs.text_to_speech_bytes.assert_awaited_once_with("Hello, world!")
+
+
+@pytest.mark.asyncio
+async def test_text_to_speech_failure_degradation(voice_agent, mock_elevenlabs):
+    mock_elevenlabs.text_to_speech_bytes = AsyncMock(side_effect=RuntimeError("TTS failed"))
+
+    result = await voice_agent.text_to_speech("Hello, world!")
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_process_voice_input_stt_failure_degradation(voice_agent, mock_elevenlabs, mock_memory):
+    mock_elevenlabs.speech_to_text.side_effect = RuntimeError("STT failed")
+
+    chunks = []
+    async for chunk in voice_agent.process_voice_input(
+        audio_stream=b"audio_input",
+        session_id="session_1"
+    ):
+        chunks.append(chunk)
+
+    assert len(chunks) == 2
+    mock_memory.store_turn.assert_called()
+    # First turn should have empty text (degradation)
+    user_turn = mock_memory.store_turn.call_args_list[0]
+    assert user_turn[1]["text"] == ""
+
+
+@pytest.mark.asyncio
+async def test_process_voice_input_tts_failure_degradation(voice_agent, mock_elevenlabs):
+    mock_elevenlabs.text_to_speech_stream.side_effect = RuntimeError("TTS streaming failed")
+
+    chunks = []
+    async for chunk in voice_agent.process_voice_input(
+        audio_stream=b"audio",
+        session_id="s1"
+    ):
+        chunks.append(chunk)
+
+    assert len(chunks) == 1
+    assert isinstance(chunks[0], bytes)
 
 
 @pytest.mark.asyncio

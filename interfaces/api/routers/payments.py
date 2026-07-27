@@ -9,7 +9,7 @@ import logging
 import os
 from types import ModuleType
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 # Lazy import to avoid hard dependency at import time
@@ -109,6 +109,55 @@ async def create_checkout_session(payload: CheckoutCreate):
 
     except Exception as exc:  # pylint: disable=broad-except
         logger.exception("Unexpected error creating checkout session: %s", exc)
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc),
+        ) from exc
+
+
+@router.post("/webhook")
+async def stripe_webhook(request: Request):
+    """
+    Handle Stripe webhook events.
+
+    Expects:
+        - Raw JSON body from Stripe
+        - `stripe-signature` header
+
+    Processes:
+        - invoice.payment_succeeded
+        - invoice.payment_failed
+        - customer.subscription.deleted
+    """
+    from core.services.payment_service import payment_service
+
+    sig_header = request.headers.get("stripe-signature")
+    if not sig_header:
+        raise HTTPException(
+            status_code=400,
+            detail="Missing stripe-signature header",
+        )
+
+    payload = await request.body()
+    if not payload:
+        raise HTTPException(
+            status_code=400,
+            detail="Empty request body",
+        )
+
+    try:
+        result = payment_service.handle_webhook(payload, sig_header)
+        if result["status"] == "error":
+            logger.error("Webhook processing error: %s", result.get("message"))
+            raise HTTPException(
+                status_code=400,
+                detail=result.get("message", "Webhook processing failed"),
+            )
+        return {"status": "success"}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Unexpected webhook error: %s", exc)
         raise HTTPException(
             status_code=500,
             detail=str(exc),

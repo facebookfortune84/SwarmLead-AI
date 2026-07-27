@@ -37,6 +37,7 @@ class TenantContextMiddleware(BaseHTTPMiddleware):
         "/auth/refresh",
         "/auth/password-reset",
         "/voice/webhook",  # ElevenLabs webhooks
+        "/api/stripe/webhook",  # Stripe webhooks
     }
     
     # Paths that require agent identity (agent-to-agent)
