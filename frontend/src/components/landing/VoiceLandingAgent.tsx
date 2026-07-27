@@ -13,6 +13,7 @@ interface VoiceLandingAgentProps {
 export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
   const [state, setState] = useState<"idle" | "listening" | "speaking" | "thinking">("idle");
   const [sessionActive, setSessionActive] = useState(false);
+  const [transcript, setTranscript] = useState("");
 
   const startSession = useCallback(async () => {
     setSessionActive(true);
