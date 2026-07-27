@@ -41,6 +41,23 @@ class VoiceAgent(OutreachAgent):
         self.memory_adapter = memory_adapter or ConversationMemoryAdapter()
         self._active_streams: Dict[str, asyncio.Queue] = {}
     
+    async def text_to_speech(
+        self,
+        text: str,
+    ) -> Optional[bytes]:
+        """
+        Generate audio bytes from text via ElevenLabs TTS.
+
+        Graceful degradation:
+        - On TTS failure, logs error and returns None
+        - Caller should use text response as fallback
+        """
+        try:
+            return await self.elevenlabs.text_to_speech_bytes(text)
+        except Exception as exc:
+            logger.error("TTS failed for text '%s': %s", text[:50], exc)
+            return None
+
     async def process_voice_input(
         self,
         audio_stream: bytes,
@@ -55,21 +72,29 @@ class VoiceAgent(OutreachAgent):
         2. Process through existing LLM pipeline (reuse parent logic)
         3. TTS via ElevenLabs streaming
         4. Return audio stream
+
+        Graceful degradation:
+        - If STT fails, uses empty text and continues
+        - If TTS fails, yields response text as UTF-8 bytes
         """
         context = context or {}
         context["session_id"] = session_id
-        
-        stt_result = await self.elevenlabs.speech_to_text(audio_stream)
-        user_text = stt_result.text
-        logger.info(f"STT result: {user_text[:100]}...")
-        
+
+        try:
+            stt_result = await self.elevenlabs.speech_to_text(audio_stream)
+            user_text = stt_result.text
+            logger.info("STT result: %s", user_text[:100])
+        except Exception as exc:
+            logger.error("STT failed: %s", exc)
+            user_text = ""
+
         context["voice_mode"] = True
-        
+
         history = self.memory_adapter.get_context(session_id, window=10)
         context["history"] = history
-        
+
         response_text = await self._process_with_voice_context(user_text, context)
-        
+
         await self.memory_adapter.store_turn(
             session_id=session_id,
             role="user",
@@ -82,9 +107,13 @@ class VoiceAgent(OutreachAgent):
             text=response_text,
             audio_meta={}
         )
-        
-        async for chunk in self.elevenlabs.text_to_speech_stream(response_text):
-            yield chunk
+
+        try:
+            async for chunk in self.elevenlabs.text_to_speech_stream(response_text):
+                yield chunk
+        except Exception as exc:
+            logger.error("TTS streaming failed: %s", exc)
+            yield response_text.encode("utf-8")
     
     async def _process_with_voice_context(
         self,
@@ -112,30 +141,51 @@ class VoiceAgent(OutreachAgent):
     ) -> AsyncGenerator[bytes, None]:
         """
         Handle barge-in interruption.
+
+        Graceful degradation:
+        - If STT fails, uses empty text
+        - If TTS fails, yields response text as UTF-8 bytes
         """
-        stt_result = await self.elevenlabs.speech_to_text(interruption_audio)
-        
-        context = {"interruption": True, "session_id": session_id}
+        try:
+            stt_result = await self.elevenlabs.speech_to_text(interruption_audio)
+            user_text = stt_result.text
+        except Exception as exc:
+            logger.error("Interruption STT failed: %s", exc)
+            user_text = ""
+
         response_text = await self._process_with_voice_context(
-            stt_result.text,
+            user_text,
             {"interruption": True, "session_id": session_id}
         )
-        
-        async for chunk in self.elevenlabs.text_to_speech_stream(response_text):
-            yield chunk
+
+        try:
+            async for chunk in self.elevenlabs.text_to_speech_stream(response_text):
+                yield chunk
+        except Exception as exc:
+            logger.error("Interruption TTS failed: %s", exc)
+            yield response_text.encode("utf-8")
     
     async def maintain_session_context(self, session_id: str) -> Dict[str, Any]:
         """Maintain session context for resumption."""
         return self.memory_adapter.resume_session(session_id)
     
     async def handle_session_resume(self, session_id: str) -> AsyncGenerator[bytes, None]:
-        """Resume a paused voice session."""
+        """
+        Resume a paused voice session.
+
+        Graceful degradation:
+        - If TTS fails, yields greeting text as UTF-8 bytes
+        """
         session_data = self.memory_adapter.resume_session(session_id)
-        
+
         greeting = f"Welcome back! You were asking about {session_data.get('context', 'your business')}. How can I continue helping?"
-        
-        async for chunk in self.elevenlabs.text_to_speech_stream(greeting):
-            yield chunk
+
+        try:
+            async for chunk in self.elevenlabs.text_to_speech_stream(greeting):
+                yield chunk
+        except Exception as exc:
+            logger.error("Resume TTS failed: %s", exc)
+            yield greeting.encode("utf-8")
     
     def get_session_stats(self, session_id: str) -> Dict:
         """Get session statistics."""
