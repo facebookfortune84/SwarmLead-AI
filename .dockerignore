@@ -1,5 +1,15 @@
 venv/
 .venv/
+archive/
+frontend/
+project-handoff/
+*.md
+*.svg
+*.png
+*.jpg
+*.ico
+*.woff
+*.woff2
 
 node_modules/
 
