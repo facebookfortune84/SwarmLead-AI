@@ -11,8 +11,8 @@ Verifies Constitutional §12 enforcement:
 import pytest
 
 from core.services.monetary_rules import (
-    MonetaryRulesEngine,
     MonetaryRulesConfig,
+    MonetaryRulesEngine,
     RailType,
 )
 
@@ -58,17 +58,36 @@ def test_non_allowlisted_counterparty_rejected(engine):
 
 
 def test_session_cap_enforced(engine):
-    ok = engine.authorize_spend("agent_b", 60.0, "stripe", RailType.CUSTOMER_CARD, human_approved=True)
+    ok = engine.authorize_spend(
+        "agent_b", 60.0, "stripe", RailType.CUSTOMER_CARD, human_approved=True
+    )
     assert ok is True
 
-    ok = engine.authorize_spend("agent_b", 50.0, "stripe", RailType.CUSTOMER_CARD, human_approved=True)
+    ok = engine.authorize_spend(
+        "agent_b", 50.0, "stripe", RailType.CUSTOMER_CARD, human_approved=True
+    )
     assert ok is False
 
 
 def test_session_cap_borderline(engine):
-    assert engine.authorize_spend("agent_c", 50.0, "stripe", RailType.CUSTOMER_CARD, human_approved=True) is True
-    assert engine.authorize_spend("agent_c", 50.0, "stripe", RailType.CUSTOMER_CARD, human_approved=True) is True
-    assert engine.authorize_spend("agent_c", 1.0, "stripe", RailType.CUSTOMER_CARD, human_approved=True) is False
+    assert (
+        engine.authorize_spend(
+            "agent_c", 50.0, "stripe", RailType.CUSTOMER_CARD, human_approved=True
+        )
+        is True
+    )
+    assert (
+        engine.authorize_spend(
+            "agent_c", 50.0, "stripe", RailType.CUSTOMER_CARD, human_approved=True
+        )
+        is True
+    )
+    assert (
+        engine.authorize_spend(
+            "agent_c", 1.0, "stripe", RailType.CUSTOMER_CARD, human_approved=True
+        )
+        is False
+    )
 
 
 def test_human_approval_required(engine):
@@ -91,5 +110,7 @@ def test_audit_log_populated(engine):
 
 def test_different_agents_tracked_independently(engine):
     engine.authorize_spend("agent_f", 100.0, "stripe", RailType.CUSTOMER_CARD, human_approved=True)
-    r = engine.authorize_spend("agent_g", 100.0, "stripe", RailType.CUSTOMER_CARD, human_approved=True)
+    r = engine.authorize_spend(
+        "agent_g", 100.0, "stripe", RailType.CUSTOMER_CARD, human_approved=True
+    )
     assert r is True

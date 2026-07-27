@@ -1,10 +1,12 @@
 import asyncio
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from core.orchestration.voice_orchestrator import VoiceOrchestrator
+
 from core.integrations.elevenlabs.elevenlabs_client import STTResult
-from core.orchestration.voice_session_manager import VoiceSessionManager
 from core.memory.conversation_memory_adapter import ConversationMemoryAdapter
+from core.orchestration.voice_orchestrator import VoiceOrchestrator
+from core.orchestration.voice_session_manager import VoiceSessionManager
 
 
 class AsyncGenMock:
@@ -22,9 +24,9 @@ class AsyncGenMock:
 @pytest.fixture
 def mock_elevenlabs():
     client = MagicMock()
-    client.speech_to_text = AsyncMock(return_value=STTResult(
-        text="hello", confidence=0.95, language="en", duration_ms=500
-    ))
+    client.speech_to_text = AsyncMock(
+        return_value=STTResult(text="hello", confidence=0.95, language="en", duration_ms=500)
+    )
     client.text_to_speech_stream = MagicMock(return_value=AsyncGenMock([b"audio1", b"audio2"]))
     client.cancel_stream = AsyncMock(return_value=True)
     return client
@@ -44,10 +46,9 @@ def mock_session_manager():
 def mock_agent_manager():
     mgr = MagicMock()
     mgr.get_agent = MagicMock(return_value=MagicMock())
-    mgr.execute_agent = AsyncMock(return_value={
-        "success": True,
-        "result": {"response": "I can help with that"}
-    })
+    mgr.execute_agent = AsyncMock(
+        return_value={"success": True, "result": {"response": "I can help with that"}}
+    )
     return mgr
 
 
@@ -57,7 +58,7 @@ def orchestrator(mock_elevenlabs, mock_memory, mock_session_manager, mock_agent_
         agent_manager=mock_agent_manager,
         elevenlabs_client=mock_elevenlabs,
         memory_adapter=mock_memory,
-        voice_session_manager=mock_session_manager
+        voice_session_manager=mock_session_manager,
     )
     return orch
 
@@ -66,9 +67,7 @@ def orchestrator(mock_elevenlabs, mock_memory, mock_session_manager, mock_agent_
 async def test_route_voice_task_success(orchestrator, mock_elevenlabs, mock_agent_manager):
     chunks = []
     async for chunk in orchestrator.route_voice_task(
-        session_id="session_1",
-        intent="qualification",
-        audio_data=b"audio_data"
+        session_id="session_1", intent="qualification", audio_data=b"audio_data"
     ):
         chunks.append(chunk)
 
@@ -112,10 +111,7 @@ async def test_route_voice_task_no_agent(orchestrator, mock_agent_manager):
 
 @pytest.mark.asyncio
 async def test_route_voice_task_failed_execution(orchestrator, mock_agent_manager):
-    mock_agent_manager.execute_agent.return_value = {
-        "success": False,
-        "error": "Agent failed"
-    }
+    mock_agent_manager.execute_agent.return_value = {"success": False, "error": "Agent failed"}
 
     chunks = []
     async for chunk in orchestrator.route_voice_task(
@@ -134,8 +130,7 @@ async def test_handle_barge_in(orchestrator, mock_elevenlabs):
 
     chunks = []
     async for chunk in orchestrator.handle_barge_in(
-        session_id="session_1",
-        interruption_audio=b"interrupt_audio"
+        session_id="session_1", interruption_audio=b"interrupt_audio"
     ):
         chunks.append(chunk)
 
@@ -145,24 +140,38 @@ async def test_handle_barge_in(orchestrator, mock_elevenlabs):
 
 @pytest.mark.asyncio
 async def test_classify_voice_intent_qualification(orchestrator):
-    assert orchestrator._classify_voice_intent("I am interested in your service", {}) == "qualification"
+    assert (
+        orchestrator._classify_voice_intent("I am interested in your service", {})
+        == "qualification"
+    )
     assert orchestrator._classify_voice_intent("Can you qualify these leads", {}) == "qualification"
 
 
 @pytest.mark.asyncio
 async def test_classify_voice_intent_founder_discovery(orchestrator):
-    assert orchestrator._classify_voice_intent("I am a founder with a startup idea", {}) == "founder_discovery"
+    assert (
+        orchestrator._classify_voice_intent("I am a founder with a startup idea", {})
+        == "founder_discovery"
+    )
 
 
 @pytest.mark.asyncio
 async def test_classify_voice_intent_business_launch(orchestrator):
-    assert orchestrator._classify_voice_intent("I want to incorporate my company", {}) == "business_launch"
-    assert orchestrator._classify_voice_intent("Help me register my business", {}) == "business_launch"
+    assert (
+        orchestrator._classify_voice_intent("I want to incorporate my company", {})
+        == "business_launch"
+    )
+    assert (
+        orchestrator._classify_voice_intent("Help me register my business", {}) == "business_launch"
+    )
 
 
 @pytest.mark.asyncio
 async def test_classify_voice_intent_product_recommendation(orchestrator):
-    assert orchestrator._classify_voice_intent("Can you recommend a tool", {}) == "product_recommendation"
+    assert (
+        orchestrator._classify_voice_intent("Can you recommend a tool", {})
+        == "product_recommendation"
+    )
 
 
 @pytest.mark.asyncio

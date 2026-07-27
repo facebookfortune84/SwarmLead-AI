@@ -4,7 +4,7 @@ Authentication API endpoints
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
@@ -92,6 +92,7 @@ class PasswordResetConfirm(BaseModel):
 
     token: str
     new_password: str
+
 
 @router.post("/register", response_model=LoginResponse, status_code=status.HTTP_201_CREATED)
 async def register(

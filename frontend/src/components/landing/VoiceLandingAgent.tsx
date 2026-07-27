@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { VoiceOrb, VoiceWaveform } from "@/components/voice";
 import { Mic, X, Sparkles } from "lucide-react";
@@ -12,12 +12,9 @@ interface VoiceLandingAgentProps {
 
 export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
   const [state, setState] = useState<"idle" | "listening" | "speaking" | "thinking">("idle");
-  const [showAgent, setShowAgent] = useState(false);
-  const [transcript, setTranscript] = useState("");
   const [sessionActive, setSessionActive] = useState(false);
 
-  const startSession = async () => {
-    setShowAgent(true);
+  const startSession = useCallback(async () => {
     setSessionActive(true);
     setState("listening");
     
@@ -35,15 +32,7 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
     } catch (e) {
       console.error("Failed to start session:", e);
     }
-  };
-
-  const handleToggle = () => {
-    if (state === "idle" || state === "speaking") {
-      setState("listening");
-    } else if (state === "listening") {
-      setState("speaking");
-    }
-  };
+  }, [onSessionStart]);
 
   const handleEnd = () => {
     setState("idle");
@@ -59,7 +48,7 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [sessionActive]);
+  }, [sessionActive, startSession]);
 
   // Scroll trigger
   useEffect(() => {
@@ -71,7 +60,7 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [sessionActive]);
+  }, [sessionActive, startSession]);
 
   // Exit intent
   useEffect(() => {
@@ -83,14 +72,7 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
 
     document.addEventListener("mouseleave", handleMouseLeave);
     return () => document.removeEventListener("mouseleave", handleMouseLeave);
-  }, [sessionActive]);
-
-  const handleKeyStart = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      startSession();
-    }
-  };
+  }, [sessionActive, startSession]);
 
   return (
     <motion.div

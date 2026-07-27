@@ -1,12 +1,11 @@
-import pytest
 import asyncio
 
+import pytest
+
+from core.auth.agent_identity import AgentDomain, AgentIdentity, AgentIdentityRegistry
+from core.orchestration.agent_manager import AgentManager
 from tests.fixtures.agent_fixtures import *
 from tests.fixtures.data_fixtures import *
-
-from core.auth.agent_identity import AgentIdentityRegistry, AgentIdentity, AgentDomain
-from core.orchestration.agent_manager import AgentManager
-from core.orchestration.task_router import TaskRouter
 
 
 @pytest.fixture(scope="session")

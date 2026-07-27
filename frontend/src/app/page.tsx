@@ -1,5 +1,5 @@
 import { FeatureShowcase, SocialProof, CTASection } from "@/components/landing/FeatureShowcase";
-import { VoiceLandingAgent, VoiceGreeting } from "@/components/landing/VoiceLandingAgent";
+import { VoiceLandingAgent } from "@/components/landing/VoiceLandingAgent";
 
 export default function Home() {
   return (

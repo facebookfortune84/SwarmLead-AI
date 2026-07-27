@@ -15,7 +15,9 @@ Beat schedule
 check_sla_breaches     Every 30 minutes — SLA watchdog.
 escalate_overdue       Every hour — escalation sweep.
 """
+
 import os
+
 from celery import Celery
 from celery.schedules import crontab
 from kombu import Exchange, Queue

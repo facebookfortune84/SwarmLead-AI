@@ -8,7 +8,7 @@ for session creation, turn recording, and context retrieval.
 import pytest
 
 from core.memory.conversation_memory_adapter import ConversationMemoryAdapter
-from core.orchestration.voice_session_manager import VoiceSessionManager, VoiceSessionStatus
+from core.orchestration.voice_session_manager import VoiceSessionManager
 
 
 @pytest.fixture

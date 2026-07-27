@@ -4,11 +4,12 @@ Voice session API.
 Exposes endpoints for creating and managing voice sessions
 used by the frontend VoiceLandingAgent component.
 """
+
 import logging
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)

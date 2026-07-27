@@ -1,7 +1,9 @@
 """
 Notification-related Celery tasks.
 """
+
 import logging
+
 from infrastructure.celery.celery_app import celery_app
 
 logger = logging.getLogger("tasks.notifications")

@@ -1,10 +1,13 @@
 """
 Ticket service — full CRUD, SLA checking, and metrics.
 """
+
 import logging
 from datetime import datetime, timedelta
 from typing import Optional
+
 from sqlalchemy.orm import Session
+
 from core.models.ticket import Ticket
 from core.models.ticket_comment import TicketComment
 from core.persistence.ticket_history import record_change

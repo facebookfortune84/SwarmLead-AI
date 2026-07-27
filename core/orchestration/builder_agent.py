@@ -71,15 +71,8 @@ class BuilderAgent:
             "completed": len(self.completed_tasks),
             "failed": len(self.failed_tasks),
             "success_rate": (
-                len(self.completed_tasks)
-                / (
-                    len(self.completed_tasks)
-                    + len(self.failed_tasks)
-                )
-                if (
-                    len(self.completed_tasks)
-                    + len(self.failed_tasks)
-                ) > 0
+                len(self.completed_tasks) / (len(self.completed_tasks) + len(self.failed_tasks))
+                if (len(self.completed_tasks) + len(self.failed_tasks)) > 0
                 else 0.0
             ),
         }

@@ -1,5 +1,6 @@
-import pytest
 import time
+
+import pytest
 
 
 @pytest.mark.asyncio
@@ -14,11 +15,13 @@ async def test_parallel_execution_speed(agent_manager):
 
     start = time.time()
 
-    await agent_manager.execute_batch({
-        "a1": {},
-        "a2": {},
-        "a3": {},
-    })
+    await agent_manager.execute_batch(
+        {
+            "a1": {},
+            "a2": {},
+            "a3": {},
+        }
+    )
 
     duration = time.time() - start
 

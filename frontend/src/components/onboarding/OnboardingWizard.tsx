@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, Volume2, VolumeX } from "lucide-react";
+import { ChevronRight, Sparkles } from "lucide-react";
 import { VoiceOrb } from "@/components/voice";
 
 interface OnboardingWizardProps {
-  onComplete: (data: any) => void;
+  onComplete: (data: Record<string, string>) => void;
   onSkip?: () => void;
   initialStep?: number;
 }
@@ -68,17 +68,10 @@ const STEPS = [
   }
 ];
 
-interface OnboardingWizardProps {
-  onComplete: (data: any) => void;
-  onSkip?: () => void;
-  initialStep?: number;
-}
-
 export function OnboardingWizard({ onComplete, onSkip, initialStep = 0 }: OnboardingWizardProps) {
   const [currentStep, setCurrentStep] = useState(initialStep);
-  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [formData, setFormData] = useState<Record<string, string>>({});
   const [voiceState, setVoiceState] = useState<"idle" | "listening" | "speaking">("idle");
-  const [isSpeaking, setIsSpeaking] = useState(false);
 
   const steps = STEPS;
 
@@ -115,13 +108,8 @@ export function OnboardingWizard({ onComplete, onSkip, initialStep = 0 }: Onboar
     onSkip?.();
   };
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const speakText = async (text: string) => {
-    // Would call TTS API
-    console.log("Speaking:", text);
   };
 
   useEffect(() => {
@@ -131,7 +119,7 @@ export function OnboardingWizard({ onComplete, onSkip, initialStep = 0 }: Onboar
         // Would call TTS
       }
     }
-  }, [currentStep]);
+  }, [currentStep, steps]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
@@ -336,14 +324,22 @@ export function OnboardingWizard({ onComplete, onSkip, initialStep = 0 }: Onboar
   );
 }
 
-export function OnboardingStep({ step, data, onNext, onBack, isFirst, isLast, onVoiceToggle }: {
-  step: any;
-  data: Record<string, any>;
+interface StepData {
+  id?: string;
+  title?: string;
+  description?: string;
+  voicePrompt?: string;
+  fields?: string[];
+  optional?: string[];
+  icon?: string;
+}
+
+export function OnboardingStep({ step, onNext, onBack, isFirst, isLast }: {
+  step: StepData;
   onNext: () => void;
   onBack: () => void;
   isFirst: boolean;
   isLast: boolean;
-  onVoiceToggle: () => void;
 }) {
   return (
     <motion.div
@@ -488,27 +484,3 @@ function ArrowRight({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
-function X({ className = "w-5 h-5" }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-    </svg>
-  );
-}
-
-function Settings({ className = "w-5 h-5" }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-  );
-}
-
-function HelpCircle({ className = "w-5 h-5" }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.5-4 3-2.09 0-3.772-1-3.772-3 0-1.4 1.278-2.5 4-3zM12 17h.01" />
-    </svg>
-  );
-}

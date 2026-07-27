@@ -1,7 +1,5 @@
 import pytest
 
-from core.auth.agent_identity import AgentIdentityRegistry
-
 
 @pytest.mark.asyncio
 async def test_register_and_list_agents(agent_manager, simple_agent):
@@ -51,6 +49,7 @@ async def test_duplicate_registration_raises_error(agent_manager, simple_agent):
 async def test_missing_identity_raises_error(agent_manager):
     async def orphan_agent(data, ctx):
         return {"ok": True}
+
     with pytest.raises(ValueError, match="not found in identity registry"):
         agent_manager.register_agent("unknown_agent", orphan_agent)
 
@@ -77,6 +76,7 @@ async def test_get_all_agents(agent_manager, simple_agent):
 async def test_sync_agent_execution(agent_manager):
     def sync_agent(input_data, context):
         return {"sync": True}
+
     agent_manager.register_agent("sync_agent", sync_agent)
     result = await agent_manager.execute_agent("sync_agent", {})
     assert result["success"] is True

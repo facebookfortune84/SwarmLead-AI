@@ -1,6 +1,6 @@
 import pytest
 
-from core.orchestration.task_router import TaskRouter, DomainViolationError
+from core.orchestration.task_router import DomainViolationError, TaskRouter
 
 
 @pytest.mark.asyncio
@@ -36,13 +36,17 @@ async def test_domain_classification(router):
 
 @pytest.mark.asyncio
 async def test_domain_autonomy_gating():
-    from core.auth.agent_identity import AgentIdentityRegistry, AgentIdentity, AgentDomain
+    from core.auth.agent_identity import AgentDomain, AgentIdentity, AgentIdentityRegistry
+
     router = TaskRouter()
     AgentIdentityRegistry.register(
         AgentIdentity(
-            agent_id="builder_agent", agent_type="BuilderAgent", display_name="Builder Agent",
+            agent_id="builder_agent",
+            agent_type="BuilderAgent",
+            display_name="Builder Agent",
             domains={AgentDomain.PRODUCT_CODE},
-            tool_allowlist={"*"}, data_allowlist={"*"},
+            tool_allowlist={"*"},
+            data_allowlist={"*"},
         )
     )
     router.register_agent_domains("builder_agent", ["product_code"])
@@ -55,13 +59,17 @@ async def test_domain_autonomy_gating():
 
 @pytest.mark.asyncio
 async def test_domain_violation_raises_error():
-    from core.auth.agent_identity import AgentIdentityRegistry, AgentIdentity, AgentDomain
+    from core.auth.agent_identity import AgentDomain, AgentIdentity, AgentIdentityRegistry
+
     router = TaskRouter()
     AgentIdentityRegistry.register(
         AgentIdentity(
-            agent_id="builder_agent", agent_type="BuilderAgent", display_name="Builder Agent",
+            agent_id="builder_agent",
+            agent_type="BuilderAgent",
+            display_name="Builder Agent",
             domains={AgentDomain.PRODUCT_CODE},
-            tool_allowlist={"*"}, data_allowlist={"*"},
+            tool_allowlist={"*"},
+            data_allowlist={"*"},
         )
     )
     router.register_agent_domains("builder_agent", ["product_code"])

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, MicOff, Volume2, X } from "lucide-react";
 import { orbState } from "@/design-system/animations/premiumVariants";
@@ -64,10 +64,12 @@ export function VoiceWaveform({ audioData, className = "" }: VoiceWaveformProps)
   const gap = 2;
   const maxHeight = 60;
 
-  // Generate mock data if not provided
-  const data = audioData.length > 0 
-    ? audioData 
-    : Array.from({ length: barCount }, () => Math.random() * maxHeight);
+  // Generate deterministic mock data if not provided
+  const randomData = useMemo(
+    () => Array.from({ length: barCount }, (_, i) => ((i * 89 + 37) % maxHeight) + 1),
+    []
+  );
+  const data = audioData.length > 0 ? audioData : randomData;
 
   return (
     <svg 
@@ -200,8 +202,15 @@ export function VoiceControls({
   );
 }
 
+interface VoiceSessionData {
+  visitor_id?: string;
+  session_id?: string;
+  duration?: number;
+  turn_count?: number;
+}
+
 interface VoiceSessionProps {
-  session: any;
+  session: VoiceSessionData;
   onEnd: () => void;
   onMuteToggle: () => void;
   onVolumeChange: (vol: number) => void;
@@ -238,7 +247,7 @@ export function VoiceSession({
 }
 
 interface VoiceSessionPanelProps {
-  session: any;
+  session: VoiceSessionData;
   onEnd: () => void;
   onMuteToggle: () => void;
   onVolumeChange: (vol: number) => void;

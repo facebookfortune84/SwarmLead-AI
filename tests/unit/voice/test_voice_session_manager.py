@@ -1,8 +1,14 @@
+from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime, timedelta
-from core.orchestration.voice_session_manager import VoiceSessionManager, VoiceSession, VoiceSessionStatus
+
 from core.memory.conversation_memory_adapter import ConversationMemoryAdapter
+from core.orchestration.voice_session_manager import (
+    VoiceSession,
+    VoiceSessionManager,
+    VoiceSessionStatus,
+)
 
 
 @pytest.fixture
@@ -30,9 +36,7 @@ async def test_create_session_returns_session(manager, memory_adapter):
 @pytest.mark.asyncio
 async def test_create_session_with_tenant(manager):
     session = await manager.create_session(
-        visitor_id="visitor_1",
-        tenant_id="tenant_abc",
-        greeting_type="welcome"
+        visitor_id="visitor_1", tenant_id="tenant_abc", greeting_type="welcome"
     )
     assert session.tenant_id == "tenant_abc"
     assert session.greeting_type == "welcome"
@@ -90,7 +94,9 @@ async def test_get_session_by_visitor_active(manager):
 @pytest.mark.asyncio
 async def test_update_session(manager):
     created = await manager.create_session(visitor_id="v1")
-    result = await manager.update_session(created.session_id, status=VoiceSessionStatus.ACTIVE, turn_count=5)
+    result = await manager.update_session(
+        created.session_id, status=VoiceSessionStatus.ACTIVE, turn_count=5
+    )
     assert result is True
     updated = await manager.get_session(created.session_id)
     assert updated.status == VoiceSessionStatus.ACTIVE

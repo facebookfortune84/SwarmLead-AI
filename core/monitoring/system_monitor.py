@@ -1,7 +1,7 @@
-from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List
 
 
 class HealthStatus(str, Enum):
@@ -28,6 +28,7 @@ class SystemMonitor:
 
     async def _check_cpu(self) -> HealthCheck:
         import psutil
+
         start = datetime.utcnow()
         cpu_percent = psutil.cpu_percent(interval=0.5)
         latency = (datetime.utcnow() - start).total_seconds() * 1000
@@ -46,6 +47,7 @@ class SystemMonitor:
 
     async def _check_memory(self) -> HealthCheck:
         import psutil
+
         start = datetime.utcnow()
         mem = psutil.virtual_memory()
         latency = (datetime.utcnow() - start).total_seconds() * 1000
@@ -61,12 +63,16 @@ class SystemMonitor:
             message = f"Memory usage normal: {mem.percent}%"
 
         return HealthCheck(
-            "memory", status, message, latency,
-            details={"percent": mem.percent, "available_gb": mem.available / 1e9}
+            "memory",
+            status,
+            message,
+            latency,
+            details={"percent": mem.percent, "available_gb": mem.available / 1e9},
         )
 
     async def _check_disk(self) -> HealthCheck:
         import psutil
+
         start = datetime.utcnow()
         disk = psutil.disk_usage("/")
         percent = (disk.used / disk.total) * 100
@@ -82,19 +88,23 @@ class SystemMonitor:
             status = HealthStatus.HEALTHY
             message = f"Disk usage normal: {percent:.1f}%"
 
-        return HealthCheck("disk", status, message, latency, details={
-            "percent": percent,
-            "free_gb": disk.free / 1e9
-        })
+        return HealthCheck(
+            "disk",
+            status,
+            message,
+            latency,
+            details={"percent": percent, "free_gb": disk.free / 1e9},
+        )
 
     async def _check_database(self) -> HealthCheck:
-        from core.persistence.session import SessionLocal
         from sqlalchemy import text
+
+        from core.persistence.session import SessionLocal
 
         start = datetime.utcnow()
         try:
             session = SessionLocal()
-            result = session.execute(text("SELECT 1")).scalar()
+            session.execute(text("SELECT 1")).scalar()
             session.close()
 
             latency = (datetime.utcnow() - start).total_seconds() * 1000
@@ -114,9 +124,11 @@ class SystemMonitor:
 
     async def _check_redis(self) -> HealthCheck:
         import os
+
         start = datetime.utcnow()
         try:
             import redis.asyncio as redis
+
             redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
             client = redis.from_url(redis_url)
             await client.ping()
@@ -144,9 +156,14 @@ class SystemMonitor:
         try:
             agents = agent_manager.get_all_agents()
             required = [
-                "strategy_agent", "outreach_agent", "builder_agent",
-                "repair_agent", "review_agent", "governance_agent",
-                "audit_agent", "monitoring_agent"
+                "strategy_agent",
+                "outreach_agent",
+                "builder_agent",
+                "repair_agent",
+                "review_agent",
+                "governance_agent",
+                "audit_agent",
+                "monitoring_agent",
             ]
             registered = list(agents.keys())
             missing = [a for a in required if a not in registered]
@@ -160,18 +177,22 @@ class SystemMonitor:
                 status = HealthStatus.HEALTHY
                 message = f"All {len(required)} required agents registered"
 
-            return HealthCheck("agents", status, message, latency, details={
-                "registered": registered,
-                "missing": missing
-            })
+            return HealthCheck(
+                "agents",
+                status,
+                message,
+                latency,
+                details={"registered": registered, "missing": missing},
+            )
 
         except Exception as e:
             latency = (datetime.utcnow() - start).total_seconds() * 1000
             return HealthCheck("agents", HealthStatus.UNHEALTHY, f"Agent check error: {e}", latency)
 
     async def _check_ollama(self) -> HealthCheck:
-        import httpx
         import os
+
+        import httpx
 
         start = datetime.utcnow()
         ollama_base = os.getenv("OLLAMA_API_BASE", "http://localhost:11434")
@@ -181,9 +202,19 @@ class SystemMonitor:
                 latency = (datetime.utcnow() - start).total_seconds() * 1000
 
                 if resp.status_code == 200:
-                    return HealthCheck("ollama", HealthStatus.HEALTHY, f"Ollama available with {len(resp.json().get('models', []))} models", latency)
+                    return HealthCheck(
+                        "ollama",
+                        HealthStatus.HEALTHY,
+                        f"Ollama available with {len(resp.json().get('models', []))} models",
+                        latency,
+                    )
                 else:
-                    return HealthCheck("ollama", HealthStatus.DEGRADED, f"Ollama status: {resp.status_code}", latency)
+                    return HealthCheck(
+                        "ollama",
+                        HealthStatus.DEGRADED,
+                        f"Ollama status: {resp.status_code}",
+                        latency,
+                    )
 
         except Exception as e:
             latency = (datetime.utcnow() - start).total_seconds() * 1000
@@ -203,14 +234,28 @@ class SystemMonitor:
             latency = (datetime.utcnow() - start).total_seconds() * 1000
 
             if all_passed:
-                return HealthCheck("constitutional", HealthStatus.HEALTHY, "All compliance checks passed", latency, details=checks)
+                return HealthCheck(
+                    "constitutional",
+                    HealthStatus.HEALTHY,
+                    "All compliance checks passed",
+                    latency,
+                    details=checks,
+                )
             else:
                 failed = [k for k, v in checks.items() if not v]
-                return HealthCheck("constitutional", HealthStatus.DEGRADED, f"Compliance issues: {failed}", latency, details=checks)
+                return HealthCheck(
+                    "constitutional",
+                    HealthStatus.DEGRADED,
+                    f"Compliance issues: {failed}",
+                    latency,
+                    details=checks,
+                )
 
         except Exception as e:
             latency = (datetime.utcnow() - start).total_seconds() * 1000
-            return HealthCheck("constitutional", HealthStatus.UNHEALTHY, f"Compliance check error: {e}", latency)
+            return HealthCheck(
+                "constitutional", HealthStatus.UNHEALTHY, f"Compliance check error: {e}", latency
+            )
 
     async def run_checks(self) -> List[HealthCheck]:
         checks = []
@@ -237,7 +282,7 @@ class SystemMonitor:
                 "status": c.status.value,
                 "message": c.message,
                 "latency_ms": c.latency_ms,
-                "details": c.details
+                "details": c.details,
             }
 
         statuses = [c.status for c in self.checks]

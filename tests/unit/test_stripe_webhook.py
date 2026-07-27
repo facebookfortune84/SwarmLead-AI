@@ -2,8 +2,9 @@
 Tests for Stripe webhook route registration and handling.
 """
 
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 

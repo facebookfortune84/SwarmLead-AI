@@ -1,8 +1,10 @@
 """
 Role-based access control (RBAC) and permissions
 """
+
 from enum import Enum
 from typing import List
+
 from fastapi import HTTPException, status
 
 

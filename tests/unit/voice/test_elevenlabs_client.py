@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from core.integrations.elevenlabs.elevenlabs_client import ElevenLabsClient, STTResult
 
 
@@ -107,12 +109,14 @@ async def test_tts_bytes_collects_chunks(client, mock_response):
 
 @pytest.mark.asyncio
 async def test_speech_to_text_success(client, mock_response):
-    mock_response.json = AsyncMock(return_value={
-        "text": "hello world",
-        "confidence": 0.95,
-        "language": "en",
-        "duration_ms": 1500
-    })
+    mock_response.json = AsyncMock(
+        return_value={
+            "text": "hello world",
+            "confidence": 0.95,
+            "language": "en",
+            "duration_ms": 1500,
+        }
+    )
     client._session.post.return_value = _make_cm(mock_response)
 
     result = await client.speech_to_text(b"audio_data")
@@ -208,9 +212,9 @@ async def test_async_context_manager():
 
 @pytest.mark.asyncio
 async def test_stt_passes_language_hint(client, mock_response):
-    mock_response.json = AsyncMock(return_value={
-        "text": "hola", "confidence": 0.9, "language": "es", "duration_ms": 1000
-    })
+    mock_response.json = AsyncMock(
+        return_value={"text": "hola", "confidence": 0.9, "language": "es", "duration_ms": 1000}
+    )
     client._session.post.return_value = _make_cm(mock_response)
 
     result = await client.speech_to_text(b"audio", language="es")
@@ -237,9 +241,9 @@ async def test_tts_stream_uses_default_voice(client, mock_response):
 
 @pytest.mark.asyncio
 async def test_stt_default_content_type(client, mock_response):
-    mock_response.json = AsyncMock(return_value={
-        "text": "", "confidence": 1.0, "language": "en", "duration_ms": 0
-    })
+    mock_response.json = AsyncMock(
+        return_value={"text": "", "confidence": 1.0, "language": "en", "duration_ms": 0}
+    )
     client._session.post.return_value = _make_cm(mock_response)
 
     await client.speech_to_text(b"data")

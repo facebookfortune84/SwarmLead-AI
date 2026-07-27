@@ -1,6 +1,6 @@
-import os
 import json
 import logging
+import os
 from typing import Optional
 
 logger = logging.getLogger("BackendQueue")
@@ -30,7 +30,7 @@ if REDIS_URL:
 
 if not REDIS_URL:
     # In-process fallback
-    from queue import Queue, Empty
+    from queue import Empty, Queue
 
     _q = Queue()
 

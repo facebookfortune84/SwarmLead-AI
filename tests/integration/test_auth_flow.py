@@ -5,19 +5,17 @@ Verifies JWT token creation, validation, and revocation
 using the production auth pipeline.
 """
 
-import time
 import os
-
-import pytest
+import time
 
 from interfaces.api.auth.jwt_handler import (
     create_access_token,
     create_refresh_token,
-    refresh_access_token,
     decode_token,
-    verify_token,
-    revoke_token,
     is_token_revoked,
+    refresh_access_token,
+    revoke_token,
+    verify_token,
 )
 
 
@@ -69,6 +67,7 @@ def test_verify_invalid_token():
 
 def test_expired_token_rejected():
     import jwt as pyjwt
+
     payload = {
         "sub": "expired_user",
         "exp": int(time.time()) - 3600,

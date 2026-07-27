@@ -59,7 +59,7 @@ export function Sidebar() {
     <aside className="flex w-64 flex-col border-r bg-background">
         <div className="border-b p-6">
         <h1 className="text-xl font-bold">
-          <a href="/">SwarmLead AI</a>
+          <Link href="/">SwarmLead AI</Link>
         </h1>
 
         <div className="text-xs text-muted-foreground">

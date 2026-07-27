@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Mic, ArrowRight, CheckCircle, Sparkles, TrendingUp, Users, Shield, Zap } from "lucide-react";
+import { Mic, Sparkles, TrendingUp, Users, Shield, Zap } from "lucide-react";
 
 const features = [
   {

@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from core.agents.voice.voice_agent import VoiceAgent
 from core.integrations.elevenlabs.elevenlabs_client import STTResult
 
@@ -19,9 +21,9 @@ class AsyncGenMock:
 @pytest.fixture
 def mock_elevenlabs():
     client = MagicMock()
-    client.speech_to_text = AsyncMock(return_value=STTResult(
-        text="hello", confidence=0.95, language="en", duration_ms=500
-    ))
+    client.speech_to_text = AsyncMock(
+        return_value=STTResult(text="hello", confidence=0.95, language="en", duration_ms=500)
+    )
     client.text_to_speech_stream = MagicMock(return_value=AsyncGenMock([b"audio1", b"audio2"]))
     return client
 
@@ -50,12 +52,11 @@ def voice_agent(mock_elevenlabs, mock_memory, mock_config):
             name="test_voice_agent",
             config=mock_config,
             elevenlabs_client=mock_elevenlabs,
-            memory_adapter=mock_memory
+            memory_adapter=mock_memory,
         )
-        agent.execute = AsyncMock(return_value={
-            "success": True,
-            "result": {"response": "I can help with that"}
-        })
+        agent.execute = AsyncMock(
+            return_value={"success": True, "result": {"response": "I can help with that"}}
+        )
         return agent
 
 
@@ -63,8 +64,7 @@ def voice_agent(mock_elevenlabs, mock_memory, mock_config):
 async def test_process_voice_input_returns_audio(voice_agent, mock_elevenlabs, mock_memory):
     chunks = []
     async for chunk in voice_agent.process_voice_input(
-        audio_stream=b"audio_input",
-        session_id="session_1"
+        audio_stream=b"audio_input", session_id="session_1"
     ):
         chunks.append(chunk)
 
@@ -75,9 +75,7 @@ async def test_process_voice_input_returns_audio(voice_agent, mock_elevenlabs, m
 
 @pytest.mark.asyncio
 async def test_process_voice_input_stores_turns(voice_agent, mock_memory):
-    async for _ in voice_agent.process_voice_input(
-        audio_stream=b"audio", session_id="s1"
-    ):
+    async for _ in voice_agent.process_voice_input(audio_stream=b"audio", session_id="s1"):
         pass
 
     calls = mock_memory.store_turn.call_args_list
@@ -92,9 +90,7 @@ async def test_process_voice_input_empty_audio(voice_agent, mock_elevenlabs):
         text="", confidence=0.0, language="en", duration_ms=0
     )
 
-    async for _ in voice_agent.process_voice_input(
-        audio_stream=b"", session_id="s1"
-    ):
+    async for _ in voice_agent.process_voice_input(audio_stream=b"", session_id="s1"):
         pass
 
     voice_agent.execute.assert_awaited_once()
@@ -108,8 +104,7 @@ async def test_handle_interruption(voice_agent, mock_elevenlabs):
 
     chunks = []
     async for chunk in voice_agent.handle_interruption(
-        session_id="s1",
-        interruption_audio=b"interrupt"
+        session_id="s1", interruption_audio=b"interrupt"
     ):
         chunks.append(chunk)
 
@@ -123,10 +118,7 @@ async def test_handle_interruption_empty_audio(voice_agent, mock_elevenlabs):
         text="", confidence=0.0, language="en", duration_ms=0
     )
 
-    async for _ in voice_agent.handle_interruption(
-        session_id="s1",
-        interruption_audio=b""
-    ):
+    async for _ in voice_agent.handle_interruption(session_id="s1", interruption_audio=b""):
         pass
 
     voice_agent.execute.assert_awaited_once()
@@ -165,9 +157,7 @@ async def test_clear_session(voice_agent, mock_memory):
 @pytest.mark.asyncio
 async def test_process_voice_input_with_context(voice_agent, mock_elevenlabs, mock_memory):
     async for _ in voice_agent.process_voice_input(
-        audio_stream=b"audio",
-        session_id="s1",
-        context={"custom_field": "value"}
+        audio_stream=b"audio", session_id="s1", context={"custom_field": "value"}
     ):
         pass
 
@@ -176,14 +166,9 @@ async def test_process_voice_input_with_context(voice_agent, mock_elevenlabs, mo
 
 @pytest.mark.asyncio
 async def test_process_voice_input_failed_execution(voice_agent):
-    voice_agent.execute = AsyncMock(return_value={
-        "success": False,
-        "error": "LLM error"
-    })
+    voice_agent.execute = AsyncMock(return_value={"success": False, "error": "LLM error"})
 
-    async for _ in voice_agent.process_voice_input(
-        audio_stream=b"audio", session_id="s1"
-    ):
+    async for _ in voice_agent.process_voice_input(audio_stream=b"audio", session_id="s1"):
         pass
 
     voice_agent.execute.assert_awaited_once()
@@ -194,10 +179,7 @@ async def test_handle_interruption_failed_stt_degradation(voice_agent, mock_elev
     mock_elevenlabs.speech_to_text.side_effect = RuntimeError("STT failed")
 
     chunks = []
-    async for chunk in voice_agent.handle_interruption(
-        session_id="s1",
-        interruption_audio=b"data"
-    ):
+    async for chunk in voice_agent.handle_interruption(session_id="s1", interruption_audio=b"data"):
         chunks.append(chunk)
 
     assert len(chunks) == 2
@@ -222,13 +204,14 @@ async def test_text_to_speech_failure_degradation(voice_agent, mock_elevenlabs):
 
 
 @pytest.mark.asyncio
-async def test_process_voice_input_stt_failure_degradation(voice_agent, mock_elevenlabs, mock_memory):
+async def test_process_voice_input_stt_failure_degradation(
+    voice_agent, mock_elevenlabs, mock_memory
+):
     mock_elevenlabs.speech_to_text.side_effect = RuntimeError("STT failed")
 
     chunks = []
     async for chunk in voice_agent.process_voice_input(
-        audio_stream=b"audio_input",
-        session_id="session_1"
+        audio_stream=b"audio_input", session_id="session_1"
     ):
         chunks.append(chunk)
 
@@ -244,10 +227,7 @@ async def test_process_voice_input_tts_failure_degradation(voice_agent, mock_ele
     mock_elevenlabs.text_to_speech_stream.side_effect = RuntimeError("TTS streaming failed")
 
     chunks = []
-    async for chunk in voice_agent.process_voice_input(
-        audio_stream=b"audio",
-        session_id="s1"
-    ):
+    async for chunk in voice_agent.process_voice_input(audio_stream=b"audio", session_id="s1"):
         chunks.append(chunk)
 
     assert len(chunks) == 1
@@ -256,13 +236,11 @@ async def test_process_voice_input_tts_failure_degradation(voice_agent, mock_ele
 
 @pytest.mark.asyncio
 async def test_no_memory_adapter_creates_default(mock_elevenlabs, mock_config):
-    with patch("core.agents.base_agent.OllamaClient"), \
-         patch("core.agents.voice.voice_agent.ConversationMemoryAdapter") as mock_adapter_cls:
+    with (
+        patch("core.agents.base_agent.OllamaClient"),
+        patch("core.agents.voice.voice_agent.ConversationMemoryAdapter") as mock_adapter_cls,
+    ):
         mock_adapter_cls.return_value = MagicMock()
-        agent = VoiceAgent(
-            name="test",
-            config=mock_config,
-            elevenlabs_client=mock_elevenlabs
-        )
+        agent = VoiceAgent(name="test", config=mock_config, elevenlabs_client=mock_elevenlabs)
         mock_adapter_cls.assert_called_once()
         assert agent.memory_adapter is not None

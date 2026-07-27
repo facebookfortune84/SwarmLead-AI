@@ -11,9 +11,7 @@ class ArchitectureIssue:
 
 @dataclass
 class ArchitectureReport:
-    issues: List[ArchitectureIssue] = field(
-        default_factory=list
-    )
+    issues: List[ArchitectureIssue] = field(default_factory=list)
 
 
 class ArchitectureValidator:
@@ -40,22 +38,16 @@ class ArchitectureValidator:
         issues: List[ArchitectureIssue] = []
 
         for component in required_components:
-
             if component not in available_components:
-
                 issues.append(
                     ArchitectureIssue(
                         component=component,
-                        message=(
-                            "Missing required component"
-                        ),
+                        message=("Missing required component"),
                         severity="critical",
                     )
                 )
 
-        return ArchitectureReport(
-            issues=issues
-        )
+        return ArchitectureReport(issues=issues)
 
     def issue_count(
         self,
@@ -69,11 +61,7 @@ class ArchitectureValidator:
         report: ArchitectureReport,
     ) -> List[ArchitectureIssue]:
 
-        return [
-            issue
-            for issue in report.issues
-            if issue.severity == "critical"
-        ]
+        return [issue for issue in report.issues if issue.severity == "critical"]
 
     def has_issues(
         self,
@@ -96,9 +84,7 @@ class ArchitectureValidator:
 
         return {
             "issues": len(report.issues),
-            "critical": len(
-                self.critical_issues(report)
-            ),
+            "critical": len(self.critical_issues(report)),
             "healthy": self.healthy(report),
         }
 
