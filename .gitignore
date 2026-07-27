@@ -69,6 +69,7 @@ data/long_term_memory.json
 # Cache
 # ------------------------------
 .cache/
+.mypy_cache/
 
 # ------------------------------
 # OPTIONAL (toggle ON later)
