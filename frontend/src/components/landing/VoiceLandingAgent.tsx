@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { VoiceOrb, VoiceWaveform } from "@/components/voice";
-import { Mic, X, Sparkles, Zap, Shield, Target, BarChart3, Users, ArrowRight } from "lucide-react";
+import { Mic, X, Sparkles } from "lucide-react";
 
 interface VoiceLandingAgentProps {
   sessionId?: string;
@@ -85,11 +85,20 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
     return () => document.removeEventListener("mouseleave", handleMouseLeave);
   }, [sessionActive]);
 
+  const handleKeyStart = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      startSession();
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="fixed bottom-6 right-6 z-50"
+      role="region"
+      aria-label="Voice Assistant"
     >
       <div className="w-96 bg-white/95 backdrop-blur-sm rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
         {/* Header */}
@@ -105,7 +114,7 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
           </div>
           
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" aria-hidden="true" />
             <span className="text-xs text-gray-500">Live</span>
           </div>
         </div>
@@ -220,118 +229,5 @@ export function VoiceGreeting({
         </div>
       </div>
     </motion.div>
-  );
-}
-
-export function FeatureShowcase() {
-  const features = [
-    { icon: Mic, title: "Voice-First", desc: "Natural conversations with AI agents" },
-    { icon: Zap, title: "Instant Launch", desc: "Business live in minutes, not months" },
-    { icon: Shield, title: "Constitutional AI", desc: "Built-in governance & compliance" },
-    { icon: Target, title: "Precision Targeting", desc: "AI-powered lead qualification" },
-    { icon: BarChart3, title: "Real-time Analytics", desc: "Live conversion funnels & ROI" },
-    { icon: Users, title: "Team Collaboration", desc: "Multi-agent workflows" }
-  ];
-
-  return (
-    <section className="py-20 px-6 max-w-7xl mx-auto">
-      <motion.div 
-        className="text-center mb-16"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-      >
-        <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-          Why Genesis?
-        </h2>
-        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          The only platform that combines voice AI agents with constitutional governance 
-          to autonomously launch and grow your business.
-        </p>
-      </motion.div>
-
-      <div className="grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {features.map((feature, i) => (
-          <motion.div
-            key={feature.title}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1, duration: 0.5 }}
-            className="group p-8 bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-100 hover:border-gold-300/50 hover:shadow-xl transition-all duration-300"
-          >
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-700 to-primary-900 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-              <feature.icon className="w-7 h-7 text-white" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
-            <p className="text-gray-600 leading-relaxed">{feature.desc}</p>
-          </motion.div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-export function SocialProof() {
-  const stats = [
-    { value: "10x", label: "Faster Launch" },
-    { value: "85%", label: "Lead Conversion" },
-    { value: "3min", label: "Avg Setup Time" },
-    { value: "99.9%", label: "Uptime SLA" }
-  ];
-
-  return (
-    <section className="py-16 px-6 max-w-7xl mx-auto bg-gradient-to-r from-primary-900 via-primary-800 to-primary-900 rounded-3xl">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-        {stats.map((stat, i) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1, duration: 0.5 }}
-            className="text-center"
-          >
-            <div className="text-4xl md:text-5xl font-bold text-white mb-2">
-              {stat.value}
-            </div>
-            <div className="text-gold-300 font-medium">{stat.label}</div>
-          </motion.div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-export function CTASection() {
-  return (
-    <section className="py-20 px-6 max-w-7xl mx-auto text-center">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-      >
-        <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-          Ready to Launch Your Business?
-        </h2>
-        <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
-          Join 10,000+ founders who launched with Genesis. Start free, scale infinitely.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <a 
-            href="/onboarding" 
-            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-primary-700 to-primary-900 text-white font-semibold rounded-xl hover:from-primary-800 hover:to-primary-900 shadow-lg hover:shadow-xl transition-all duration-300"
-          >
-            <Sparkles className="w-5 h-5" />
-            Start Free - No Credit Card
-          </a>
-          <a 
-            href="/demo" 
-            className="inline-flex items-center gap-2 px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold rounded-xl hover:bg-white/20 transition-all duration-300"
-          >
-            Watch Demo
-            <ArrowRight className="w-5 h-5" />
-          </a>
-        </div>
-      </motion.div>
-    </section>
   );
 }

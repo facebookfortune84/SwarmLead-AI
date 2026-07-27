@@ -38,10 +38,10 @@ export function AgentRegistry() {
         Agent Registry
       </h2>
 
-      <div className="mt-4 space-y-3">
+      <ul className="mt-4 space-y-3">
         {agents.map(
           (agent) => (
-            <div
+            <li
               key={agent.name}
               className="rounded-lg border p-3"
             >
@@ -52,10 +52,10 @@ export function AgentRegistry() {
               <div className="text-sm text-muted-foreground">
                 {agent.type}
               </div>
-            </div>
+            </li>
           )
         )}
-      </div>
+      </ul>
     </Card>
   );
 }

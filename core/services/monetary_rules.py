@@ -82,6 +82,7 @@ class MonetaryRulesEngine:
             
             # Rule 4: Dual-rail model
             if self.config.dual_rail_required:
+                rail_type = RailType(rail) if isinstance(rail, str) else rail
                 if not self._validate_dual_rail(counterparty, rail_type):
                     return False
             
@@ -94,7 +95,8 @@ class MonetaryRulesEngine:
             self._session_spend[agent_id] = self._session_spend.get(agent_id, 0.0) + amount_usd
             
             # Rule 5: Tamper-evident audit logging
-            self._audit_log({
+            rail_type = RailType(rail) if isinstance(rail, str) else rail
+            self._append_audit_log({
                 "agent_id": agent_id,
                 "amount_usd": amount_usd,
                 "counterparty": counterparty,
@@ -175,6 +177,10 @@ class MonetaryRulesEngine:
         # In production, this would check against expected spend
         return reconciliation
     
+    def _append_audit_log(self, entry: Dict) -> None:
+        """Append entry to audit log per §12.5."""
+        self.audit_log.append(entry)
+
     def verify_audit_log(self, action: Dict) -> bool:
         """Rule 5: Verify tamper-evident audit log."""
         # In production, would verify cryptographic hash chain

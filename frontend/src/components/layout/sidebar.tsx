@@ -18,6 +18,10 @@ const items = [
     label: "Tickets",
   },
   {
+    href: "/agents",
+    label: "Agents",
+  },
+  {
     href: "/workflows",
     label: "Workflows",
   },
@@ -28,6 +32,18 @@ const items = [
   {
     href: "/outreach",
     label: "Outreach",
+  },
+  {
+    href: "/billing",
+    label: "Billing",
+  },
+  {
+    href: "/notifications",
+    label: "Notifications",
+  },
+  {
+    href: "/admin",
+    label: "Admin",
   },
   {
     href: "/settings",
@@ -41,10 +57,10 @@ export function Sidebar() {
 
   return (
     <aside className="flex w-64 flex-col border-r bg-background">
-      <div className="border-b p-6">
-        <div className="text-xl font-bold">
-          SwarmLead AI
-        </div>
+        <div className="border-b p-6">
+        <h1 className="text-xl font-bold">
+          <a href="/">SwarmLead AI</a>
+        </h1>
 
         <div className="text-xs text-muted-foreground">
           CRM + Workflow Platform

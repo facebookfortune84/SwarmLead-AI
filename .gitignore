@@ -38,6 +38,7 @@ Thumbs.db
 # ------------------------------
 .env
 .env.*
+!.env.example
 *.env
 
 # ------------------------------
@@ -62,6 +63,7 @@ assets/raw/*.bak
 *.sqlite3
 *.db
 *.csv
+data/long_term_memory.json
 
 # ------------------------------
 # Cache

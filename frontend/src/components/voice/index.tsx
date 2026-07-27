@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Mic, MicOff, Volume2, X } from "lucide-react";
 import { orbState } from "@/design-system/animations/premiumVariants";
 
+
 interface VoiceOrbProps {
   state: "idle" | "listening" | "speaking" | "thinking";
   onClick?: () => void;
@@ -73,6 +74,7 @@ export function VoiceWaveform({ audioData, className = "" }: VoiceWaveformProps)
       className={`w-full h-20 ${className}`}
       viewBox={`0 0 ${barCount * (barWidth + gap)} ${maxHeight}`}
       preserveAspectRatio="none"
+      aria-hidden="true"
     >
       <defs>
         <linearGradient id="waveGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -145,6 +147,7 @@ export function VoiceControls({
           value={volume}
           onChange={(e) => onVolumeChange?.(parseFloat(e.target.value))}
           className="w-20 h-1 bg-gray-200 rounded-lg appearance-none accent-gold-500 cursor-pointer"
+          aria-label="Volume"
         />
       </div>
       
@@ -245,7 +248,7 @@ interface VoiceSessionPanelProps {
   onToggle: () => void;
 }
 
-function VoiceSessionPanel({ 
+export function VoiceSessionPanel({ 
   session, 
   onEnd, 
   onMuteToggle, 
@@ -295,4 +298,3 @@ function VoiceSessionPanel({
   );
 }
 
-export { VoiceOrb, VoiceWaveform, VoiceControls, VoiceSession, VoiceSessionPanel };

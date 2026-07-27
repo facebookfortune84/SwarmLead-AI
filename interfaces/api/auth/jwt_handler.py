@@ -40,6 +40,10 @@ if not SECRET_KEY:
     logger.critical(
         "JWT_SECRET_KEY is not configured. Authentication will fail."
     )
+    raise RuntimeError(
+        "JWT_SECRET_KEY is not configured. "
+        "Set this environment variable before starting the application."
+    )
 
 ALGORITHM = os.getenv(
     "JWT_ALGORITHM",

@@ -17,6 +17,7 @@ export function WorkflowCreateDialog() {
   async function save() {
     await createWorkflow.mutateAsync({
       name,
+      company_id: "",
       steps: [
         {
           step_name:

@@ -22,8 +22,8 @@ export function UserMenu() {
 
   if (isLoading) {
     return (
-      <div className="text-sm text-muted-foreground">
-        Loading...
+      <div className="text-sm text-muted-foreground" aria-live="polite">
+        Loading user profile...
       </div>
     );
   }

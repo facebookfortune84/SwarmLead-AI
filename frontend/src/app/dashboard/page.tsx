@@ -84,28 +84,28 @@ export default function DashboardPage() {
               AI Agent Activity
             </h2>
 
-            <div className="mt-4 space-y-3 text-sm">
-              <div className="rounded-lg border p-3">
+            <ul className="mt-4 space-y-3 text-sm">
+              <li className="rounded-lg border p-3">
                 Lead Discovery Agent
                 <span className="float-right text-muted-foreground">
                   Ready
                 </span>
-              </div>
+              </li>
 
-              <div className="rounded-lg border p-3">
+              <li className="rounded-lg border p-3">
                 Outreach Agent
                 <span className="float-right text-muted-foreground">
                   Planned
                 </span>
-              </div>
+              </li>
 
-              <div className="rounded-lg border p-3">
+              <li className="rounded-lg border p-3">
                 Voice Agent
                 <span className="float-right text-muted-foreground">
                   Planned
                 </span>
-              </div>
-            </div>
+              </li>
+            </ul>
           </Card>
 
           <Card className="p-6">
@@ -113,19 +113,19 @@ export default function DashboardPage() {
               Workflow Center
             </h2>
 
-            <div className="mt-4 space-y-3 text-sm">
-              <div className="rounded-lg border p-3">
+            <ul className="mt-4 space-y-3 text-sm">
+              <li className="rounded-lg border p-3">
                 Qualification Workflow
-              </div>
+              </li>
 
-              <div className="rounded-lg border p-3">
+              <li className="rounded-lg border p-3">
                 Outreach Workflow
-              </div>
+              </li>
 
-              <div className="rounded-lg border p-3">
+              <li className="rounded-lg border p-3">
                 Voice Escalation Workflow
-              </div>
-            </div>
+              </li>
+            </ul>
           </Card>
         </div>
 
@@ -140,7 +140,7 @@ export default function DashboardPage() {
                 CRM
               </div>
 
-              <div className="font-semibold text-green-600">
+              <div className="font-semibold text-green-800">
                 Online
               </div>
             </div>
@@ -150,7 +150,7 @@ export default function DashboardPage() {
                 API
               </div>
 
-              <div className="font-semibold text-green-600">
+              <div className="font-semibold text-green-800">
                 Online
               </div>
             </div>
@@ -160,7 +160,7 @@ export default function DashboardPage() {
                 Workflows
               </div>
 
-              <div className="font-semibold text-yellow-500">
+              <div className="font-semibold text-amber-700">
                 Auth Required
               </div>
             </div>

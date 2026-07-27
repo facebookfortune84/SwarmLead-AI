@@ -2,8 +2,13 @@ name: Swarm Tests
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, release/** ]
   pull_request:
+
+env:
+  JWT_SECRET_KEY: ci-test-secret-key-for-github-actions-2026
+  SWARM_DB_URL: ""
+  DATABASE_URL: ""
 
 jobs:
   test:

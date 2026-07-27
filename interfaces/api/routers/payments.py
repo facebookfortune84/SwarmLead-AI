@@ -83,13 +83,14 @@ async def create_checkout_session(payload: CheckoutCreate):
                 product=product.id,
                 unit_amount=payload.amount_cents,
                 currency="usd",
+                recurring={"interval": "month"},
             )
             price_id = price.id
 
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
             line_items=[{"price": price_id, "quantity": 1}],
-            mode="payment",
+            mode="subscription",
             success_url=success_url,
             cancel_url=cancel_url,
         )

@@ -3,6 +3,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+import os
+
 from core.config import *
 from core.persistence.session import init_db
 from interfaces.api.routers.auth import router as auth_router
@@ -15,6 +17,7 @@ from interfaces.api.routers.reporting import router as reporting_router
 from interfaces.api.routers.tenants import router as tenants_router
 from interfaces.api.routers.usage import router as usage_router
 from interfaces.api.routers.users import router as users_router
+from interfaces.api.routers.voice import router as voice_router
 from interfaces.api.routers.workflows import router as workflows_router
 
 
@@ -35,12 +38,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_cors_str = os.getenv(
+    "CORS_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000",
+)
+CORS_ORIGINS = [o.strip() for o in _cors_str.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -77,4 +83,5 @@ app.include_router(reporting_router)
 app.include_router(tenants_router)
 app.include_router(usage_router)
 app.include_router(users_router)
+app.include_router(voice_router)
 app.include_router(workflows_router)

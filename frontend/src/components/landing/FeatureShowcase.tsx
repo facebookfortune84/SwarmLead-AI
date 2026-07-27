@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import { Mic, ArrowRight, CheckCircle, Sparkles, TrendingUp, Users, Shield, Zap } from "lucide-react";
-import { VoiceOrb } from "@/components/voice/VoiceOrb";
 
 const features = [
   {
@@ -67,7 +66,7 @@ export function FeatureShowcase() {
             className="group p-8 bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-100 hover:border-primary-200 hover:shadow-xl transition-all duration-300"
           >
             <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-600 to-primary-800 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-              <feature.icon className="w-7 h-7 text-white" />
+              <feature.icon className="w-7 h-7 text-white" aria-hidden="true" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
             <p className="text-gray-600 leading-relaxed">{feature.desc}</p>
@@ -136,7 +135,7 @@ export function CTASection() {
             className="inline-flex items-center gap-2 px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold rounded-xl hover:bg-white/20 transition-all duration-300"
           >
             Watch Demo
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
           </a>
@@ -146,23 +145,3 @@ export function CTASection() {
   );
 }
 
-export function VoiceGreeting({ sessionId, visitorContext }: { sessionId: string; visitorContext: any }) {
-  const [state, setState] = useState<"idle" | "listening" | "speaking">("idle");
-  
-  useEffect(() => {
-    // Proactive greeting after 3 seconds
-    const timer = setTimeout(() => {
-      setState("speaking");
-      // Would trigger voice greeting
-      setTimeout(() => setState("listening"), 3000);
-    }, 3000);
-    
-    return () => clearTimeout(timer);
-  }, []);
-
-  return (
-    <div className="fixed bottom-6 right-6 z-50">
-      <VoiceOrb state={state} />
-    </div>
-  );
-}

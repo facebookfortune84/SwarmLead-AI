@@ -29,7 +29,7 @@ class ConversationMemoryAdapter:
         ltm: Optional[LongTermMemory] = None,
         path: Optional[str] = None
     ):
-        self.ltm = ltm or LongTermMemory(path)
+        self.ltm = ltm or LongTermMemory(path or "data/long_term_memory.json")
         self._session_cache: Dict[str, List[Dict]] = {}
     
     def store_turn(

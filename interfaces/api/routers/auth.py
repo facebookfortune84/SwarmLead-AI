@@ -2,6 +2,8 @@
 Authentication API endpoints
 """
 
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr
