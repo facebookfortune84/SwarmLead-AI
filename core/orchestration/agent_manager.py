@@ -5,13 +5,15 @@ Constitutional §13: Agent Identity & Permissions enforcement.
 
 import asyncio
 import uuid
-from typing import Dict, Any, Callable, Optional, List
 from datetime import datetime
+from typing import Any, Callable, Dict, List, Optional
 
-from core.auth.agent_identity import AgentIdentityRegistry, AgentIdentity, AgentDomain
-from core.auth.agent_identity import DEFAULT_AGENT_CONFIG
-from core.orchestration.task_router import TaskRouter
+from core.auth.agent_identity import (
+    DEFAULT_AGENT_CONFIG,
+    AgentIdentityRegistry,
+)
 from core.orchestration.scheduler import Scheduler
+from core.orchestration.task_router import TaskRouter
 
 
 class AgentManager:
@@ -36,7 +38,7 @@ class AgentManager:
         handler: Callable,
         domain: str = None,
         capabilities: List[str] = None,
-        metadata: Dict = None
+        metadata: Dict = None,
     ) -> None:
         if name in self.agents:
             raise ValueError(f"Agent {name} already registered")
@@ -51,13 +53,15 @@ class AgentManager:
             raise ValueError(f"Agent {name} identity invalid or expired")
 
         self.agents[name] = handler
-        resolved_domain = domain or (list(identity.domains)[0].value if identity.domains else "simulation")
+        resolved_domain = domain or (
+            list(identity.domains)[0].value if identity.domains else "simulation"
+        )
         self.agent_metadata[name] = {
             "domain": resolved_domain,
             "capabilities": capabilities or [],
             "metadata": metadata or {},
             "identity": identity,
-            "registered_at": datetime.utcnow().isoformat()
+            "registered_at": datetime.utcnow().isoformat(),
         }
         self.task_router.register_route(name, name)
 
@@ -74,17 +78,16 @@ class AgentManager:
         agent_name: str,
         input_data: Dict[str, Any],
         context: Optional[Dict[str, Any]] = None,
-        trace_id: Optional[str] = None
+        trace_id: Optional[str] = None,
     ) -> Dict[str, Any]:
-        from core.agents.governance.governance_agent import governance_agent
-        from core.agents.governance.governance_agent import AgentAction
+        from core.agents.governance.governance_agent import AgentAction, governance_agent
 
         agent = self.agents.get(agent_name)
         if not agent:
             return {
                 "success": False,
                 "agent": agent_name,
-                "error": f"Agent {agent_name} not registered"
+                "error": f"Agent {agent_name} not registered",
             }
 
         identity = AgentIdentityRegistry.get(agent_name)

@@ -9,20 +9,21 @@ Covers:
 - LeadTimeline (audit trail of lead status transitions)
 - ProcessedEmailUID (dedup table for IMAP reply processing)
 """
+
 import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    Boolean,
     Column,
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
     String,
     Text,
-    DateTime,
-    Boolean,
-    Integer,
-    Float,
-    Date,
     UniqueConstraint,
-    ForeignKey,
 )
 
 from core.persistence.base import Base
@@ -100,9 +101,7 @@ class OutreachDailyMetrics(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    __table_args__ = (
-        UniqueConstraint("date", "metric_name", name="uq_daily_metric_date_name"),
-    )
+    __table_args__ = (UniqueConstraint("date", "metric_name", name="uq_daily_metric_date_name"),)
 
 
 class LeadTimeline(Base):
@@ -130,6 +129,4 @@ class ProcessedEmailUID(Base):
     uid = Column(String(64), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    __table_args__ = (
-        UniqueConstraint("mailbox", "uid", name="uq_processed_email_uid"),
-    )
+    __table_args__ = (UniqueConstraint("mailbox", "uid", name="uq_processed_email_uid"),)

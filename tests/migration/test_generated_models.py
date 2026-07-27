@@ -1,5 +1,4 @@
 import importlib
-import pathlib
 
 
 def test_all_generated_models_import():

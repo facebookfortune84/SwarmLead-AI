@@ -7,23 +7,23 @@ Extracts tenant_id from validated JWT and attaches to request.state.
 
 from typing import Optional
 
-from fastapi import Request, HTTPException, status
+from fastapi import HTTPException, Request, status
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
 from core.auth import decode_token
-from core.auth.agent_identity import AgentIdentityRegistry, AgentIdentity
+from core.auth.agent_identity import AgentIdentity, AgentIdentityRegistry
 
 
 class TenantContextMiddleware(BaseHTTPMiddleware):
     """
     Extracts tenant_id and agent_id from validated JWT.
     Attaches to request.state for downstream use.
-    
+
     Constitutional §4.6: Structural portfolio isolation.
     Every request must carry tenant context for data isolation.
     """
-    
+
     # Public endpoints that don't require tenant context
     PUBLIC_PATHS = {
         "/health",
@@ -39,18 +39,18 @@ class TenantContextMiddleware(BaseHTTPMiddleware):
         "/voice/webhook",  # ElevenLabs webhooks
         "/api/stripe/webhook",  # Stripe webhooks
     }
-    
+
     # Paths that require agent identity (agent-to-agent)
     AGENT_PATHS = {
         "/api/agents/",
         "/internal/agents/",
     }
-    
+
     async def dispatch(self, request: Request, call_next) -> Response:
         # Skip public paths
         if request.url.path in self.PUBLIC_PATHS or request.url.path.startswith("/static"):
             return await call_next(request)
-        
+
         # Extract and validate Authorization header
         auth_header = request.headers.get("Authorization")
         if not auth_header or not auth_header.startswith("Bearer "):
@@ -59,30 +59,30 @@ class TenantContextMiddleware(BaseHTTPMiddleware):
                 detail="Missing or invalid Authorization header",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        
+
         token = auth_header.split(" ")[1]
-        
+
         try:
             # Decode and validate JWT
             payload = decode_token(token)
-            
+
             # Extract tenant context
             tenant_id = payload.get("tenant_id")
             agent_id = payload.get("agent_id")
             user_id = payload.get("sub")  # Human user
             scopes = payload.get("scopes", [])
-            
+
             # Determine context type
             is_agent_request = bool(agent_id)
             is_human_request = bool(user_id) and not agent_id
-            
+
             # Validate tenant context for non-public endpoints
             if not tenant_id and not is_agent_request:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Missing tenant_id in token",
                 )
-            
+
             # Attach to request state
             request.state.tenant_id = tenant_id
             request.state.agent_id = agent_id
@@ -90,7 +90,7 @@ class TenantContextMiddleware(BaseHTTPMiddleware):
             request.state.scopes = scopes
             request.state.is_agent_request = is_agent_request
             request.state.is_human_request = is_human_request
-            
+
             # Validate agent identity if agent request
             if is_agent_request:
                 agent_identity = AgentIdentityRegistry.get(agent_id)
@@ -105,7 +105,7 @@ class TenantContextMiddleware(BaseHTTPMiddleware):
                         detail=f"Agent identity invalid or expired: {agent_id}",
                     )
                 request.state.agent_identity = agent_identity
-            
+
         except HTTPException:
             raise
         except Exception as e:
@@ -114,7 +114,7 @@ class TenantContextMiddleware(BaseHTTPMiddleware):
                 detail=f"Invalid token: {str(e)}",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        
+
         response = await call_next(request)
         return response
 
@@ -125,7 +125,7 @@ def get_tenant_id(request: Request) -> str:
     if not tenant_id:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Tenant context not available. Middleware not configured?"
+            detail="Tenant context not available. Middleware not configured?",
         )
     return tenant_id
 

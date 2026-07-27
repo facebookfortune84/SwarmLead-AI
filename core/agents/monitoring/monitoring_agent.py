@@ -1,11 +1,7 @@
-from typing import Dict, Any, Optional, List
 import asyncio
+from typing import Any, Dict, List, Optional
 
-from core.monitoring.metrics_collector import (
-    update_active_tenants, update_active_agents, update_active_voice_sessions,
-    record_tenant_operation, record_monetary_transaction
-)
-from core.monitoring.system_monitor import SystemMonitor, HealthCheck, HealthStatus
+from core.monitoring.system_monitor import HealthCheck, SystemMonitor
 
 
 class MonitoringAgent:

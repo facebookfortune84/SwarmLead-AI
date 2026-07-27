@@ -5,16 +5,13 @@ Collects and exports Prometheus-compatible metrics for monitoring.
 Constitutional requirement: Observable system health.
 """
 
-from typing import Dict, Optional
-from dataclasses import dataclass, field
-from datetime import datetime
-from contextlib import asynccontextmanager
-import time
-import psutil
 import asyncio
+import time
+from contextlib import asynccontextmanager
+from typing import Optional
 
-from prometheus_client import Counter, Histogram, Gauge, CollectorRegistry, generate_latest
-
+import psutil
+from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram, generate_latest
 
 # Global registry
 registry = CollectorRegistry()
@@ -24,35 +21,35 @@ api_requests_total = Counter(
     "genesis_api_requests_total",
     "Total API requests",
     ["method", "endpoint", "status"],
-    registry=registry
+    registry=registry,
 )
 
 agent_tasks_total = Counter(
     "genesis_agent_tasks_total",
     "Total agent tasks executed",
     ["agent_name", "task_type", "status"],
-    registry=registry
+    registry=registry,
 )
 
 voice_sessions_total = Counter(
     "genesis_voice_sessions_total",
     "Total voice sessions",
     ["status"],  # started, completed, interrupted, failed
-    registry=registry
+    registry=registry,
 )
 
 monetary_transactions_total = Counter(
     "genesis_monetary_transactions_total",
     "Total monetary transactions",
     ["type", "status"],  # type: payment/refund/fee, status: success/failed
-    registry=registry
+    registry=registry,
 )
 
 tenant_operations_total = Counter(
     "genesis_tenant_operations_total",
     "Total tenant operations",
     ["operation", "status"],  # provision, deprovision, backup, etc.
-    registry=registry
+    registry=registry,
 )
 
 # Histograms
@@ -61,7 +58,7 @@ api_request_duration = Histogram(
     "API request duration",
     ["method", "endpoint"],
     buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0),
-    registry=registry
+    registry=registry,
 )
 
 agent_task_duration = Histogram(
@@ -69,7 +66,7 @@ agent_task_duration = Histogram(
     "Agent task execution duration",
     ["agent_name", "task_type"],
     buckets=(0.1, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0, 120.0),
-    registry=registry
+    registry=registry,
 )
 
 voice_latency = Histogram(
@@ -77,14 +74,14 @@ voice_latency = Histogram(
     "Voice processing latency (STT + LLM + TTS)",
     ["operation"],  # stt, llm, tts, total
     buckets=(0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0),
-    registry=registry
+    registry=registry,
 )
 
 voice_barge_in_latency = Histogram(
     "genesis_voice_barge_in_latency_seconds",
     "Barge-in interruption latency",
     buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0),
-    registry=registry
+    registry=registry,
 )
 
 db_query_duration = Histogram(
@@ -92,73 +89,54 @@ db_query_duration = Histogram(
     "Database query duration",
     ["operation"],
     buckets=(0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0),
-    registry=registry
+    registry=registry,
 )
 
 # Gauges
-active_tenants = Gauge(
-    "genesis_active_tenants",
-    "Number of active tenants",
-    registry=registry
-)
+active_tenants = Gauge("genesis_active_tenants", "Number of active tenants", registry=registry)
 
-active_agents = Gauge(
-    "genesis_active_agents",
-    "Number of active agents",
-    registry=registry
-)
+active_agents = Gauge("genesis_active_agents", "Number of active agents", registry=registry)
 
 active_voice_sessions = Gauge(
-    "genesis_active_voice_sessions",
-    "Active voice sessions",
-    registry=registry
+    "genesis_active_voice_sessions", "Active voice sessions", registry=registry
 )
 
 memory_usage_bytes = Gauge(
-    "genesis_memory_usage_bytes",
-    "Process memory usage in bytes",
-    registry=registry
+    "genesis_memory_usage_bytes", "Process memory usage in bytes", registry=registry
 )
 
-cpu_usage_percent = Gauge(
-    "genesis_cpu_usage_percent",
-    "CPU usage percentage",
-    registry=registry
-)
+cpu_usage_percent = Gauge("genesis_cpu_usage_percent", "CPU usage percentage", registry=registry)
 
 # Agent-specific metrics
 agent_llm_calls = Counter(
     "genesis_agent_llm_calls_total",
     "Total LLM calls by agents",
     ["agent_name", "model", "status"],
-    registry=registry
+    registry=registry,
 )
 
 agent_memory_operations = Counter(
     "genesis_agent_memory_operations_total",
     "Agent memory operations",
     ["agent_name", "operation", "memory_type"],  # session, long_term, vector
-    registry=registry
+    registry=registry,
 )
 
 agent_errors = Counter(
-    "genesis_agent_errors_total",
-    "Agent errors",
-    ["agent_name", "error_type"],
-    registry=registry
+    "genesis_agent_errors_total", "Agent errors", ["agent_name", "error_type"], registry=registry
 )
 
 
 class MetricsCollector:
     """Collects and updates system metrics."""
-    
+
     def __init__(self):
         self._update_task: Optional[asyncio.Task] = None
-    
+
     async def start(self):
         """Start periodic metric collection."""
         self._update_task = asyncio.create_task(self._collect_loop())
-    
+
     async def stop(self):
         """Stop metric collection."""
         if self._update_task:
@@ -167,7 +145,7 @@ class MetricsCollector:
                 await self._update_task
             except asyncio.CancelledError:
                 pass
-    
+
     async def _collect_loop(self):
         """Periodic metric collection loop."""
         while True:
@@ -176,23 +154,23 @@ class MetricsCollector:
             except Exception:
                 pass  # Log but don't crash
             await asyncio.sleep(15)  # Collect every 15 seconds
-    
+
     async def _collect_system_metrics(self):
         """Collect system-level metrics."""
         # Memory
         mem = psutil.virtual_memory()
         memory_usage_bytes.set(mem.used)
-        
+
         # CPU
         cpu_usage_percent.set(psutil.cpu_percent(interval=0.1))
-        
+
         # Disk
-        disk = psutil.disk_usage("/")
+        psutil.disk_usage("/")
         # Could add disk gauges here
-        
+
         # Process-specific
         process = psutil.Process()
-        process_mem = process.memory_info()
+        process.memory_info()
         # Could add process-specific gauges
 
 
@@ -220,7 +198,7 @@ async def track_agent_task(agent_name: str, task_type: str):
     status = "success"
     try:
         yield
-    except Exception:
+    except Exception as e:
         status = "error"
         agent_errors.labels(agent_name=agent_name, error_type=type(e).__name__).inc()
         raise
@@ -255,18 +233,14 @@ async def track_barge_in():
 def record_agent_llm_call(agent_name: str, model: str, success: bool):
     """Record agent LLM call."""
     agent_llm_calls.labels(
-        agent_name=agent_name,
-        model=model,
-        status="success" if success else "error"
+        agent_name=agent_name, model=model, status="success" if success else "error"
     ).inc()
 
 
 def record_agent_memory_op(agent_name: str, operation: str, memory_type: str):
     """Record agent memory operation."""
     agent_memory_operations.labels(
-        agent_name=agent_name,
-        operation=operation,
-        memory_type=memory_type
+        agent_name=agent_name, operation=operation, memory_type=memory_type
     ).inc()
 
 
@@ -278,16 +252,14 @@ def record_voice_session(status: str):
 def record_monetary_transaction(transaction_type: str, success: bool):
     """Record monetary transaction."""
     monetary_transactions_total.labels(
-        type=transaction_type,
-        status="success" if success else "failed"
+        type=transaction_type, status="success" if success else "failed"
     ).inc()
 
 
 def record_tenant_operation(operation: str, success: bool):
     """Record tenant lifecycle operation."""
     tenant_operations_total.labels(
-        operation=operation,
-        status="success" if success else "failed"
+        operation=operation, status="success" if success else "failed"
     ).inc()
 
 
@@ -308,11 +280,7 @@ def update_active_voice_sessions(count: int):
 
 def record_agent_task(agent_name: str, task_type: str, status: str = "success"):
     """Record agent task execution."""
-    agent_tasks_total.labels(
-        agent_name=agent_name,
-        task_type=task_type,
-        status=status
-    ).inc()
+    agent_tasks_total.labels(agent_name=agent_name, task_type=task_type, status=status).inc()
 
 
 def get_metrics() -> bytes:

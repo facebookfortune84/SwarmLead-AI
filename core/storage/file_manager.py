@@ -1,11 +1,12 @@
 """
 File manager for high-level file operations
 """
-import os
-import logging
-from typing import Optional, Dict, Any
-from .s3_client import S3Client
 
+import logging
+import os
+from typing import Any, Dict, Optional
+
+from .s3_client import S3Client
 
 logger = logging.getLogger(__name__)
 

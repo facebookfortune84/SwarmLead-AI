@@ -1,5 +1,7 @@
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import MagicMock, patch
+
 from core.memory.conversation_memory_adapter import ConversationMemoryAdapter
 from core.memory.long_term_memory import LongTermMemory
 
@@ -32,6 +34,7 @@ def test_store_turn_returns_dict(adapter):
     assert isinstance(result, dict)
     assert result["session_id"] == "session_1"
     import json
+
     content = json.loads(result["content"])
     assert content["role"] == "user"
     assert content["text"] == "hello"
@@ -45,6 +48,7 @@ def test_store_turn_with_audio_meta(adapter):
         audio_meta={"duration": 1.5, "format": "mp3"},
     )
     import json
+
     content = json.loads(result["content"])
     assert content["audio_meta"] == {"duration": 1.5, "format": "mp3"}
 

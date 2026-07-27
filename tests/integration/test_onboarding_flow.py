@@ -27,7 +27,10 @@ async def test_full_onboarding_flow(agent):
     assert result["text"] is not None
 
     steps_data = [
-        ("business_profile", {"company_name": "TestCo", "industry": "tech", "description": "AI platform"}),
+        (
+            "business_profile",
+            {"company_name": "TestCo", "industry": "tech", "description": "AI platform"},
+        ),
         ("goals", {"primary_goal": "launch", "target_metric": "revenue", "timeline": "3 months"}),
         ("voice_setup", {"voice_id": "default", "language": "en"}),
         ("integrations", {}),

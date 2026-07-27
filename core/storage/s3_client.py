@@ -3,10 +3,11 @@ Sovereign-friendly storage client.
 Supports real S3/MinIO if boto3 is present, otherwise falls back to local storage
 to maintain the 100% FOSS / zero-cost mandate.
 """
-import os
+
 import logging
+import os
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Dict, Optional
 
 try:
     import boto3

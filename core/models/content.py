@@ -6,8 +6,8 @@ Data models for content generation and management.
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Optional, List, Dict, Any
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
 
 class ContentType(str, Enum):
@@ -31,6 +31,7 @@ class ContentStatus(str, Enum):
 @dataclass
 class Content:
     """Content model for generated content."""
+
     id: str
     content_type: ContentType
     title: str
@@ -52,6 +53,7 @@ class Content:
 @dataclass
 class ContentTemplate:
     """Template for content generation."""
+
     id: str
     name: str
     content_type: str

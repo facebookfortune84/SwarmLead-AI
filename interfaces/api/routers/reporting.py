@@ -47,9 +47,7 @@ async def get_daily_reports(
     if start > end:
         raise HTTPException(
             status_code=400,
-            detail={
-                "error": f"start_date ({start_date}) must not be after end_date ({end_date})."
-            },
+            detail={"error": f"start_date ({start_date}) must not be after end_date ({end_date})."},
         )
 
     from agents.outreach.reporting_agent import ReportingAgent

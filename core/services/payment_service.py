@@ -3,18 +3,27 @@ Payment Service - Handles Stripe subscriptions and hosting billing.
 Integrated with Constitutional §12 Monetary Rules Engine.
 """
 
-import os
 import logging
-import stripe
-from typing import Dict, Any, Optional
+import os
+from typing import Any, Dict
 
-from core.services.monetary_rules import get_monetary_rules, RailType, MonetaryRulesConfig
+import stripe
+
 from core.auth.agent_identity import AgentIdentityRegistry
+from core.services.monetary_rules import get_monetary_rules
 
 logger = logging.getLogger("PaymentService")
 
 # Stripe configuration
 stripe.api_key = os.getenv("STRIPE_API_KEY", "sk_test_placeholder")
+
+
+PLANS: dict[str, str] = {
+    "starter": os.getenv("STRIPE_STARTER_PRICE_ID", ""),
+    "growth": os.getenv("STRIPE_GROWTH_PRICE_ID", ""),
+    "enterprise": os.getenv("STRIPE_ENTERPRISE_PRICE_ID", ""),
+    "launch": os.getenv("STRIPE_LAUNCH_PRICE_ID", ""),
+}
 
 
 class PaymentService:
@@ -28,21 +37,23 @@ class PaymentService:
 
     def __init__(self):
         self.hosting_price_id = os.getenv("STRIPE_HOSTING_PRICE_ID", "price_hosting_monthly")
+        self.plans = PLANS
         self.monetary_rules = get_monetary_rules()
-        
+
+    def get_price_id(self, plan_name: str) -> str | None:
+        """Look up a Stripe price ID by plan name."""
+        return self.plans.get(plan_name) or None
+
         # Register monetary rules with GovernanceAgent (done at startup)
         # from core.agents.governance.governance_agent import governance_agent
         # governance_agent.register_monetary_rules(self.monetary_rules)
 
     def create_hosting_subscription(
-        self,
-        customer_email: str,
-        project_id: str,
-        agent_id: str = None
+        self, customer_email: str, project_id: str, agent_id: str = None
     ) -> Dict[str, Any]:
         """
         Creates a recurring subscription for VM hosting.
-        
+
         Enforces Constitutional §12:
         - Human approval required
         - Allowlisted counterparty (Stripe)
@@ -73,13 +84,19 @@ class PaymentService:
             )
 
             # Log monetary transaction per §12.5
-            self._audit_log("subscription_created", "stripe_subscription", {
-                "subscription_id": subscription.id,
-                "customer_id": customer.id,
-                "project_id": project_id,
-                "rail": "stripe_card",
-                "amount_usd": subscription.items.data[0].price.unit_amount / 100 if subscription.items.data else 0
-            })
+            self._audit_log(
+                "subscription_created",
+                "stripe_subscription",
+                {
+                    "subscription_id": subscription.id,
+                    "customer_id": customer.id,
+                    "project_id": project_id,
+                    "rail": "stripe_card",
+                    "amount_usd": subscription.items.data[0].price.unit_amount / 100
+                    if subscription.items.data
+                    else 0,
+                },
+            )
 
             logger.info(f"Subscription created: {subscription.id} for {customer_email}")
             return {"status": "success", "subscription_id": subscription.id}
@@ -119,29 +136,36 @@ class PaymentService:
         price_id: str,
         agent_id: str = None,
         success_url: str = None,
-        cancel_url: str = None
+        cancel_url: str = None,
+        mode: str = "subscription",
     ) -> Dict[str, Any]:
         """
-        Creates a Stripe Checkout session for one-time payments.
+        Creates a Stripe Checkout session for recurring subscriptions.
         """
         try:
             session = stripe.checkout.Session.create(
                 customer_email=customer_email,
                 payment_method_types=["card"],
                 line_items=[{"price": price_id, "quantity": 1}],
-                mode="payment",
-                success_url=success_url or f"https://app.example.com/success?session_id={{CHECKOUT_SESSION_ID}}",
-                cancel_url=cancel_url or f"https://app.example.com/cancel",
+                mode=mode,
+                frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+                success_url=success_url
+                or f"{frontend_url}/success?session_id={{CHECKOUT_SESSION_ID}}",
+                cancel_url=cancel_url or f"{frontend_url}/cancel",
                 metadata={"project_id": project_id, "rail": "stripe_card"},
             )
 
-            self._audit_log("checkout_session_created", "stripe_checkout", {
-                "session_id": session.id,
-                "customer_email": customer_email,
-                "project_id": project_id,
-                "price_id": price_id,
-                "rail": "stripe_card"
-            })
+            self._audit_log(
+                "checkout_session_created",
+                "stripe_checkout",
+                {
+                    "session_id": session.id,
+                    "customer_email": customer_email,
+                    "project_id": project_id,
+                    "price_id": price_id,
+                    "rail": "stripe_card",
+                },
+            )
 
             return {"status": "success", "session_id": session.id, "url": session.url}
 
@@ -156,14 +180,14 @@ class PaymentService:
         webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
         try:
             event = stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
-            
+
             if event["type"] == "invoice.payment_succeeded":
                 self._handle_payment_succeeded(event["data"]["object"])
             elif event["type"] == "invoice.payment_failed":
                 self._handle_payment_failed(event["data"]["object"])
             elif event["type"] == "customer.subscription.deleted":
                 self._handle_subscription_canceled(event["data"]["object"])
-            
+
             return {"status": "success"}
         except Exception as e:
             logger.error(f"Webhook handling failed: {e}")
@@ -171,30 +195,42 @@ class PaymentService:
 
     def _handle_payment_succeeded(self, invoice: Dict):
         """Handle successful payment - log per §12.5"""
-        self._audit_log("payment_succeeded", "stripe_payment", {
-            "invoice_id": invoice.get("id"),
-            "customer": invoice.get("customer"),
-            "amount_usd": invoice.get("amount_paid", 0) / 100,
-            "rail": "stripe_card"
-        })
+        self._audit_log(
+            "payment_succeeded",
+            "stripe_payment",
+            {
+                "invoice_id": invoice.get("id"),
+                "customer": invoice.get("customer"),
+                "amount_usd": invoice.get("amount_paid", 0) / 100,
+                "rail": "stripe_card",
+            },
+        )
 
     def _handle_payment_failed(self, invoice: Dict):
         """Handle failed payment."""
         logger.warning(f"Payment failed for invoice: {invoice.get('id')}")
-        self._audit_log("payment_failed", "stripe_payment", {
-            "invoice_id": invoice.get("id"),
-            "customer": invoice.get("customer"),
-            "rail": "stripe_card"
-        })
+        self._audit_log(
+            "payment_failed",
+            "stripe_payment",
+            {
+                "invoice_id": invoice.get("id"),
+                "customer": invoice.get("customer"),
+                "rail": "stripe_card",
+            },
+        )
 
     def _handle_subscription_canceled(self, subscription: Dict):
         """Handle subscription cancellation."""
         logger.info(f"Subscription canceled: {subscription.get('id')}")
-        self._audit_log("subscription_canceled", "stripe_subscription", {
-            "subscription_id": subscription.get("id"),
-            "customer": subscription.get("customer"),
-            "rail": "stripe_card"
-        })
+        self._audit_log(
+            "subscription_canceled",
+            "stripe_subscription",
+            {
+                "subscription_id": subscription.get("id"),
+                "customer": subscription.get("customer"),
+                "rail": "stripe_card",
+            },
+        )
 
     def _audit_log(self, action: str, event_type: str, details: Dict):
         """Tamper-evident audit logging per §12.5"""

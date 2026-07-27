@@ -71,10 +71,7 @@ class RepairAgent:
         return {
             "repaired": result.repaired,
             "action_count": len(result.actions),
-            "targets": [
-                action.target
-                for action in result.actions
-            ],
+            "targets": [action.target for action in result.actions],
         }
 
     def merge_actions(

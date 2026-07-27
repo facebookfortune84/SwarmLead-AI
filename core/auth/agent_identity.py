@@ -1,19 +1,19 @@
 """
 Agent Identity System
 
-Constitutional §13: Every agent must have unique, non-shared identity with 
+Constitutional §13: Every agent must have unique, non-shared identity with
 scoped credentials and explicit tool allowlists.
 """
 
-import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional, Set
 
 
 class AgentDomain(Enum):
     """Constitutional §5: Autonomy by Domain"""
+
     PRODUCT_CODE = "product_code"
     SECURITY_SECRETS = "security_secrets"
     FINANCIAL = "financial"
@@ -25,6 +25,7 @@ class AgentDomain(Enum):
 @dataclass
 class AgentIdentity:
     """Unique, non-shared agent identity with scoped credentials."""
+
     agent_id: str
     agent_type: str
     display_name: str
@@ -111,7 +112,7 @@ class AgentIdentityRegistry:
         cls._identities.clear()
         for agent_config in config.get("agents", []):
             domains = agent_config.get("domains", [])
-            
+
             # Handle "*" wildcard for all domains
             if "*" in domains:
                 domains = [d for d in AgentDomain]
@@ -128,7 +129,7 @@ class AgentIdentityRegistry:
                     else:
                         normalized_domains.append(d)
                 domains = normalized_domains
-            
+
             identity = AgentIdentity(
                 agent_id=agent_config["agent_id"],
                 agent_type=agent_config["agent_type"],
@@ -165,7 +166,7 @@ DEFAULT_AGENT_CONFIG = {
             "display_name": "Strategy Agent",
             "domains": ["product_code", "simulation"],
             "tool_allowlist": ["call_llm", "read_memory", "write_memory", "search_vector"],
-            "data_allowlist": ["strategy", "market_data", "business_model"]
+            "data_allowlist": ["strategy", "market_data", "business_model"],
         },
         {
             "agent_id": "outreach_agent",
@@ -173,23 +174,37 @@ DEFAULT_AGENT_CONFIG = {
             "display_name": "Outreach Agent",
             "domains": ["external_comms"],
             "tool_allowlist": ["call_llm", "send_email", "read_memory", "write_memory"],
-            "data_allowlist": ["leads", "outreach_templates", "campaign_data"]
+            "data_allowlist": ["leads", "outreach_templates", "campaign_data"],
         },
         {
             "agent_id": "builder_agent",
             "agent_type": "BuilderAgent",
             "display_name": "Builder Agent",
             "domains": ["product_code"],
-            "tool_allowlist": ["call_llm", "write_files", "read_files", "execute_code", "read_memory", "write_memory"],
-            "data_allowlist": ["code", "specifications", "api_docs"]
+            "tool_allowlist": [
+                "call_llm",
+                "write_files",
+                "read_files",
+                "execute_code",
+                "read_memory",
+                "write_memory",
+            ],
+            "data_allowlist": ["code", "specifications", "api_docs"],
         },
         {
             "agent_id": "repair_agent",
             "agent_type": "RepairAgent",
             "display_name": "Repair Agent",
             "domains": ["product_code"],
-            "tool_allowlist": ["call_llm", "write_files", "read_files", "run_tests", "read_memory", "write_memory"],
-            "data_allowlist": ["code", "test_results", "error_logs"]
+            "tool_allowlist": [
+                "call_llm",
+                "write_files",
+                "read_files",
+                "run_tests",
+                "read_memory",
+                "write_memory",
+            ],
+            "data_allowlist": ["code", "test_results", "error_logs"],
         },
         {
             "agent_id": "review_agent",
@@ -197,23 +212,36 @@ DEFAULT_AGENT_CONFIG = {
             "display_name": "Review Agent",
             "domains": ["product_code"],
             "tool_allowlist": ["call_llm", "read_files", "read_memory"],
-            "data_allowlist": ["code", "pull_requests", "standards"]
+            "data_allowlist": ["code", "pull_requests", "standards"],
         },
         {
             "agent_id": "voice_agent",
             "agent_type": "VoiceAgent",
             "display_name": "Voice Agent",
             "domains": ["external_comms", "simulation"],
-            "tool_allowlist": ["call_llm", "elevenlabs_stt", "elevenlabs_tts", "read_memory", "write_memory"],
-            "data_allowlist": ["conversations", "voice_sessions", "customer_data"]
+            "tool_allowlist": [
+                "call_llm",
+                "elevenlabs_stt",
+                "elevenlabs_tts",
+                "read_memory",
+                "write_memory",
+            ],
+            "data_allowlist": ["conversations", "voice_sessions", "customer_data"],
         },
         {
             "agent_id": "governance_agent",
             "agent_type": "GovernanceAgent",
             "display_name": "Governance Agent",
             "domains": ["*"],
-            "tool_allowlist": ["call_llm", "read_all", "audit", "enforce", "read_memory", "write_memory"],
-            "data_allowlist": ["*"]
+            "tool_allowlist": [
+                "call_llm",
+                "read_all",
+                "audit",
+                "enforce",
+                "read_memory",
+                "write_memory",
+            ],
+            "data_allowlist": ["*"],
         },
         {
             "agent_id": "audit_agent",
@@ -221,7 +249,7 @@ DEFAULT_AGENT_CONFIG = {
             "display_name": "Audit Agent",
             "domains": ["*"],
             "tool_allowlist": ["call_llm", "read_all", "audit_log", "read_memory"],
-            "data_allowlist": ["*"]
+            "data_allowlist": ["*"],
         },
         {
             "agent_id": "monitoring_agent",
@@ -229,7 +257,7 @@ DEFAULT_AGENT_CONFIG = {
             "display_name": "Monitoring Agent",
             "domains": ["*"],
             "tool_allowlist": ["call_llm", "read_metrics", "trigger_alert", "read_memory"],
-            "data_allowlist": ["metrics", "logs", "health"]
+            "data_allowlist": ["metrics", "logs", "health"],
         },
         {
             "agent_id": "payment_agent",
@@ -237,7 +265,7 @@ DEFAULT_AGENT_CONFIG = {
             "display_name": "Payment Agent",
             "domains": ["financial"],
             "tool_allowlist": ["call_llm", "stripe_api", "read_memory", "write_memory"],
-            "data_allowlist": ["payments", "subscriptions", "billing"]
+            "data_allowlist": ["payments", "subscriptions", "billing"],
         },
         {
             "agent_id": "landing_agent",
@@ -245,15 +273,21 @@ DEFAULT_AGENT_CONFIG = {
             "display_name": "Landing Page Agent",
             "domains": ["external_comms", "simulation"],
             "tool_allowlist": ["call_llm", "elevenlabs_tts", "read_memory", "write_memory"],
-            "data_allowlist": ["visitor_data", "landing_flows", "conversions"]
+            "data_allowlist": ["visitor_data", "landing_flows", "conversions"],
         },
         {
             "agent_id": "onboarding_agent",
             "agent_type": "OnboardingAgent",
             "display_name": "Onboarding Agent",
             "domains": ["simulation", "product_code"],
-            "tool_allowlist": ["call_llm", "elevenlabs_tts", "create_tenant", "read_memory", "write_memory"],
-            "data_allowlist": ["onboarding_flows", "business_profiles", "tenant_data"]
+            "tool_allowlist": [
+                "call_llm",
+                "elevenlabs_tts",
+                "create_tenant",
+                "read_memory",
+                "write_memory",
+            ],
+            "data_allowlist": ["onboarding_flows", "business_profiles", "tenant_data"],
         },
         {
             "agent_id": "seo_agent",
@@ -261,7 +295,7 @@ DEFAULT_AGENT_CONFIG = {
             "display_name": "SEO Agent",
             "domains": ["simulation", "product_code"],
             "tool_allowlist": ["call_llm", "analyze_seo", "read_memory", "write_memory"],
-            "data_allowlist": ["keywords", "content", "analytics"]
+            "data_allowlist": ["keywords", "content", "analytics"],
         },
         {
             "agent_id": "content_agent",
@@ -269,16 +303,22 @@ DEFAULT_AGENT_CONFIG = {
             "display_name": "Content Agent",
             "domains": ["product_code", "simulation"],
             "tool_allowlist": ["call_llm", "generate_content", "read_memory", "write_memory"],
-            "data_allowlist": ["content", "templates", "brand_guidelines"]
+            "data_allowlist": ["content", "templates", "brand_guidelines"],
         },
         {
             "agent_id": "growth_agent",
             "agent_type": "GrowthAgent",
             "display_name": "Growth Agent",
             "domains": ["simulation", "product_code"],
-            "tool_allowlist": ["call_llm", "analyze_growth", "generate_referral", "read_memory", "write_memory"],
-            "data_allowlist": ["growth_metrics", "referrals", "expansion_data"]
-        }
+            "tool_allowlist": [
+                "call_llm",
+                "analyze_growth",
+                "generate_referral",
+                "read_memory",
+                "write_memory",
+            ],
+            "data_allowlist": ["growth_metrics", "referrals", "expansion_data"],
+        },
     ]
 }
 

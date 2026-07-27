@@ -24,9 +24,7 @@ try:
     import jwt
     from jwt import InvalidTokenError
 except ImportError:
-    raise ImportError(
-        "PyJWT is required. Install it with: pip install PyJWT"
-    )
+    raise ImportError("PyJWT is required. Install it with: pip install PyJWT")
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +35,7 @@ logger = logging.getLogger(__name__)
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 
 if not SECRET_KEY:
-    logger.critical(
-        "JWT_SECRET_KEY is not configured. Authentication will fail."
-    )
+    logger.critical("JWT_SECRET_KEY is not configured. Authentication will fail.")
     raise RuntimeError(
         "JWT_SECRET_KEY is not configured. "
         "Set this environment variable before starting the application."
@@ -123,10 +119,7 @@ def create_access_token(
     expire = (
         datetime.now(timezone.utc) + expires_delta
         if expires_delta
-        else datetime.now(timezone.utc)
-        + timedelta(
-            minutes=ACCESS_TOKEN_EXPIRE_MINUTES
-        )
+        else datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
     to_encode.update(
@@ -153,11 +146,7 @@ def create_refresh_token(
 
     to_encode = data.copy()
 
-    expire = datetime.now(
-        timezone.utc
-    ) + timedelta(
-        days=REFRESH_TOKEN_EXPIRE_DAYS
-    )
+    expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
 
     to_encode.update(
         {
@@ -172,6 +161,7 @@ def create_refresh_token(
         SECRET_KEY,
         algorithm=ALGORITHM,
     )
+
 
 # ============================================================================
 # Token Verification
@@ -221,6 +211,7 @@ def decode_token(
 
         return None
 
+
 # ============================================================================
 # Token Revocation
 # ============================================================================
@@ -235,9 +226,7 @@ def revoke_token(
     """
 
     if redis_client is None:
-        logger.warning(
-            "Token revocation requested but Redis is unavailable."
-        )
+        logger.warning("Token revocation requested but Redis is unavailable.")
         return False
 
     try:
@@ -251,11 +240,7 @@ def revoke_token(
         if not exp:
             return False
 
-        ttl = int(
-            exp - datetime.now(
-                timezone.utc
-            ).timestamp()
-        )
+        ttl = int(exp - datetime.now(timezone.utc).timestamp())
 
         if ttl <= 0:
             return False
@@ -292,12 +277,7 @@ def is_token_revoked(
         return False
 
     try:
-        return (
-            redis_client.exists(
-                f"revoked:{token}"
-            )
-            > 0
-        )
+        return redis_client.exists(f"revoked:{token}") > 0
 
     except Exception as exc:
         logger.error(
@@ -306,6 +286,7 @@ def is_token_revoked(
         )
 
         return False
+
 
 # ============================================================================
 # Refresh Flow
@@ -323,9 +304,7 @@ def refresh_access_token(
     if is_token_revoked(refresh_token):
         return None
 
-    payload = decode_token(
-        refresh_token
-    )
+    payload = decode_token(refresh_token)
 
     if not payload:
         return None
@@ -339,6 +318,4 @@ def refresh_access_token(
         "role": payload.get("role"),
     }
 
-    return create_access_token(
-        user_data
-    )
+    return create_access_token(user_data)

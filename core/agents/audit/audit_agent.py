@@ -6,14 +6,15 @@ Constitutional §13: Agent identity & permissions
 Independent verification — structurally separate from generation.
 """
 
-from typing import Dict, Any, Optional, List
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-import json
+from typing import Any, Dict, List, Optional
 
-from core.auth.agent_identity import AgentIdentityRegistry, AgentIdentity
-from core.monitoring.metrics_collector import record_agent_task
+from fastapi import APIRouter
+from pydantic import BaseModel
+
+from core.auth.agent_identity import AgentIdentityRegistry
 
 
 class AuditEventType(str, Enum):
@@ -29,6 +30,7 @@ class AuditEventType(str, Enum):
 @dataclass
 class AuditEntry:
     """Immutable audit log entry."""
+
     event_id: str
     event_type: AuditEventType
     timestamp: datetime
@@ -41,7 +43,7 @@ class AuditEntry:
     compliance_result: Dict[str, Any]
     human_reviewer: Optional[str] = None
     audit_trail_hash: str = ""
-    
+
     def to_dict(self) -> Dict:
         return {
             "event_id": self.event_id,
@@ -62,64 +64,76 @@ class AuditEntry:
 class AuthorshipVerifier:
     """
     Verifies legible authorship per Constitution §3.
-    
+
     Every commit, draft, filing, and decision traces to a named agent role
     and, where required, a human approver. No anonymous or unattributable actions.
     """
-    
+
     def __init__(self):
         self.authorship_log: List[Dict] = []
-    
+
     def verify(self, action: Dict) -> Dict:
         """Verify action has proper attribution."""
-        result = {
-            "valid": True,
-            "violations": [],
-            "details": {}
-        }
-        
+
         # Check required fields
         required_fields = ["agent_id", "trace_id", "timestamp"]
         for field in required_fields:
             if not action.get(field):
-                return {"valid": False, "violations": [f"Missing required field: {field}"], "details": {}}
-        
+                return {
+                    "valid": False,
+                    "violations": [f"Missing required field: {field}"],
+                    "details": {},
+                }
+
         # Verify agent identity exists
         agent_id = action.get("agent_id")
         if not AgentIdentityRegistry.get(action.get("agent_id")):
             return {"valid": False, "violations": [f"Unknown agent: {agent_id}"], "details": {}}
-        
+
         # Verify trace_id format (should be UUID)
         trace_id = action.get("trace_id")
         if not self._is_valid_uuid(trace_id):
             return {"valid": False, "violations": ["Invalid trace_id format"], "details": {}}
-        
+
         # Verify agent identity is valid
         identity = AgentIdentityRegistry.get(action.get("agent_id"))
         if identity and not identity.is_valid():
-            return {"valid": False, "violations": [f"Agent identity invalid or expired: {action.get('agent_id')}"], "details": {}}
-        
+            return {
+                "valid": False,
+                "violations": [f"Agent identity invalid or expired: {action.get('agent_id')}"],
+                "details": {},
+            }
+
         # Check for anonymous actions
         if action.get("anonymous", False):
-            return {"valid": False, "violations": ["Anonymous actions prohibited per §3"], "details": {}}
-        
-        return {"valid": True, "violations": [], "details": {"agent_id": action.get("agent_id"), "trace_id": trace_id}}
-    
+            return {
+                "valid": False,
+                "violations": ["Anonymous actions prohibited per §3"],
+                "details": {},
+            }
+
+        return {
+            "valid": True,
+            "violations": [],
+            "details": {"agent_id": action.get("agent_id"), "trace_id": trace_id},
+        }
+
     def _is_valid_uuid(self, val: str) -> bool:
         import uuid
+
         try:
             uuid.UUID(val)
             return True
         except (ValueError, TypeError):
             return False
-    
+
     def log_authorship(self, action: Dict) -> None:
         """Log verified authorship for audit trail."""
         entry = {
             "event_id": f"auth_{datetime.utcnow().timestamp()}",
             "event_type": "authorship_verified",
             "timestamp": datetime.utcnow().isoformat(),
-            "action": action
+            "action": action,
         }
         self.authorship_log.append(entry)
 
@@ -127,60 +141,59 @@ class AuthorshipVerifier:
 class EscalationAuditor:
     """
     Audits escalation framework compliance.
-    
+
     Constitution §6: Emergency Intervention Protocol
     Constitution §5.1: Mandatory Legal/Compliance Review Triggers
     """
-    
+
     def __init__(self):
         self.escalation_log: List[Dict] = []
-    
+
     def audit_escalation(self, escalation_event: Dict) -> Dict:
         """Audit an escalation event for compliance."""
-        result = {
-            "valid": True,
-            "violations": [],
-            "details": {}
-        }
-        
+        result = {"valid": True, "violations": [], "details": {}}
+
         # Check required fields
-        required = ["trigger", "escalated_by", "escalated_to", "reason", "timestamp"]
         for field in ["trigger", "escalated_by", "escalated_to", "reason"]:
             if not escalation_event.get(field):
                 result["valid"] = False
                 result["violations"].append(f"Missing required field: {field}")
-        
+
         # Check trigger is valid
         valid_triggers = [
-            "dollar_value", "regulated_category", "irreversibility", 
-            "public_commitment", "security_incident", "constitutional_violation"
+            "dollar_value",
+            "regulated_category",
+            "irreversibility",
+            "public_commitment",
+            "security_incident",
+            "constitutional_violation",
         ]
         trigger = escalation_event.get("trigger")
         if trigger and trigger not in valid_triggers:
             result["valid"] = False
             result["violations"].append(f"Invalid trigger: {trigger}")
-        
+
         # Check graceful wind-down per §6
         if escalation_event.get("emergency_stop"):
             if not escalation_event.get("graceful_wind_down"):
                 result["valid"] = False
                 result["violations"].append("Emergency stop requires graceful wind-down per §6")
-        
+
         # Check human involvement
         if not escalation_event.get("human_involved"):
             result["valid"] = False
             result["violations"].append("Escalation requires human involvement")
-        
+
         # Log
         audit_entry = {
             "event_id": f"esc_{datetime.utcnow().timestamp()}",
             "event_type": "escalation_audit",
             "timestamp": datetime.utcnow().isoformat(),
             "event": escalation_event,
-            "result": result
+            "result": result,
         }
         self.escalation_log.append(audit_entry)
-        
+
         return result
 
 
@@ -188,18 +201,17 @@ class ComplianceReporter:
     """
     Generates compliance reports for governance review.
     """
-    
+
     def __init__(self):
         self.reports: List[Dict] = []
-    
-    def generate_constitutional_compliance_report(self, period_start: datetime, period_end: datetime) -> Dict:
+
+    def generate_constitutional_compliance_report(
+        self, period_start: datetime, period_end: datetime
+    ) -> Dict:
         """Generate constitutional compliance report for period."""
         # This would query audit logs in production
         return {
-            "period": {
-                "start": period_start.isoformat(),
-                "end": period_end.isoformat()
-            },
+            "period": {"start": period_start.isoformat(), "end": period_end.isoformat()},
             "sections": {
                 "legible_authorship": {"compliant": True, "violations": 0},
                 "reversibility": {"compliant": True, "violations": 0},
@@ -220,17 +232,19 @@ class ComplianceReporter:
                 "total_actions_audited": 0,
                 "total_violations": 0,
                 "critical_violations": 0,
-                "compliance_rate": 100.0
+                "compliance_rate": 100.0,
             },
-            "generated_at": datetime.utcnow().isoformat()
+            "generated_at": datetime.utcnow().isoformat(),
         }
-    
-    def generate_agent_activity_report(self, agent_id: str, period_start: datetime, period_end: datetime) -> Dict:
+
+    def generate_agent_activity_report(
+        self, agent_id: str, period_start: datetime, period_end: datetime
+    ) -> Dict:
         """Generate activity report for specific agent."""
         identity = AgentIdentityRegistry.get(agent_id)
         if not identity:
             return {"error": f"Unknown agent: {agent_id}"}
-        
+
         return {
             "agent_id": agent_id,
             "agent_type": identity.agent_type,
@@ -242,7 +256,7 @@ class ComplianceReporter:
             "violations": 0,
             "compliance_rate": 100.0,
         }
-    
+
     def generate_monetary_audit_report(self, period_start: datetime, period_end: datetime) -> Dict:
         """Generate monetary rules audit report per §12."""
         return {
@@ -256,75 +270,69 @@ class ComplianceReporter:
                 "reconciliation_escalation": {"compliant": True, "violations": 0},
                 "disputes_to_processor": {"compliant": True, "violations": 0},
             },
-            "transactions": {
-                "total": 0,
-                "total_usd": 0.0,
-                "failed": 0,
-                "escalated": 0
-            },
-            "generated_at": datetime.utcnow().isoformat()
+            "transactions": {"total": 0, "total_usd": 0.0, "failed": 0, "escalated": 0},
+            "generated_at": datetime.utcnow().isoformat(),
         }
 
 
 class AuditAgent:
     """
     Independent verification agent — structurally separate from generation.
-    
+
     Per ADR-001: No self-graded homework.
     Verification is always structurally separate from generation.
     """
-    
+
     def __init__(self):
         self.authorship = AuthorshipVerifier()
         self.escalation = EscalationAuditor()
         self.reporter = ComplianceReporter()
         self.audit_log: List[Dict] = []
-    
+
     def audit_action(self, action: Dict) -> Dict:
         """Audit a single agent action."""
         # Verify authorship
         authorship_result = self.authorship.verify(action)
-        
+
         # Log
-        audit_entry = {
+        {
             "event_id": f"audit_{datetime.utcnow().timestamp()}",
             "event_type": "action_audit",
             "timestamp": datetime.utcnow().isoformat(),
             "action": action,
             "authorship_result": authorship_result,
         }
-        
+
         return {
             "valid": authorship_result["valid"],
             "violations": authorship_result["violations"],
-            "audit_entry": authorship_result
+            "audit_entry": authorship_result,
         }
-    
+
     def audit_escalation(self, escalation_event: Dict) -> Dict:
         """Audit an escalation event."""
         return self.escalation.audit_escalation(escalation_event)
-    
+
     def generate_reports(self, period_start: datetime, period_end: datetime) -> Dict:
         """Generate all compliance reports."""
         return {
-            "constitutional_compliance": self.reporter.generate_constitutional_compliance_report(period_start, period_end),
-            "monetary_audit": self.reporter.generate_monetary_audit_report(period_start, period_end),
-            "generated_at": datetime.utcnow().isoformat()
+            "constitutional_compliance": self.reporter.generate_constitutional_compliance_report(
+                period_start, period_end
+            ),
+            "monetary_audit": self.reporter.generate_monetary_audit_report(
+                period_start, period_end
+            ),
+            "generated_at": datetime.utcnow().isoformat(),
         }
-    
+
     def get_agent_report(self, agent_id: str, period_start: datetime, period_end: datetime) -> Dict:
         """Get agent-specific report."""
         return self.reporter.generate_agent_activity_report(agent_id, period_start, period_end)
-    
+
     def get_audit_log(self, limit: int = 100) -> List[Dict]:
         """Get recent audit log entries."""
         return self.audit_log[-limit:]
 
-
-# FastAPI router
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
-from typing import Optional
 
 router = APIRouter(prefix="/audit", tags=["Audit"])
 
@@ -354,9 +362,7 @@ audit_agent = AuditAgent()
 @router.post("/verify", response_model=Dict)
 async def verify_action(request: AuditActionRequest):
     """Verify agent action authorship."""
-    action = request.dict()
-    result = audit_agent.audit_action(request.dict())
-    return result
+    return audit_agent.audit_action(request.dict())
 
 
 @router.post("/escalation", response_model=Dict)
@@ -367,10 +373,7 @@ async def audit_escalation(request: EscalationEventRequest):
 
 
 @router.get("/reports/constitutional")
-async def constitutional_report(
-    period_start: str,
-    period_end: str
-):
+async def constitutional_report(period_start: str, period_end: str):
     """Generate constitutional compliance report."""
     start = datetime.fromisoformat(period_start)
     end = datetime.fromisoformat(period_end)
@@ -378,10 +381,7 @@ async def constitutional_report(
 
 
 @router.get("/reports/monetary")
-async def monetary_report(
-    period_start: str,
-    period_end: str
-):
+async def monetary_report(period_start: str, period_end: str):
     """Generate monetary audit report."""
     start = datetime.fromisoformat(period_start)
     end = datetime.fromisoformat(period_end)
@@ -389,11 +389,7 @@ async def monetary_report(
 
 
 @router.get("/reports/agent/{agent_id}")
-async def agent_report(
-    agent_id: str,
-    period_start: str,
-    period_end: str
-):
+async def agent_report(agent_id: str, period_start: str, period_end: str):
     """Generate agent activity report."""
     start = datetime.fromisoformat(period_start)
     end = datetime.fromisoformat(period_end)

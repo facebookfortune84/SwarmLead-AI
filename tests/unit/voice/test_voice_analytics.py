@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime
+
 from core.agents.voice.voice_analytics import VoiceAnalytics, VoiceSessionMetrics
 
 
@@ -148,6 +148,7 @@ def test_session_duration(analytics):
 
 def test_global_instance():
     from core.agents.voice.voice_analytics import voice_analytics
+
     assert isinstance(voice_analytics, VoiceAnalytics)
 
 

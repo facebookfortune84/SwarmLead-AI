@@ -1,9 +1,12 @@
 """
 Ticket audit trail — record and retrieve every field change on a ticket.
 """
+
 import logging
 from datetime import datetime
+
 from sqlalchemy.orm import Session
+
 from core.models.ticket_history import TicketHistory
 
 logger = logging.getLogger("TicketHistory")

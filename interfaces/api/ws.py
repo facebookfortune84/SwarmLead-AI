@@ -4,8 +4,10 @@ WebSocket endpoints for real-time notification and message delivery.
 Connections are tracked per user (notifications) or per thread (messages).
 The ConnectionManager is imported by the notification service for push delivery.
 """
+
 import json
 import logging
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 logger = logging.getLogger("WebSocket")
@@ -131,8 +133,8 @@ async def ws_messages(thread_id: str, websocket: WebSocket):
 
             # Persist message
             try:
-                from core.persistence.session import SessionLocal
                 from core.models.message import Message
+                from core.persistence.session import SessionLocal
 
                 db = SessionLocal()
                 try:

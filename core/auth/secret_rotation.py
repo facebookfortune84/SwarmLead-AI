@@ -36,7 +36,9 @@ def get_secret_age_days(secret_name: str) -> Optional[float]:
         return None
     try:
         rotated_at = datetime.fromisoformat(timestamp_str)
-        return (datetime.now(timezone.utc) - rotated_at.replace(tzinfo=timezone.utc)).total_seconds() / 86400
+        return (
+            datetime.now(timezone.utc) - rotated_at.replace(tzinfo=timezone.utc)
+        ).total_seconds() / 86400
     except (ValueError, TypeError):
         return None
 
@@ -88,13 +90,15 @@ def list_rotation_status() -> List[Dict[str, object]]:
         current = os.getenv(config["env_var"], "")
         age = get_secret_age_days(secret_name)
         due = is_rotation_due(secret_name)
-        statuses.append({
-            "secret": secret_name,
-            "configured": bool(current),
-            "age_days": round(age, 1) if age is not None else None,
-            "rotation_due": due,
-            "min_age_days": config["min_age_days"],
-        })
+        statuses.append(
+            {
+                "secret": secret_name,
+                "configured": bool(current),
+                "age_days": round(age, 1) if age is not None else None,
+                "rotation_due": due,
+                "min_age_days": config["min_age_days"],
+            }
+        )
     return statuses
 
 

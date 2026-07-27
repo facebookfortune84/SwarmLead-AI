@@ -1,11 +1,14 @@
 """
 Notification service — creates DB notifications and dispatches real-time pushes.
 """
+
 import json
 import logging
 from datetime import datetime
 from typing import Optional
+
 from sqlalchemy.orm import Session
+
 from core.models.notification import Notification
 from core.models.user import User
 
@@ -138,8 +141,9 @@ class NotificationService:
     def _ws_push(self, user_id: str, notif: Notification) -> None:
         """Fire-and-forget WebSocket push to the connected client (if any)."""
         try:
-            from interfaces.api.ws import manager
             import asyncio
+
+            from interfaces.api.ws import manager
 
             payload = {
                 "id": notif.id,

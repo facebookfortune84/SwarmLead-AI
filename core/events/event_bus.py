@@ -5,6 +5,7 @@ Subscribers are plain callables or coroutines registered at import time.
 Events fire synchronously in the same thread; async subscribers are
 scheduled onto the running event loop with asyncio.ensure_future.
 """
+
 import asyncio
 import logging
 from typing import Callable
@@ -80,8 +81,8 @@ def _on_ticket_resolved(payload: dict) -> None:
         return
     try:
         from core.persistence.session import SessionLocal
-        from core.services.notification_service import NotificationService
         from core.persistence.ticket_history import record_change
+        from core.services.notification_service import NotificationService
 
         db = SessionLocal()
         try:

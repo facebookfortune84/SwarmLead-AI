@@ -1,7 +1,9 @@
 """
 Workflow-related Celery tasks.
 """
+
 import logging
+
 from infrastructure.celery.celery_app import celery_app
 
 logger = logging.getLogger("tasks.workflows")
@@ -24,8 +26,8 @@ def execute_workflow_step(self, workflow_id: str, step_id: str):
         workflow_id: The owning workflow.
         step_id: The WorkflowStep to execute.
     """
-    from core.persistence.session import SessionLocal
     from core.models.workflow_step import WorkflowStep
+    from core.persistence.session import SessionLocal
 
     db = SessionLocal()
     try:

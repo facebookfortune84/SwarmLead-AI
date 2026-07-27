@@ -1,7 +1,9 @@
 """
 Ticket-related Celery tasks.
 """
+
 import logging
+
 from infrastructure.celery.celery_app import celery_app
 
 logger = logging.getLogger("tasks.tickets")
@@ -23,9 +25,9 @@ def process_ticket(self, ticket_id: str):
     Args:
         ticket_id: The ID of the ticket to process.
     """
+    from core.events.event_bus import event_bus
     from core.persistence.session import SessionLocal
     from core.services.ticket_service import TicketService
-    from core.events.event_bus import event_bus
 
     db = SessionLocal()
     try:
@@ -87,8 +89,9 @@ def escalate_overdue_tickets():
     enforcement.
     """
     from datetime import datetime
-    from core.persistence.session import SessionLocal
+
     from core.models.ticket import Ticket
+    from core.persistence.session import SessionLocal
     from core.services.ticket_service import TicketService
 
     db = SessionLocal()

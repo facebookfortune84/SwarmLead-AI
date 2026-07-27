@@ -17,10 +17,7 @@ async def test_full_agent_pipeline(router, agent_manager):
         res1 = await agent_manager.execute("strategy", data)
         res2 = await agent_manager.execute("audience", res1["result"])
 
-        return {
-            "strategy": res1,
-            "audience": res2
-        }
+        return {"strategy": res1, "audience": res2}
 
     router.register_pipeline("campaign_pipeline", pipeline)
 
