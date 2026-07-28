@@ -362,7 +362,7 @@ export function OnboardingStep({ step, onNext, onBack, isFirst, isLast }: {
         </div>
 
         <div className="space-y-6">
-          {step.fields.map((field: string, i: number) => (
+          {step.fields?.map((field: string, i: number) => (
             <motion.div
               key={field}
               initial={{ opacity: 0, y: 20 }}
@@ -372,7 +372,7 @@ export function OnboardingStep({ step, onNext, onBack, isFirst, isLast }: {
             >
               <label htmlFor={field} className="block text-sm font-medium text-gray-700 mb-2">
                 {field.replace(/_/g, " ")}
-                {step.fields.includes(field) && <span className="text-red-500 ml-1">*</span>}
+                {step.fields?.includes(field) && <span className="text-red-500 ml-1">*</span>}
               </label>
               <input
                 id={field}
@@ -390,7 +390,7 @@ export function OnboardingStep({ step, onNext, onBack, isFirst, isLast }: {
               key={field}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: (step.fields.length + i) * 0.1 }}
+              transition={{ delay: (step.fields?.length ?? 0) + i * 0.1 }}
               className="space-y-2"
             >
               <label htmlFor={field} className="block text-sm font-medium text-gray-700 mb-2">
