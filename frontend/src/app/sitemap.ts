@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://genesis.ai";
+  const baseUrl = process.env.SITE_URL || "https://realms2riches.com";
 
   return [
     {

@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     title: "Genesis — Autonomous Business Launch Platform",
     description:
       "Launch your business with your voice. The first autonomous business platform powered by constitutional voice AI.",
-    url: "https://genesis.ai",
+    url: process.env.SITE_URL || "https://realms2riches.com",
     siteName: "Genesis",
     type: "website",
     locale: "en_US",

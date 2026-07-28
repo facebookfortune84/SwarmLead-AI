@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/admin/", "/api/"],
     },
-    sitemap: "https://genesis.ai/sitemap.xml",
+    sitemap: `${process.env.SITE_URL || "https://realms2riches.com"}/sitemap.xml`,
   };
 }

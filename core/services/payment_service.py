@@ -141,14 +141,14 @@ class PaymentService:
     ) -> Dict[str, Any]:
         """
         Creates a Stripe Checkout session for recurring subscriptions.
-        """
+"""
         try:
+            frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
             session = stripe.checkout.Session.create(
                 customer_email=customer_email,
                 payment_method_types=["card"],
                 line_items=[{"price": price_id, "quantity": 1}],
                 mode=mode,
-                frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
                 success_url=success_url
                 or f"{frontend_url}/success?session_id={{CHECKOUT_SESSION_ID}}",
                 cancel_url=cancel_url or f"{frontend_url}/cancel",
