@@ -7,25 +7,14 @@ import {
   saveTokens,
 } from "./auth";
 
-const API_URL =
-  process.env
-    .NEXT_PUBLIC_API_URL ??
-  "http://localhost:8000";
-
 export const api =
   axios.create({
-    baseURL: API_URL,
     timeout: 30000,
   });
 
 let refreshPromise:
   | Promise<string>
   | null = null;
-
-console.log(
-  "API_URL",
-  API_URL
-);
 
 async function refreshAccessToken() {
   const refreshToken =
@@ -39,10 +28,13 @@ async function refreshAccessToken() {
 
   const response =
     await axios.post(
-      `${API_URL}/api/auth/refresh`,
+      "/api/auth/refresh",
       {
         refresh_token:
           refreshToken,
+      },
+      {
+        timeout: 30000,
       }
     );
 
@@ -66,12 +58,6 @@ async function refreshAccessToken() {
 
 api.interceptors.request.use(
   (config) => {
-    console.log(
-      "REQUEST",
-      config.baseURL,
-      config.url
-    );
-
     const token =
       getAccessToken();
 
@@ -94,12 +80,6 @@ api.interceptors.response.use(
     const status =
       error?.response
         ?.status;
-    
-    console.log(
-      "API ERROR",
-      status,
-      originalRequest?.url
-    );
 
     if (
       status !== 401 ||

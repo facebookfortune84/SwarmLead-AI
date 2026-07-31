@@ -1,4 +1,5 @@
 import { Sidebar } from "./sidebar";
+import { AuthGuard } from "@/components/auth/auth-guard";
 
 export function AppShell({
   children,
@@ -6,6 +7,7 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   return (
+    <AuthGuard>
     <div className="flex min-h-screen bg-background">
       <a href="#app-main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-gray-900 focus:rounded-lg focus:shadow-lg">
         Skip to main content
@@ -19,5 +21,6 @@ export function AppShell({
         </div>
       </main>
     </div>
+    </AuthGuard>
   );
 }

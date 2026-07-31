@@ -25,6 +25,7 @@ export function VoiceOrb({ state, onClick, className = "" }: VoiceOrbProps) {
       tabIndex={0}
       onKeyDown={(e) => e.key === "Enter" && onClick?.()}
       aria-label={`Voice assistant, currently ${state}`}
+      data-testid="voice-orb"
     >
       <AnimatePresence mode="wait">
         {state === "listening" && (

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, Sparkles } from "lucide-react";
-import { VoiceOrb } from "@/components/voice";
+import { ChevronRight, Sparkles, Building2, Users, Target, Mic, Rocket, Check } from "lucide-react";
 
 interface OnboardingWizardProps {
   onComplete: (data: Record<string, string>) => void;
@@ -11,469 +11,358 @@ interface OnboardingWizardProps {
   initialStep?: number;
 }
 
-const STEPS = [
+interface StepField {
+  key: string;
+  label: string;
+  required: boolean;
+  type?: string;
+  placeholder?: string;
+}
+
+const STEPS: {
+  id: string;
+  title: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  fields: StepField[];
+}[] = [
   {
-    id: "welcome",
-    title: "Welcome to Genesis",
-    description: "Your autonomous business operating system",
-    voicePrompt: "Welcome to Genesis! I'm your AI assistant. Let's get you set up in minutes.",
-    fields: [],
-    optional: ["name", "company_name"],
-    icon: "sparkles"
+    id: "business",
+    title: "Tell Us About Your Business",
+    description: "Help us understand what you do so we can tailor Genesis to your needs.",
+    icon: Building2,
+    fields: [
+      { key: "full_name", label: "Your Full Name", required: true },
+      { key: "business_name", label: "Business Name", required: true },
+      { key: "email", label: "Email Address", required: true, type: "email" },
+      { key: "password", label: "Create Password", required: true, type: "password" },
+      { key: "industry", label: "Industry / Niche", required: false },
+      { key: "website", label: "Website URL", required: false },
+    ],
   },
   {
-    id: "business_profile",
-    title: "Business Profile",
-    description: "Tell us about your business",
-    voicePrompt: "Tell me about your business. What's your company name and what do you do?",
-    fields: ["company_name", "industry", "description", "website"],
-    optional: ["team_size", "stage", "funding"],
-    icon: "briefcase"
+    id: "audience",
+    title: "Define Your Target Audience",
+    description: "Who are you trying to reach? We'll optimize lead generation for your ideal customer.",
+    icon: Users,
+    fields: [
+      { key: "target_audience", label: "Describe Your Target Audience", required: false },
+      { key: "audience_role", label: "Ideal Customer Role / Title", required: false },
+      { key: "company_size", label: "Target Company Size", required: false },
+    ],
   },
   {
     id: "goals",
-    title: "Goals & Objectives",
-    description: "Define what success looks like",
-    voicePrompt: "What are your top 3 goals for the next 90 days?",
-    fields: ["primary_goal", "target_metric", "timeline"],
-    optional: ["secondary_goals", "budget"],
-    icon: "target"
+    title: "Set Your Goals",
+    description: "What do you want to achieve? This helps our AI prioritize your growth strategy.",
+    icon: Target,
+    fields: [
+      { key: "primary_goal", label: "Primary Business Goal", required: false, placeholder: "Lead generation, brand awareness, sales..." },
+      { key: "monthly_target", label: "Monthly Lead Target", required: false, type: "number" },
+      { key: "timeline", label: "Desired Timeline", required: false, placeholder: "Immediately, 30 days, 90 days..." },
+    ],
   },
   {
-    id: "voice_setup",
-    title: "Voice Assistant Setup",
-    description: "Configure your voice assistant",
-    voicePrompt: "Let's set up your voice assistant. Choose a voice and test it.",
-    fields: ["voice_id", "language", "greeting_style"],
-    optional: ["interruption_sensitivity", "auto_greeting"],
-    icon: "mic"
-  },
-  {
-    id: "integrations",
-    title: "Connect Your Tools",
-    description: "Connect your existing tools",
-    voicePrompt: "Let's connect your tools. What CRM and email do you use?",
-    fields: [],
-    optional: ["crm", "email_provider", "calendar", "analytics"],
-    icon: "plug"
+    id: "voice",
+    title: "Configure Voice Agent",
+    description: "Set up your AI voice agent's personality and communication style.",
+    icon: Mic,
+    fields: [
+      { key: "voice_style", label: "Voice Style", required: false, placeholder: "Professional, friendly, casual..." },
+      { key: "greeting_preference", label: "Greeting Preference", required: false, placeholder: "Formal introduction, casual hello..." },
+      { key: "timezone", label: "Business Timezone", required: false },
+      { key: "first_campaign", label: "First Campaign Name", required: false },
+    ],
   },
   {
     id: "launch",
     title: "Ready to Launch",
-    description: "You're all set!",
-    voicePrompt: "You're all set! Let me show you what Genesis can do for you.",
+    description: "You're all set! We'll create your account and set up your business.",
+    icon: Rocket,
     fields: [],
-    optional: ["first_campaign", "first_workflow"],
-    icon: "rocket"
-  }
+  },
 ];
 
 export function OnboardingWizard({ onComplete, onSkip, initialStep = 0 }: OnboardingWizardProps) {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(initialStep);
   const [formData, setFormData] = useState<Record<string, string>>({});
-  const [voiceState, setVoiceState] = useState<"idle" | "listening" | "speaking">("idle");
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-  const steps = STEPS;
-
-  const currentStepData = steps[currentStep];
+  const currentStepData = STEPS[currentStep];
   const isFirstStep = currentStep === 0;
-  const isLastStep = currentStep === steps.length - 1;
-  const progress = ((currentStep + 1) / steps.length) * 100;
+  const isLastStep = currentStep === STEPS.length - 1;
+  const progress = ((currentStep + 1) / STEPS.length) * 100;
 
-  const handleVoiceToggle = () => {
-    if (voiceState === "idle" || voiceState === "speaking") {
-      setVoiceState("listening");
-    } else if (voiceState === "listening") {
-      setVoiceState("speaking");
-    } else {
-      setVoiceState("idle");
-    }
-  };
+  const handleNext = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setError("");
 
-  const handleNext = () => {
     if (isLastStep) {
-      onComplete(formData);
-    } else {
-      setCurrentStep(currentStep + 1);
+      setSubmitting(true);
+      try {
+        const registerPayload = {
+          email: formData.email,
+          password: formData.password,
+          full_name: formData.full_name,
+        };
+
+        const response = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(registerPayload),
+        });
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.detail || "Registration failed.");
+        }
+        const data = await response.json();
+
+        if (data.access_token) {
+          localStorage.setItem("swarmlead_access_token", data.access_token);
+        }
+        if (data.refresh_token) {
+          localStorage.setItem("swarmlead_refresh_token", data.refresh_token);
+        }
+
+        if (formData.business_name) {
+          const slug = formData.business_name
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-|-$/g, "");
+          try {
+            await fetch("/api/tenants/register", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${data.access_token}`,
+              },
+              body: JSON.stringify({
+                name: formData.business_name,
+                slug: slug || "my-company",
+              }),
+            });
+          } catch {
+            // tenant registration is secondary
+          }
+        }
+
+        onComplete(formData);
+        router.replace("/dashboard");
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Connection failed. Please check your network and try again.";
+        setError(msg);
+      } finally {
+        setSubmitting(false);
+      }
+      return;
     }
+
+    const requiredFields = currentStepData.fields.filter((f) => f.required);
+    const missing = requiredFields.find((f) => !formData[f.key]);
+    if (missing) {
+      setError(`${missing.label} is required.`);
+      return;
+    }
+
+    setCurrentStep(currentStep + 1);
   };
 
   const handleBack = () => {
-    if (!isFirstStep) {
+    setError("");
+    if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     }
   };
 
-  const handleSkip = () => {
-    onSkip?.();
+  const getAutocomplete = (key: string): string => {
+    const map: Record<string, string> = {
+      full_name: "name",
+      email: "email",
+      password: "new-password",
+      business_name: "organization",
+      phone: "tel",
+      website: "url",
+    };
+    return map[key] || "off";
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const getInputType = (key: string, fieldType?: string): string => {
+    if (fieldType) return fieldType;
+    if (key === "password") return "password";
+    if (key === "email") return "email";
+    return "text";
   };
-
-  useEffect(() => {
-    if (currentStep < steps.length) {
-      const step = steps[currentStep];
-      if (step.voicePrompt) {
-        // Would call TTS
-      }
-    }
-  }, [currentStep, steps]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        {/* Progress Bar */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-                className="h-full bg-gradient-to-r from-primary-600 to-primary-800 rounded-full"
-              />
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-indigo-950/90 to-gray-950 relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-500/20 via-transparent to-transparent" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-violet-500/15 via-transparent to-transparent" />
+
+      <div className="relative z-10 max-w-2xl mx-auto px-4 py-12">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between mb-8"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-white" />
             </div>
-            <span className="ml-4 text-sm font-medium text-gray-600">
-              Step {currentStep + 1} of {steps.length}
-            </span>
+            <span className="text-white font-semibold">Genesis Onboarding</span>
           </div>
-          
-          <div className="flex items-center justify-between text-sm text-gray-500">
-            {steps.map((step, i) => (
-              <motion.div
-                key={step.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: i * 0.1 }}
-                className={`flex flex-col items-center gap-1 ${i === currentStep ? 'text-primary-700' : 'text-gray-400'}`}
-                aria-current={i === currentStep ? "step" : undefined}
-              >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
-                  i < currentStep ? 'bg-primary-600 text-white' : 
-                  i === currentStep ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-400'
-                }`}>
-                  {i < currentStep ? <Check className="w-4 h-4" aria-hidden="true" /> : <span>{i + 1}</span>}
-                </div>
-                <span className="text-xs mt-1 truncate w-24 text-center">{step.title}</span>
-              </motion.div>
-            ))}
+          {onSkip && (
+            <button
+              type="button"
+              onClick={onSkip}
+              className="text-sm text-white/40 hover:text-white/60 transition-colors"
+            >
+              Skip for now
+            </button>
+          )}
+        </motion.div>
+
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-white/50">
+              Step {currentStep + 1} of {STEPS.length}
+            </span>
+            <span className="text-sm text-white/50">{Math.round(progress)}%</span>
+          </div>
+          <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
+            />
           </div>
         </div>
 
-        {/* Step Content */}
+        <div className="flex gap-2 mb-8">
+          {STEPS.map((step, i) => (
+            <div
+              key={step.id}
+              className={`flex-1 h-1 rounded-full transition-all duration-300 ${
+                i <= currentStep ? "bg-indigo-500" : "bg-white/5"
+              }`}
+            />
+          ))}
+        </div>
+
         <AnimatePresence mode="wait">
           <motion.div
-            key={currentStepData.id}
+            key={currentStep}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-100 shadow-xl p-8">
-              {/* Step Header */}
-              <div className="mb-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-600 to-primary-800 flex items-center justify-center">
-                    <Sparkles className="w-6 h-6 text-white" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <h1 className="text-2xl font-bold text-gray-900">{currentStepData.title}</h1>
-                    <p className="text-gray-600">{currentStepData.description}</p>
-                  </div>
+            <div className="bg-white/[0.03] backdrop-blur-xl rounded-2xl border border-white/[0.06] p-8 shadow-2xl shadow-black/50">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+                  {(() => {
+                    const Icon = currentStepData.icon;
+                    return <Icon className="w-7 h-7 text-white" />;
+                  })()}
                 </div>
-
-                {/* Voice Controls */}
-                <div className="flex items-center gap-3 mb-8 p-4 bg-primary-50 rounded-xl">
-                  <VoiceOrb 
-                    state={isSpeaking ? "speaking" : voiceState === "listening" ? "listening" : "idle"}
-                    className="w-14 h-14"
-                  />
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">Voice Assistant</p>
-                    <p className="text-sm text-gray-500">
-                      {isSpeaking ? "Speaking..." : voiceState === "listening" ? "Listening..." : "Tap to speak"}
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleVoiceToggle}
-                    className={`p-2 rounded-lg transition-colors ${
-                      voiceState === "listening" ? "bg-primary-100 text-primary-700" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                    }`}
-                    aria-label={voiceState === "listening" ? "Stop listening" : "Start listening"}
-                  >
-                    <Mic className="w-5 h-5" />
-                  </button>
+                <div>
+                  <h2 className="text-2xl font-bold text-white">{currentStepData.title}</h2>
+                  <p className="text-white/50">{currentStepData.description}</p>
                 </div>
+              </div>
 
-                {/* Step Fields */}
-                <div className="space-y-6">
-                  {currentStepData.fields.map((field, i) => (
-                    <motion.div
-                      key={field}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.1 }}
-                      className="space-y-2"
-                    >
-                      <label htmlFor={field} className="block text-sm font-medium text-gray-700 mb-2">
-                        {field.replace(/_/g, " ")}
-                        {currentStepData.fields.includes(field) && (
-                          <span className="text-red-500 ml-1">*</span>
-                        )}
+              {isLastStep ? (
+                <div className="text-center py-8">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-indigo-500/25">
+                    <Check className="w-10 h-10 text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-2">You&apos;re All Set!</h3>
+                  <p className="text-white/50 mb-6">
+                    We&apos;ll create your account and set everything up. Click Launch to get started.
+                  </p>
+                  {formData.business_name && (
+                    <div className="bg-white/5 rounded-xl p-4 mb-6 inline-block">
+                      <p className="text-sm text-white/40">Setting up</p>
+                      <p className="text-white font-medium">{formData.business_name}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <form onSubmit={handleNext} noValidate className="space-y-5">
+                  {currentStepData.fields.map((field) => (
+                    <div key={field.key}>
+                      <label htmlFor={field.key} className="block text-sm font-medium mb-2 text-white/70">
+                        {field.label}
+                        {field.required && <span className="text-red-400 ml-1">*</span>}
                       </label>
                       <input
-                        id={field}
-                        type="text"
-                        name={field}
-                        value={formData[field] || ""}
-                        onChange={(e) => handleInputChange(field, e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                        placeholder={`Enter ${field.replace(/_/g, " ")}`}
+                        id={field.key}
+                        type={getInputType(field.key, field.type)}
+                        autoComplete={getAutocomplete(field.key)}
+                        value={formData[field.key] || ""}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, [field.key]: e.target.value }))
+                        }
+                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
+                        placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
                       />
-                    </motion.div>
+                    </div>
                   ))}
+                </form>
+              )}
 
-                  {currentStepData.optional.map((field, i) => (
-                    <motion.div
-                      key={`optional-${field}`}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: (currentStepData.fields.length + i) * 0.1 }}
-                      className="space-y-2"
-                    >
-                      <label htmlFor={field} className="block text-sm font-medium text-gray-700 mb-2">
-                        {field.replace(/_/g, " ")} <span className="text-gray-400 text-xs">(optional)</span>
-                      </label>
-                      <input
-                        id={field}
-                        type="text"
-                        name={field}
-                        value={formData[field] || ""}
-                        onChange={(e) => handleInputChange(field, e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                        placeholder={`Enter ${field.replace(/_/g, " ")} (optional)`}
-                      />
-                    </motion.div>
-                  ))}
+              {error && (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-4 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"
+                >
+                  {error}
+                </motion.p>
+              )}
 
-                </div>
+              <div className="flex items-center justify-between mt-8 pt-6 border-t border-white/10">
+                <button
+                  onClick={handleBack}
+                  disabled={isFirstStep || submitting}
+                  className="px-6 py-3 text-white/50 hover:text-white/70 font-medium disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  Back
+                </button>
 
-                {/* Navigation */}
-                <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
-                  <button
-                    onClick={handleBack}
-                    disabled={isFirstStep}
-                    className="px-6 py-3 text-gray-600 hover:text-gray-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                <div className="flex items-center gap-3">
+                  <motion.button
+                    onClick={handleNext}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    disabled={submitting}
+                    className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Back
-                  </button>
-
-                  <div className="flex items-center gap-3">
-                    {isLastStep ? (
-                      <motion.button
-                        onClick={handleNext}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="flex-1 px-8 py-3 bg-gradient-to-r from-primary-600 to-primary-800 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-shadow"
-                      >
-                        Complete Setup
-                        <ArrowRight className="w-5 h-5 ml-2" />
-                      </motion.button>
+                    {submitting ? (
+                      <span className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Creating Account...
+                      </span>
+                    ) : isLastStep ? (
+                      <span>
+                        Launch My Business
+                        <ChevronRight className="w-4 h-4 ml-2 inline" />
+                      </span>
                     ) : (
-                      <>
-                        <button
-                          onClick={handleSkip}
-                          className="px-6 py-3 text-gray-500 hover:text-gray-700 font-medium"
-                        >
-                          Skip
-                        </button>
-                        <motion.button
-                          onClick={handleNext}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="flex-1 px-8 py-3 bg-gradient-to-r from-primary-600 to-primary-800 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-shadow"
-                        >
-                          Next Step
-                          <ChevronRight className="w-5 h-5 ml-2" />
-                        </motion.button>
-                      </>
+                      <span>
+                        Continue
+                        <ChevronRight className="w-4 h-4 ml-2 inline" />
+                      </span>
                     )}
-                  </div>
+                  </motion.button>
                 </div>
               </div>
             </div>
-            </motion.div>
-          </AnimatePresence>
-
-          {/* Skip Link */}
-          {!isLastStep && (
-            <div className="text-center mt-6">
-              <button
-                onClick={handleSkip}
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
-                Skip onboarding for now
-              </button>
-            </div>
-          )}
-
-        </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
+    </div>
   );
 }
-
-interface StepData {
-  id?: string;
-  title?: string;
-  description?: string;
-  voicePrompt?: string;
-  fields?: string[];
-  optional?: string[];
-  icon?: string;
-}
-
-export function OnboardingStep({ step, onNext, onBack, isFirst, isLast }: {
-  step: StepData;
-  onNext: () => void;
-  onBack: () => void;
-  isFirst: boolean;
-  isLast: boolean;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      transition={{ duration: 0.3 }}
-      className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-100 shadow-xl p-8"
-    >
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-600 to-primary-800 flex items-center justify-center">
-            <Sparkles className="w-6 h-6 text-white" aria-hidden="true" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{step.title}</h1>
-            <p className="text-gray-600">{step.description}</p>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          {step.fields?.map((field: string, i: number) => (
-            <motion.div
-              key={field}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="space-y-2"
-            >
-              <label htmlFor={field} className="block text-sm font-medium text-gray-700 mb-2">
-                {field.replace(/_/g, " ")}
-                {step.fields?.includes(field) && <span className="text-red-500 ml-1">*</span>}
-              </label>
-              <input
-                id={field}
-                type="text"
-                name={field}
-                defaultValue=""
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                placeholder={`Enter ${field.replace(/_/g, " ")}`}
-              />
-            </motion.div>
-          ))}
-
-          {step.optional?.map((field: string, i: number) => (
-            <motion.div
-              key={field}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: (step.fields?.length ?? 0) + i * 0.1 }}
-              className="space-y-2"
-            >
-              <label htmlFor={field} className="block text-sm font-medium text-gray-700 mb-2">
-                {field.replace(/_/g, " ")} <span className="text-gray-400 text-xs">(optional)</span>
-              </label>
-              <input
-                id={field}
-                type="text"
-                name={field}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                placeholder={`Enter ${field.replace(/_/g, " ")} (optional)`}
-              />
-            </motion.div>
-          ))}
-        </div>
-
-        <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
-          <button
-            onClick={onBack}
-            disabled={isFirst}
-            className="px-6 py-3 text-gray-600 hover:text-gray-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Back
-          </button>
-
-          <div className="flex items-center gap-3">
-            {isLast ? (
-              <motion.button
-                onClick={onNext}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex-1 px-8 py-3 bg-gradient-to-r from-primary-600 to-primary-800 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-shadow"
-              >
-                Complete Setup
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </motion.button>
-            ) : (
-              <>
-                <button
-                  onClick={() => {}}
-                  className="px-6 py-3 text-gray-500 hover:text-gray-700 font-medium"
-                >
-                  Skip
-                </button>
-                <motion.button
-                  onClick={onNext}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex-1 px-8 py-3 bg-gradient-to-r from-primary-600 to-primary-800 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-shadow"
-                >
-                  Next Step
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </motion.button>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-function Mic({ className = "w-5 h-5" }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h10m-7 0a2 2 0 11-4 0 2 2 0 014 0z" />
-    </svg>
-  );
-}
-
-function Check({ className = "w-4 h-4" }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-    </svg>
-  );
-}
-
-function ArrowRight({ className = "w-5 h-5" }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-    </svg>
-  );
-}
-

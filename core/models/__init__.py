@@ -4,6 +4,14 @@ from .lead import Lead
 from .message import Message
 from .message_thread import MessageThread
 from .notification import Notification
+from .outreach import (
+    LeadTimeline,
+    OutreachDailyMetrics,
+    ProcessedEmailUID,
+    Sequence,
+    SequenceEnrollment,
+    SequenceStepLog,
+)
 from .tenant import CompanyTenant
 from .ticket import Ticket
 from .ticket_comment import TicketComment
@@ -28,4 +36,10 @@ __all__ = [
     "Ticket",
     "TicketHistory",
     "TicketComment",
+    "Sequence",
+    "SequenceEnrollment",
+    "SequenceStepLog",
+    "OutreachDailyMetrics",
+    "LeadTimeline",
+    "ProcessedEmailUID",
 ]

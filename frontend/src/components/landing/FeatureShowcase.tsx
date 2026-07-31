@@ -87,7 +87,7 @@ export function SocialProof() {
 
   return (
     <section className="py-16 px-6 max-w-7xl mx-auto">
-      <div className="bg-gradient-to-r from-primary-900 via-primary-800 to-primary-900 rounded-3xl p-12 md:p-16">
+      <div className="bg-gradient-to-r from-indigo-900 via-purple-800 to-indigo-900 rounded-3xl p-12 md:p-16">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {stats.map((stat, i) => (
             <motion.div
@@ -100,7 +100,73 @@ export function SocialProof() {
               <div className="text-4xl md:text-5xl font-bold text-white mb-2">
                 {stat.value}
               </div>
-              <div className="text-gold-300 font-medium">{stat.label}</div>
+              <div className="text-amber-300 font-medium">{stat.label}</div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const testimonials = [
+  {
+    name: "Sarah Chen",
+    role: "Founder, Lumos Ventures",
+    quote: "Genesis transformed how I launch businesses. I went from idea to first customer in under 48 hours. The voice AI setup is genuinely magical.",
+  },
+  {
+    name: "Marcus Rivera",
+    role: "CEO, NexGen Properties",
+    quote: "The constitutional AI framework gives me complete confidence. Every action is auditable, every dollar tracked. It's like having a full compliance team built in.",
+  },
+  {
+    name: "Dr. Aisha Patel",
+    role: "Founder, HealthBridge AI",
+    quote: "I've tried every business launch platform. Nothing comes close to Genesis. The voice-first onboarding alone saves me weeks of setup time.",
+  },
+];
+
+export function Testimonials() {
+  return (
+    <section className="py-20 px-6">
+      <div className="max-w-7xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-16"
+        >
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+            Trusted by Ambitious Founders
+          </h2>
+          <p className="text-xl text-white/60 max-w-2xl mx-auto">
+            Join thousands of founders who launched their businesses with Genesis.
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {testimonials.map((t, i) => (
+            <motion.div
+              key={t.name}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
+              className="bg-white/[0.03] backdrop-blur-xl rounded-2xl border border-white/[0.06] p-8 shadow-xl shadow-black/30"
+            >
+              <div className="flex items-center gap-1 mb-6">
+                {[...Array(5)].map((_, j) => (
+                  <svg key={j} className="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                ))}
+              </div>
+              <p className="text-white/80 leading-relaxed mb-6">&ldquo;{t.quote}&rdquo;</p>
+              <div>
+                <p className="text-white font-semibold">{t.name}</p>
+                <p className="text-white/40 text-sm">{t.role}</p>
+              </div>
             </motion.div>
           ))}
         </div>
@@ -116,23 +182,25 @@ export function CTASection() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
+        className="bg-gradient-to-br from-gray-950 via-indigo-950/90 to-gray-950 rounded-3xl p-12 md:p-16 border border-white/[0.06] shadow-2xl shadow-black/50"
       >
-        <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+        <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
           Ready to Launch Your Business?
         </h2>
-        <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
+        <p className="text-xl text-white/60 mb-10 max-w-2xl mx-auto">
           Join 10,000+ founders who launched with Genesis. Start free, scale infinitely.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <a 
             href="/onboarding" 
-            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-primary-700 to-primary-900 text-white font-semibold rounded-xl hover:from-primary-800 hover:to-primary-900 shadow-lg hover:shadow-xl transition-all duration-300"
+            className="group relative px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-500 hover:to-purple-500 shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30 transition-all duration-300 overflow-hidden"
           >
             <span className="relative z-10">Start Free - No Credit Card</span>
+            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transition-transform duration-700" />
           </a>
           <a 
             href="/demo" 
-            className="inline-flex items-center gap-2 px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold rounded-xl hover:bg-white/20 transition-all duration-300"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-white/5 backdrop-blur-sm border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 hover:border-white/20 transition-all duration-300"
           >
             Watch Demo
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">

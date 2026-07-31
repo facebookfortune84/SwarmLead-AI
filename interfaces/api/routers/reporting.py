@@ -50,7 +50,7 @@ async def get_daily_reports(
             detail={"error": f"start_date ({start_date}) must not be after end_date ({end_date})."},
         )
 
-    from agents.outreach.reporting_agent import ReportingAgent
+    from core.services.reporting_agent import ReportingAgent
 
     agent = ReportingAgent(db_session=db)
     return agent.get_metrics_range(start, end)
