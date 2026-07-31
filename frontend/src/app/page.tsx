@@ -6,6 +6,25 @@ import { VoiceLandingAgent } from "@/components/landing/VoiceLandingAgent";
 export default function Home() {
   return (
     <main className="min-h-screen" id="main-content">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            name: "Genesis",
+            applicationCategory: "BusinessApplication",
+            operatingSystem: "Web",
+            description:
+              "The first autonomous business launch platform powered by constitutional voice AI. Launch your business with your voice.",
+            offers: [
+              { "@type": "Offer", name: "Starter", price: "29", priceCurrency: "USD" },
+              { "@type": "Offer", name: "Growth", price: "99", priceCurrency: "USD" },
+              { "@type": "Offer", name: "Enterprise", price: "299", priceCurrency: "USD" },
+            ],
+          }),
+        }}
+      />
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-gray-900 focus:rounded-lg focus:shadow-lg">
         Skip to content
       </a>
@@ -59,8 +78,9 @@ function HeroSection() {
           src="/genesis_forge_hero_image_1.png"
           alt=""
           fill
+          sizes="100vw"
           className="object-cover"
-          priority
+          loading="lazy"
           aria-hidden="true"
         />
       </div>
