@@ -58,7 +58,7 @@ class CampaignPayload(BaseModel):
     from_name: str = Field(default="SwarmOS", description="Display name for the sender")
 
 
-@router.post("/")
+@router.post("")
 async def send_outreach(payload: OutreachPayload):
     """Enqueue a single outbound outreach task for asynchronous processing."""
     enqueue_outreach(

@@ -1,3 +1,4 @@
+import asyncio
 import time
 
 import pytest
@@ -15,14 +16,13 @@ async def test_parallel_execution_speed(agent_manager):
 
     start = time.time()
 
-    await agent_manager.execute_batch(
-        {
-            "a1": {},
-            "a2": {},
-            "a3": {},
-        }
+    results = await asyncio.gather(
+        agent_manager.execute_agent("a1", {}),
+        agent_manager.execute_agent("a2", {}),
+        agent_manager.execute_agent("a3", {}),
     )
 
     duration = time.time() - start
 
+    assert all(result["success"] for result in results)
     assert duration < 1.0  # sanity check for async execution

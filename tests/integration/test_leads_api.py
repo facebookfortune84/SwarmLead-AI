@@ -29,7 +29,7 @@ def test_create_lead_endpoint_exists():
     client = TestClient(app)
 
     response = client.post(
-        "/api/leads/",
+        "/api/leads",
         json={
             "email": "test@example.com",
             "name": "Test User",
@@ -50,7 +50,7 @@ def test_create_lead_returns_identifier():
     client = TestClient(app)
 
     response = client.post(
-        "/api/leads/",
+        "/api/leads",
         json={
             "email": "user@example.com",
             "name": "Integration User",

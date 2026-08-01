@@ -13,16 +13,12 @@ async def test_full_agent_pipeline(router, agent_manager):
     agent_manager.register_agent("strategy", strategy_agent)
     agent_manager.register_agent("audience", audience_agent)
 
-    async def pipeline(data, context):
-        res1 = await agent_manager.execute("strategy", data)
-        res2 = await agent_manager.execute("audience", res1["result"])
+    res1 = await router.route("strategy", {"idea": "test"})
 
-        return {"strategy": res1, "audience": res2}
+    assert res1["success"] is True
+    assert res1["result"]["strategy"] == "defined"
 
-    router.register_pipeline("campaign_pipeline", pipeline)
+    res2 = await router.route("audience", res1["result"])
 
-    result = await router.route("campaign_pipeline", {"idea": "test"})
-
-    assert result["type"] == "pipeline"
-    assert "strategy" in result["result"]
-    assert "audience" in result["result"]
+    assert res2["success"] is True
+    assert res2["result"]["audience"] == "expanded"

@@ -15,7 +15,7 @@ test.describe("Premium Frontend Validation", () => {
 
   test("VoiceLandingAgent is present on landing", async ({ page }) => {
     await page.goto(FRONTEND);
-    const voiceAgentImg = page.locator('img[alt="AI Voice Agent"]');
+    const voiceAgentImg = page.locator('img[alt="Genesis AI Voice Agent"]');
     const voiceOrb = page.locator("[data-testid='voice-orb']");
     const either = voiceAgentImg.or(voiceOrb);
     await expect(either).toBeVisible();
@@ -103,7 +103,7 @@ test.describe("Premium Frontend Validation", () => {
     const resp = await page.request.get(`${BACKEND}/openapi.json`);
     const body = await resp.json();
     const paths = Object.keys(body.paths);
-    const required = ["/api/voice/session", "/api/stripe/webhook", "/api/stripe/create-checkout-session", "/api/auth/login", "/api/auth/register", "/api/leads/", "/api/workflows/"];
+    const required = ["/api/voice/session", "/api/stripe/webhook", "/api/stripe/create-checkout-session", "/api/auth/login", "/api/auth/register", "/api/leads", "/api/workflows"];
     for (const route of required) {
       expect(paths, `Missing route: ${route}`).toContain(route);
     }

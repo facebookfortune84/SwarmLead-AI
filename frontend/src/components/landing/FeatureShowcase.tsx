@@ -46,11 +46,14 @@ export function FeatureShowcase() {
         transition={{ duration: 0.6 }}
         className="text-center mb-16"
       >
-        <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-          Everything You Need to <span className="text-primary-700">Launch & Grow</span>
+        <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+          Everything You Need to{" "}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
+            Launch & Grow
+          </span>
         </h2>
-        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Genesis combines voice-first AI agents with constitutional governance to give you 
+        <p className="text-xl text-white/60 max-w-2xl mx-auto">
+          Genesis combines voice-first AI agents with constitutional governance to give you
           the power of an entire business operations team - without the overhead.
         </p>
       </motion.div>
@@ -63,13 +66,13 @@ export function FeatureShowcase() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: i * 0.1, duration: 0.5 }}
-            className="group p-8 bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-100 hover:border-primary-200 hover:shadow-xl transition-all duration-300"
+            className="group p-8 bg-white/[0.03] backdrop-blur-xl rounded-2xl border border-white/[0.06] hover:border-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-300"
           >
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-600 to-primary-800 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
               <feature.icon className="w-7 h-7 text-white" aria-hidden="true" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
-            <p className="text-gray-600 leading-relaxed">{feature.desc}</p>
+            <h3 className="text-xl font-bold text-white mb-3">{feature.title}</h3>
+            <p className="text-white/60 leading-relaxed">{feature.desc}</p>
           </motion.div>
         ))}
       </div>

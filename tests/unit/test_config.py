@@ -5,7 +5,7 @@ def test_default_config_load():
 
     assert config.environment == "development"
     assert config.scheduler.max_concurrent_tasks == 5
-    assert config.llm.model == "qwen2.5-coder:1.5b"
+    assert config.llm.model == "llama3.2:3b"
 
 
 def test_env_override(monkeypatch):
@@ -24,7 +24,7 @@ def test_feature_flags():
     config = ConfigLoader.load()
 
     assert config.features.enable_analytics is True
-    assert config.features.enable_voice is False
+    assert config.features.enable_voice is True
 
 
 def test_schema_validation():
@@ -51,7 +51,7 @@ def test_runtime_defaults():
     config = ConfigLoader.load()
 
     assert config.runtime.stream is False
-    assert config.runtime.max_concurrent_requests == 1
+    assert config.runtime.max_concurrent_requests == 4
 
 
 def test_generation_validation_limits():
@@ -97,7 +97,7 @@ def test_optional_fields():
     from configs.schema import LLMConfig, LoggingConfig
 
     llm_config = LLMConfig()
-    assert llm_config.fallback_model is None
+    assert llm_config.fallback_model == "qwen2.5-coder:1.5b"
 
     logging_config = LoggingConfig()
     assert logging_config.error_file_path == "logs/error.log"

@@ -178,8 +178,24 @@ class StrategyAgent(BaseAgent):
                 "summary": parsed.get("summary", text.strip()),
             }
         except Exception:
-            return {
-                "angles": [],
-                "hooks": [],
-                "summary": text.strip(),
-            }
+            pass
+
+        # Try to extract a JSON object from markdown / prose
+        try:
+            start = text.find("{")
+            end = text.rfind("}")
+            if start != -1 and end > start:
+                parsed = json.loads(text[start : end + 1])
+                return {
+                    "angles": parsed.get("angles", []),
+                    "hooks": parsed.get("hooks", []),
+                    "summary": parsed.get("summary", text[start : end + 1]),
+                }
+        except Exception:
+            pass
+
+        return {
+            "angles": [],
+            "hooks": [],
+            "summary": text.strip(),
+        }

@@ -72,6 +72,12 @@ export default function TicketsPage() {
               <Search className="w-4 h-4 text-white/40" />
               <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search tickets..." className="bg-transparent border-none text-white placeholder:text-white/30 focus:outline-none text-sm w-40" />
             </div>
+            <Button
+              onClick={() => setShowCreate(true)}
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-500 hover:to-purple-500"
+            >
+              <Plus className="w-4 h-4 mr-2" /> New Ticket
+            </Button>
           </div>
         </motion.div>
 
@@ -109,9 +115,39 @@ export default function TicketsPage() {
             </div>
           </div>
 
+          {showCreate && !selectedLeadId && (
+            <div className="mb-6 p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20">
+              <label className="block text-sm font-medium text-white/70 mb-2">
+                Select a lead to create a ticket for
+              </label>
+              <div className="flex items-center gap-3">
+                <select
+                  value=""
+                  onChange={(e) => {
+                    const lead = (leads as any[]).find((l) => l.id === e.target.value);
+                    if (lead) { setSelectedLeadId(lead.id); setSelectedLeadEmail(lead.email); }
+                  }}
+                  className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm"
+                >
+                  <option value="">Choose lead...</option>
+                  {(leads as any[]).map((lead) => (
+                    <option key={lead.id} value={lead.id}>{lead.email} - {lead.name || "No name"}</option>
+                  ))}
+                </select>
+                <Button
+                  variant="outline"
+                  className="border-white/10 text-white/60 hover:text-white"
+                  onClick={() => setShowCreate(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
           {showCreate && selectedLeadId && (
             <div className="mb-6 p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20">
-              <TicketCreateDialog leadId={selectedLeadId} leadEmail={selectedLeadEmail} onSuccess={() => { setShowCreate(false); loadTickets(); }} />
+              <TicketCreateDialog leadId={selectedLeadId} leadEmail={selectedLeadEmail} onSuccess={() => { setShowCreate(false); setSelectedLeadId(null); setSelectedLeadEmail(""); loadTickets(); }} />
             </div>
           )}
 

@@ -3,6 +3,7 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { CompanyBuilder } from "@/components/company/company-builder";
 import { useDashboard } from "@/hooks/use-dashboard";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useWorkflows } from "@/hooks/use-workflows";
@@ -80,6 +81,21 @@ export default function DashboardPage() {
             </div>
           </Card>
         )}
+
+        <Card className="p-6 bg-white/[0.03] backdrop-blur-xl border-white/[0.06]">
+          <div className="flex items-center gap-2 mb-4">
+            <Building2 className="w-4 h-4 text-emerald-400" />
+            <h2 className="font-semibold text-white">Company Builder</h2>
+            <span className="ml-2 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300">
+              Agent Swarm
+            </span>
+          </div>
+          <p className="text-sm text-white/50 mb-5">
+            Describe a business and Genesis will run its strategy, content, SEO, and growth agents to
+            produce a complete, downloadable company package.
+          </p>
+          <CompanyBuilder />
+        </Card>
 
         <div className="grid gap-4 lg:grid-cols-2">
           <Card className="p-6 bg-white/[0.03] backdrop-blur-xl border-white/[0.06]">

@@ -3,10 +3,13 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from core.config import *
 from core.persistence.session import init_db
+from interfaces.api.routers.agents import router as agents_router
 from interfaces.api.routers.auth import router as auth_router
+from interfaces.api.routers.company import router as company_router
 from interfaces.api.routers.crm import router as crm_router
 from interfaces.api.routers.leads import router as leads_router
 from interfaces.api.routers.notifications import router as notifications_router
@@ -35,6 +38,7 @@ app = FastAPI(
     title="SwarmLead-AI",
     version="3.0.0",
     lifespan=lifespan,
+    redirect_slashes=False,
 )
 
 _cors_str = os.getenv(
@@ -52,6 +56,33 @@ app.add_middleware(
 )
 
 print("CORS ENABLED")
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Add security headers to every response."""
+
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=63072000; includeSubDomains; preload"
+        )
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: https:; "
+            "font-src 'self' data: https:; "
+            "connect-src 'self' https: wss:; "
+            "frame-ancestors 'none'"
+        )
+        return response
+
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 @app.get("/")
@@ -73,6 +104,8 @@ async def ready():
 
 
 app.include_router(auth_router)
+app.include_router(agents_router)
+app.include_router(company_router)
 app.include_router(crm_router)
 app.include_router(leads_router)
 app.include_router(notifications_router)

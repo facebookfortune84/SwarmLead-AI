@@ -19,16 +19,16 @@ class SchedulerConfig(BaseModel):
 
 class LLMConfig(BaseModel):
     provider: str = Field(default="ollama")
-    model: str = Field(default="qwen2.5-coder:1.5b")
+    model: str = Field(default="llama3.2:3b")
 
     timeout: int = Field(default=60)
-    fallback_model: Optional[str] = None
+    fallback_model: Optional[str] = Field(default="qwen2.5-coder:1.5b")
 
     max_retries: int = Field(default=3, ge=0)
 
 
 class FeatureFlags(BaseModel):
-    enable_voice: bool = False
+    enable_voice: bool = True
     enable_analytics: bool = True
     enable_ab_testing: bool = True
     enable_fallbacks: bool = True
@@ -47,8 +47,8 @@ class GenerationConfig(BaseModel):
 
 class RuntimeConfig(BaseModel):
     stream: bool = False
-    timeout: int = Field(default=60, gt=0)
-    max_concurrent_requests: int = Field(default=1, ge=1)
+    timeout: int = Field(default=240, gt=0)
+    max_concurrent_requests: int = Field(default=4, ge=1)
 
 
 # ------------------------------------------------------------------

@@ -2,10 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { FeatureShowcase, SocialProof, CTASection, Testimonials } from "@/components/landing/FeatureShowcase";
 import { VoiceLandingAgent } from "@/components/landing/VoiceLandingAgent";
+import {
+  HowItWorks, SecurityTrust, ComparisonSection, FAQSection, FinalCTA, Footer,
+} from "@/components/landing/PremiumSections";
 
 export default function Home() {
   return (
-    <main className="min-h-screen" id="main-content">
+    <main className="min-h-screen bg-[#0a0a1a]" id="main-content">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -31,10 +34,16 @@ export default function Home() {
       <Header />
       <HeroSection />
       <FeatureShowcase />
+      <HowItWorks />
+      <SecurityTrust />
+      <ComparisonSection />
       <PricingShowcase />
       <Testimonials />
       <SocialProof />
+      <FAQSection />
       <CTASection />
+      <FinalCTA />
+      <Footer />
       <VoiceLandingAgent />
     </main>
   );

@@ -32,6 +32,9 @@ def _register_test_identities():
         ("sync_agent", "SyncAgent", "Sync Agent"),
         ("a1", "Agent1", "Agent 1"),
         ("a2", "Agent2", "Agent 2"),
+        ("a3", "Agent3", "Agent 3"),
+        ("strategy", "StrategyAgent", "Strategy Agent"),
+        ("audience", "AudienceAgent", "Audience Agent"),
         ("agent1", "Agent1", "Agent 1"),
     ]
     for agent_id, agent_type, display_name in test_identities:

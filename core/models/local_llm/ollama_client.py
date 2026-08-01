@@ -1,4 +1,5 @@
 import asyncio
+import os
 from typing import Any, Dict, Optional
 
 import httpx
@@ -20,10 +21,12 @@ class OllamaClient:
     - Config-driven behavior
     """
 
-    def __init__(self):
+    def __init__(self, base_url: Optional[str] = None):
         self.config = ConfigLoader.load()
 
-        self.base_url = "http://127.0.0.1:11434/api/generate"
+        self.base_url = base_url or os.getenv(
+            "OLLAMA_API_BASE", "http://127.0.0.1:11434"
+        ).rstrip("/") + "/api/generate"
 
         self.semaphore = asyncio.Semaphore(self.config.runtime.max_concurrent_requests)
 

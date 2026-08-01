@@ -5,7 +5,7 @@ test.describe("Runtime Validation", () => {
   test("Landing page renders and contains key elements", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("#main-content")).toBeVisible();
-    await expect(page.locator("text=Genesis Assistant")).toBeVisible();
+    await expect(page.locator("text=Voice AI is live").first()).toBeVisible();
   });
 
   test("Login page renders", async ({ page }) => {

@@ -2,53 +2,365 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
 import { VoiceWaveform } from "@/components/voice";
-import { Mic, X, Sparkles, Volume2 } from "lucide-react";
+import { Mic, X, Volume2 } from "lucide-react";
+import {
+  BargeInDetector,
+  isMeaningfulUtterance,
+  rmsFromFloat32,
+  VOICE_CONSTANTS,
+} from "@/lib/voice-engine";
 
 interface VoiceLandingAgentProps {
   sessionId?: string;
   onSessionStart?: (sessionId: string) => void;
 }
 
+interface ChatMessage {
+  role: "assistant" | "user";
+  text: string;
+}
+
+interface SessionResponse {
+  session_id: string;
+  visitor_id: string;
+  greeting: string;
+  greeting_audio_b64?: string | null;
+}
+
+interface MessageResponse {
+  session_id: string;
+  reply: string;
+  reply_audio_b64?: string | null;
+  intent: string;
+}
+
+interface SpeechRecognitionResultItem {
+  0: { transcript: string };
+  isFinal: boolean;
+}
+
+interface SpeechRecognitionEventLike {
+  resultIndex: number;
+  results: ArrayLike<SpeechRecognitionResultItem>;
+}
+
+interface SpeechRecognitionLike {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
+type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
+
+const QUICK_ACTIONS = [
+  {
+    label: "Qualify leads",
+    hint: "Find qualified prospects",
+    text: "I need help qualifying leads for my business.",
+  },
+  {
+    label: "Business launch",
+    hint: "Start your company",
+    text: "I want to launch my business with Genesis.",
+  },
+  {
+    label: "Pricing",
+    hint: "See plans and pricing",
+    text: "What are the pricing plans?",
+  },
+  {
+    label: "Get started",
+    hint: "Start onboarding",
+    text: "I want to sign up and get started.",
+  },
+];
+
 export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
   const [state, setState] = useState<"idle" | "listening" | "speaking" | "thinking">("idle");
   const [sessionActive, setSessionActive] = useState(false);
-  const [transcript, setTranscript] = useState("");
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [interimTranscript, setInterimTranscript] = useState("");
   const [audioData, setAudioData] = useState<number[]>([]);
-  const [imageError, setImageError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [listening, setListening] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const animationRef = useRef<number | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+  const restartRecognitionRef = useRef<boolean>(false);
+  const recognitionGatedRef = useRef<boolean>(true);
+  const speakingRef = useRef<boolean>(false);
+  const busyRef = useRef<boolean>(false);
+  const sessionIdRef = useRef<string | null>(null);
+  const sessionActiveRef = useRef<boolean>(false);
+  const micHasAecRef = useRef<boolean>(true);
+  const bargeInRef = useRef<BargeInDetector>(new BargeInDetector());
+  const cancelSpeakingRef = useRef<() => void>(() => {});
+  const sendMessageRef = useRef<(text: string, role?: "user" | "assistant") => void>(() => {});
+  const resumeListeningRef = useRef<() => void>(() => {});
 
-  const cleanupAudio = useCallback(() => {
-    if (animationRef.current) cancelAnimationFrame(animationRef.current);
-    if (sourceRef.current) sourceRef.current.disconnect();
-    if (audioContextRef.current) audioContextRef.current.close();
-    if (mediaStreamRef.current) mediaStreamRef.current.getTracks().forEach((t) => t.stop());
-    if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null; }
-    audioContextRef.current = null;
-    analyserRef.current = null;
-    sourceRef.current = null;
-    animationRef.current = null;
-    mediaStreamRef.current = null;
-    setAudioData([]);
-    setInterimTranscript("");
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  const startSpeechRecognition = useCallback(() => {
+    if (recognitionGatedRef.current) return;
+    const w = window as unknown as {
+      SpeechRecognition?: SpeechRecognitionCtor;
+      webkitSpeechRecognition?: SpeechRecognitionCtor;
+    };
+    const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+    if (!Ctor) {
+      setListening(true);
+      return;
+    }
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        /* ignore */
+      }
+    }
+    const recognition = new Ctor();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+    recognitionRef.current = recognition;
+
+    recognition.onresult = (event) => {
+      if (recognitionGatedRef.current) return;
+      let final = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) final += event.results[i][0].transcript;
+      }
+      if (final && isMeaningfulUtterance(final)) {
+        setInterimTranscript("");
+        sendMessageRef.current(final.trim());
+        return;
+      }
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (!event.results[i].isFinal) interim += event.results[i][0].transcript;
+      }
+      setInterimTranscript(interim);
+    };
+
+    recognition.onend = () => {
+      setListening(false);
+      if (restartRecognitionRef.current && sessionActiveRef.current) {
+        try {
+          recognition.start();
+          setListening(true);
+        } catch {
+          /* restart on next turn */
+        }
+      }
+    };
+
+    recognition.onerror = () => {
+      /* keep listening through transient errors */
+    };
+
+    try {
+      recognition.start();
+      setListening(true);
+    } catch {
+      /* ignore */
+    }
   }, []);
+
+  const resumeListening = useCallback(() => {
+    if (!sessionActiveRef.current || speakingRef.current) return;
+    recognitionGatedRef.current = false;
+    restartRecognitionRef.current = true;
+    startSpeechRecognition();
+  }, [startSpeechRecognition]);
+
+  useEffect(() => {
+    resumeListeningRef.current = resumeListening;
+  }, [resumeListening]);
+
+  const speak = useCallback(
+    (audioB64?: string | null, text?: string) => {
+      return new Promise<void>((resolve) => {
+        let settled = false;
+        const finish = (interrupted: boolean) => {
+          if (settled) return;
+          settled = true;
+          speakingRef.current = false;
+          setState("listening");
+          bargeInRef.current.reset();
+          cancelSpeakingRef.current = () => {};
+          if (interrupted) {
+            resumeListeningRef.current();
+          } else {
+            window.setTimeout(() => {
+              if (!speakingRef.current && sessionActiveRef.current) {
+                resumeListeningRef.current();
+              }
+            }, VOICE_CONSTANTS.POST_SPEECH_COOLDOWN_MS);
+          }
+          resolve();
+        };
+        const cancel = () => {
+          if ("speechSynthesis" in window) speechSynthesis.cancel();
+          finish(true);
+        };
+        cancelSpeakingRef.current = cancel;
+
+        recognitionGatedRef.current = true;
+        restartRecognitionRef.current = false;
+        if (recognitionRef.current) {
+          recognitionRef.current.onend = null;
+          recognitionRef.current.onresult = null;
+          try {
+            recognitionRef.current.stop();
+          } catch {
+            /* ignore */
+          }
+          recognitionRef.current = null;
+        }
+        setListening(false);
+
+        const fallback = () => {
+          if (settled) return;
+          if (text && "speechSynthesis" in window) {
+            speakingRef.current = true;
+            setState("speaking");
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.onend = () => finish(false);
+            utter.onerror = () => finish(false);
+            speechSynthesis.speak(utter);
+          } else {
+            finish(false);
+          }
+        };
+
+        if (audioB64) {
+          try {
+            const audio = new Audio(`data:audio/mp3;base64,${audioB64}`);
+            audioElementRef.current = audio;
+            speakingRef.current = true;
+            setState("speaking");
+            audio.onended = () => finish(false);
+            audio.onerror = fallback;
+            audio.play().catch(fallback);
+            return;
+          } catch {
+            fallback();
+          }
+        } else {
+          fallback();
+        }
+      });
+    },
+    []
+  );
+
+  const sendMessage = useCallback(
+    async (text: string, role: "user" | "assistant" = "user") => {
+      if (busyRef.current) return;
+      busyRef.current = true;
+      setError(null);
+      setMessages((prev) => [...prev, { role, text }]);
+      setInterimTranscript("");
+
+      const sid = sessionIdRef.current;
+      if (!sid) {
+        busyRef.current = false;
+        return;
+      }
+
+      try {
+        setState("thinking");
+        const response = await fetch("/api/voice/message", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: sid, text }),
+        });
+        if (!response.ok) throw new Error(`Voice API ${response.status}`);
+        const data: MessageResponse = await response.json();
+        setMessages((prev) => [...prev, { role: "assistant", text: data.reply }]);
+        await speak(data.reply_audio_b64, data.reply);
+      } catch (e) {
+        console.error("Voice message failed", e);
+        setError("Voice response unavailable — I'm still listening, just say it again.");
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            text: "I'm sorry, I hit a snag connecting. Could you repeat that?",
+          },
+        ]);
+        setState("listening");
+        resumeListeningRef.current();
+      } finally {
+        busyRef.current = false;
+      }
+    },
+    [speak]
+  );
+
+  useEffect(() => {
+    sendMessageRef.current = sendMessage;
+  }, [sendMessage]);
+
+  const startSession = useCallback(async () => {
+    if (sessionActiveRef.current || isStarting) return;
+    setIsStarting(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/voice/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ greeting_type: "proactive" }),
+      });
+      if (!response.ok) throw new Error(`Voice session ${response.status}`);
+      const data: SessionResponse = await response.json();
+      sessionIdRef.current = data.session_id;
+      setSessionId(data.session_id);
+      if (onSessionStart) onSessionStart(data.session_id);
+      sessionActiveRef.current = true;
+      setSessionActive(true);
+      setState("listening");
+      setMessages([{ role: "assistant", text: data.greeting }]);
+      await speak(data.greeting_audio_b64, data.greeting);
+    } catch (e) {
+      console.error("Voice session start failed", e);
+      setError("Voice assistant unavailable right now. Please try again.");
+    } finally {
+      setIsStarting(false);
+    }
+  }, [onSessionStart, speak, isStarting]);
 
   const startMicrophone = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (mediaStreamRef.current) return;
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        });
+        micHasAecRef.current = true;
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        micHasAecRef.current = false;
+      }
       mediaStreamRef.current = stream;
       const ctx = new AudioContext();
       audioContextRef.current = ctx;
       const an = ctx.createAnalyser();
-      an.fftSize = 128;
+      an.fftSize = 256;
       analyserRef.current = an;
       const src = ctx.createMediaStreamSource(stream);
       sourceRef.current = src;
@@ -56,6 +368,14 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
 
       const update = () => {
         if (!analyserRef.current) return;
+        const timeDomain = new Float32Array(analyserRef.current.fftSize);
+        analyserRef.current.getFloatTimeDomainData(timeDomain);
+        if (speakingRef.current && micHasAecRef.current) {
+          const level = rmsFromFloat32(timeDomain);
+          if (bargeInRef.current.feed(level)) {
+            cancelSpeakingRef.current();
+          }
+        }
         const bufferLength = analyserRef.current.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
         analyserRef.current.getByteFrequencyData(dataArray);
@@ -63,73 +383,97 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
         animationRef.current = requestAnimationFrame(update);
       };
       update();
-    } catch { /* mic access optional */ }
+    } catch {
+      setListening(true);
+    }
   }, []);
 
-  const startSpeechRecognition = useCallback(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = "en-US";
+  const stopMicrophone = useCallback(() => {
+    if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    if (sourceRef.current) sourceRef.current.disconnect();
+    if (audioContextRef.current) audioContextRef.current.close();
+    if (mediaStreamRef.current) mediaStreamRef.current.getTracks().forEach((t) => t.stop());
+    audioContextRef.current = null;
+    analyserRef.current = null;
+    sourceRef.current = null;
+    animationRef.current = null;
+    mediaStreamRef.current = null;
+    setAudioData([]);
+  }, []);
 
-    recognition.onresult = (event: any) => {
-      let final = "";
-      let interim = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          final += event.results[i][0].transcript;
-        } else {
-          interim += event.results[i][0].transcript;
-        }
+  const stopRecognition = useCallback(() => {
+    restartRecognitionRef.current = false;
+    recognitionGatedRef.current = true;
+    if (recognitionRef.current) {
+      recognitionRef.current.onend = null;
+      recognitionRef.current.onresult = null;
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        /* ignore */
       }
-      if (final) setTranscript((prev) => prev + final + " ");
-      setInterimTranscript(interim);
-      if (final) setState("speaking");
-    };
-
-    recognition.onerror = () => { /* silent */ };
-    recognition.start();
-    recognitionRef.current = recognition;
+      recognitionRef.current = null;
+    }
+    setListening(false);
   }, []);
-
-  const startSession = useCallback(async () => {
-    setState("listening");
-    setSessionActive(true);
-    await startMicrophone();
-    startSpeechRecognition();
-
-    try {
-      const response = await fetch("/api/voice/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ greeting_type: "proactive" }),
-      });
-      const data = await response.json();
-      if (data.session_id && onSessionStart) onSessionStart(data.session_id);
-    } catch { /* optional */ }
-  }, [onSessionStart, startMicrophone, startSpeechRecognition]);
 
   const handleEnd = useCallback(() => {
-    cleanupAudio();
+    stopRecognition();
+    stopMicrophone();
+    speakingRef.current = false;
+    cancelSpeakingRef.current();
+    if ("speechSynthesis" in window) speechSynthesis.cancel();
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
+      audioElementRef.current = null;
+    }
+    bargeInRef.current.reset();
     setState("idle");
+    sessionActiveRef.current = false;
     setSessionActive(false);
-  }, [cleanupAudio]);
-
-  useEffect(() => {
-    return () => cleanupAudio();
-  }, [cleanupAudio]);
+    setSessionId(null);
+    sessionIdRef.current = null;
+    setMessages([]);
+    if (sessionId) {
+      fetch("/api/voice/end", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: sessionId }),
+      }).catch(() => {});
+    }
+  }, [sessionId, stopMicrophone, stopRecognition]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (!sessionActive) startSession();
-    }, 3000);
+      if (!sessionActiveRef.current && !isStarting) startSession();
+    }, 2500);
     return () => clearTimeout(timer);
-  }, [sessionActive, startSession]);
+  }, [sessionActive, isStarting, startSession]);
 
-  const isActive = state === "listening" || state === "speaking";
-  const displayText = transcript + interimTranscript;
+  useEffect(() => {
+    return () => {
+      stopRecognition();
+      stopMicrophone();
+      cancelSpeakingRef.current();
+      if (audioElementRef.current) audioElementRef.current.pause();
+    };
+  }, [stopRecognition, stopMicrophone]);
+
+  useEffect(() => {
+    if (sessionActive) {
+      const timer = setTimeout(() => {
+        startMicrophone();
+        resumeListeningRef.current();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [sessionActive, startMicrophone]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, interimTranscript]);
+
+  const isActive = state === "listening" || state === "speaking" || state === "thinking";
 
   return (
     <motion.div
@@ -142,93 +486,117 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
       <div className="w-96 bg-gray-900/90 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl shadow-black/50 overflow-hidden">
         <div className="p-4 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {imageError ? (
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center">
-                <Mic className="w-6 h-6 text-white" />
-              </div>
-            ) : (
-              <div className="relative w-12 h-12 shrink-0">
-                <Image
-                  src="/voice_agent_image_1.png"
-                  alt="AI Voice Agent"
-                  width={48}
-                  height={48}
-                  onError={() => setImageError(true)}
-                  className={`rounded-full object-cover ring-2 transition-all duration-500 ${
-                    isActive ? "ring-indigo-500/50 ring-offset-2 ring-offset-gray-900" : "ring-white/10"
-                  }`}
+            <div className="relative w-12 h-12 shrink-0">
+              <img
+                src="/voice_agent_image_1.png"
+                alt="Genesis AI Voice Agent"
+                width={48}
+                height={48}
+                className="rounded-full object-cover ring-2 ring-white/10 w-12 h-12"
+              />
+              {isActive && (
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-500 border-2 border-gray-900 rounded-full"
                 />
-                {isActive && (
-                  <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-500 border-2 border-gray-900 rounded-full"
-                  />
-                )}
-              </div>
-            )}
+              )}
+            </div>
             <div>
-              <h3 className="font-semibold text-white text-sm">Genesis Assistant</h3>
+              <h3 className="font-semibold text-white text-sm">Genesis Voice Agent</h3>
               <p className="text-xs text-white/50">
-                {state === "idle" ? "Tap to start" : state.charAt(0).toUpperCase() + state.slice(1)}
+                {state === "idle"
+                  ? "Starting your guided experience…"
+                  : state === "listening"
+                    ? "Listening — just speak"
+                    : state === "speaking"
+                      ? "Speaking… say anything to interrupt"
+                      : "Thinking…"}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${isActive ? "bg-emerald-400 animate-pulse" : "bg-white/20"} transition-colors`} aria-hidden="true" />
+            <div
+              className={`w-2 h-2 rounded-full ${isActive ? "bg-emerald-400 animate-pulse" : "bg-white/20"} transition-colors`}
+              aria-hidden="true"
+            />
             <span className="text-xs text-white/50">{isActive ? "Live" : "Offline"}</span>
           </div>
         </div>
 
-        <div className="p-4 border-b border-white/10 min-h-[100px]">
-          {isActive && (
-            <motion.div
-              key="waveform"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="mb-3"
-            >
+        <div className="p-4 border-b border-white/10 min-h-[160px] max-h-[240px] overflow-y-auto">
+          {isActive && audioData.length > 0 && (
+            <motion.div key="waveform" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-3">
               <VoiceWaveform audioData={audioData} />
             </motion.div>
           )}
-          <div className="bg-white/5 rounded-lg p-3 text-sm min-h-[40px]">
-            {displayText ? (
-              <p className="text-white/90">{displayText}<span className="animate-pulse text-indigo-400">|</span></p>
-            ) : isActive ? (
-              <p className="text-white/40 italic">Listening... speak to start</p>
-            ) : (
-              <p className="text-white/40 italic">Voice assistant ready</p>
+          <div className="space-y-3">
+            <AnimatePresence initial={false}>
+              {messages.map((msg, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${
+                      msg.role === "user"
+                        ? "bg-indigo-600 text-white"
+                        : "bg-white/5 text-white/90"
+                    }`}
+                  >
+                    {msg.text}
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+            {interimTranscript && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] rounded-xl px-3 py-2 text-sm bg-white/5 text-white/40 italic">
+                  {interimTranscript}
+                </div>
+              </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
         </div>
 
+        {error && (
+          <div className="px-4 py-2 bg-red-500/10 border-b border-red-500/20 text-xs text-red-300">
+            {error}
+          </div>
+        )}
+
         <div className="p-4 border-b border-white/10">
           <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => setTranscript((p) => p + "I need help qualifying leads for my business. ")}
-              className="p-3 text-left bg-white/5 rounded-lg hover:bg-white/10 hover:border-indigo-500/30 border border-transparent transition-all"
-            >
-              <p className="font-medium text-white text-sm">Qualify leads</p>
-              <p className="text-xs text-white/50">Find qualified prospects</p>
-            </button>
-            <button
-              onClick={() => setTranscript((p) => p + "I want to launch my business with Genesis. ")}
-              className="p-3 text-left bg-white/5 rounded-lg hover:bg-white/10 hover:border-indigo-500/30 border border-transparent transition-all"
-            >
-              <p className="font-medium text-white text-sm">Business launch</p>
-              <p className="text-xs text-white/50">Start your company</p>
-            </button>
+            {QUICK_ACTIONS.map((action) => (
+              <button
+                key={action.label}
+                onClick={() => sendMessage(action.text)}
+                disabled={!sessionActive}
+                className="p-3 text-left bg-white/5 rounded-lg hover:bg-white/10 hover:border-indigo-500/30 border border-transparent transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <p className="font-medium text-white text-sm">{action.label}</p>
+                <p className="text-xs text-white/50">{action.hint}</p>
+              </button>
+            ))}
           </div>
         </div>
 
         <div className="p-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button
-              onClick={() => { if (isActive) handleEnd(); else startSession(); }}
+              onClick={() => {
+                if (sessionActive && state !== "idle") handleEnd();
+                else startSession();
+              }}
               className={`p-3 rounded-full transition-all ${
-                state === "listening" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/25 scale-110" : "bg-white/10 text-white/70 hover:bg-white/20"
+                state === "listening"
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/25 scale-110"
+                  : "bg-white/10 text-white/70 hover:bg-white/20"
               }`}
-              aria-label={isActive ? "Stop listening" : "Start listening"}
+              aria-label={state === "listening" ? "Stop listening" : "Start listening"}
             >
               <Mic className="w-5 h-5" />
             </button>
@@ -247,52 +615,9 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
               className="flex items-center gap-1 text-emerald-400 text-xs"
             >
               <Volume2 className="w-3 h-3" />
-              Recording
+              {state === "speaking" ? "Speaking" : listening ? "Listening" : "Live"}
             </motion.div>
           )}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-export function VoiceGreeting({
-  greeting,
-  onDismiss,
-  delay = 3000,
-}: {
-  greeting: string;
-  onDismiss: () => void;
-  delay?: number;
-}) {
-  useEffect(() => {
-    const timer = setTimeout(onDismiss, delay);
-    return () => clearTimeout(timer);
-  }, [onDismiss, delay]);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -20, scale: 0.95 }}
-      className="fixed bottom-6 right-6 z-50 max-w-md"
-    >
-      <div className="bg-gray-900/90 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl shadow-black/50 overflow-hidden">
-        <div className="p-4 flex items-start gap-3">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shrink-0">
-            <Sparkles className="w-6 h-6 text-white" />
-          </div>
-          <div className="flex-1">
-            <p className="font-medium text-white">Genesis Assistant</p>
-            <p className="text-sm text-white/60 mt-1">{greeting}</p>
-          </div>
-          <button
-            onClick={onDismiss}
-            className="p-1 rounded-lg hover:bg-white/10 text-white/40 hover:text-white/60 transition-colors"
-            aria-label="Dismiss"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
       </div>
     </motion.div>

@@ -23,7 +23,7 @@ class LeadCreate(BaseModel):
     metadata: dict | None = None
 
 
-@router.post("/")
+@router.post("")
 async def create_lead(payload: LeadCreate):
     """
     Create a new lead in the database.
@@ -44,7 +44,7 @@ async def create_lead(payload: LeadCreate):
     return {"lead_id": lead_id}
 
 
-@router.get("/")
+@router.get("")
 async def list_leads(limit: int = 100):
     """
     List leads stored in the database.
@@ -111,9 +111,16 @@ async def create_ticket_for_lead(
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
 
+    ticket_id = db.create_ticket(
+        lead_id=lead_id,
+        department=department,
+        title=title,
+        instruction=instruction,
+    )
+
     ticket = {
-        "ticket_id": f"TKT-{lead.get('id')}",
-        "lead_id": lead.get("id"),
+        "ticket_id": ticket_id,
+        "lead_id": lead_id,
         "department": department,
         "title": title,
         "instruction": instruction,
@@ -124,3 +131,39 @@ async def create_ticket_for_lead(
         "status": "ticket_created",
         "ticket": ticket,
     }
+
+
+@router.get("/{lead_id}/ticket")
+async def get_tickets_for_lead(lead_id: str):
+    """
+    Retrieve all tickets associated with a specific lead.
+
+    Args:
+        lead_id (str): The lead identifier.
+
+    Raises:
+        HTTPException: If the lead does not exist.
+
+    Returns:
+        dict: List of ticket records for the lead.
+    """
+    db = get_swarm_db()
+    lead = db.get_lead(lead_id)
+
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    tickets = db.list_tickets(limit=1000)
+    lead_tickets = [
+        t for t in tickets if t["project_id"] == lead_id
+    ]
+
+    return {"tickets": lead_tickets}
+
+
+@router.get("/tickets/all")
+async def list_all_tickets(limit: int = 100):
+    """List all tickets across leads (most recent first)."""
+    db = get_swarm_db()
+    tickets = db.list_tickets(limit=limit)
+    return {"tickets": tickets}

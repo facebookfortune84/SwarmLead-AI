@@ -6,12 +6,15 @@ Reuses 75% of BuilderAgent codebase.
 """
 
 import json
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from core.agents.base_agent import BaseAgent
+
+logger = logging.getLogger("ContentAgent")
 
 
 class ContentType(str, Enum):
@@ -152,10 +155,21 @@ class ContentAgent(BaseAgent):
             ),
         }
 
+    async def execute(
+        self, input_data: Dict[str, Any], context: Dict[str, Any], trace_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """BaseAgent.execute implementation: route to content generation."""
+        template_name = input_data.get("template") or input_data.get("content_type") or "blog"
+        seo_keywords = input_data.get("seo_keywords") or []
+        result = await self.generate_content(template_name, input_data, seo_keywords=seo_keywords)
+        if "error" in result:
+            return {"success": False, "error": result["error"]}
+        return {"success": True, "result": result}
+
     async def generate_content(
         self, template_name: str, context: Dict[str, Any], seo_keywords: Optional[List[str]] = None
     ) -> Dict[str, Any]:
-        """
+        """Generate content from template.
         Generate content from template.
 
         Args:
@@ -214,9 +228,17 @@ class ContentAgent(BaseAgent):
         """
 
     async def _generate(self, prompt: str, template: ContentTemplate) -> str:
-        """Generate content using LLM (placeholder for actual implementation)."""
-        # In production, would call BaseAgent's execute method
-        return f"[Generated content for {template.name} template]"
+        """Generate content using the LLM."""
+        try:
+            return await self.call_llm(prompt)
+        except Exception as exc:
+            logger.warning("Content LLM generation failed (%s); using template scaffold", exc)
+            return (
+                f"# {template.name}\n\n"
+                "## Overview\n"
+                "[Generated content pending LLM availability]\n\n"
+                f"## Sections\n" + "\n".join(f"- {s}" for s in template.structure)
+            )
 
     def _calculate_seo_score(self, content: str, keywords: List[str]) -> float:
         """Calculate SEO score (0-100)."""

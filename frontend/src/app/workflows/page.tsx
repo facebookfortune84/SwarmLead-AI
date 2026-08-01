@@ -5,7 +5,8 @@ import { Card } from "@/components/ui/card";
 import { WorkflowCreateForm } from "@/components/workflows/workflow-create-form";
 import { WorkflowHistoryList } from "@/components/workflows/workflow-history-list";
 import { WorkflowOverviewCard } from "@/components/workflows/workflow-overview-card";
-import { Workflow, ListOrdered } from "lucide-react";
+import { WorkflowTemplates } from "@/components/workflows/workflow-templates";
+import { Workflow, ListOrdered, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function WorkflowsPage() {
@@ -21,8 +22,19 @@ export default function WorkflowsPage() {
 
         <Card className="p-6 bg-white/[0.03] backdrop-blur-xl border-white/[0.06]">
           <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-4 h-4 text-emerald-400" />
+            <h2 className="font-semibold text-white">Prebuilt Workflow Templates</h2>
+          </div>
+          <p className="text-sm text-white/50 mb-5">
+            Launch proven automation playbooks in one click — email nurture, voice outreach, SEO, traffic, and follow-up.
+          </p>
+          <WorkflowTemplates />
+        </Card>
+
+        <Card className="p-6 bg-white/[0.03] backdrop-blur-xl border-white/[0.06]">
+          <div className="flex items-center gap-2 mb-4">
             <Workflow className="w-4 h-4 text-indigo-400" />
-            <h2 className="font-semibold text-white">Create Workflow</h2>
+            <h2 className="font-semibold text-white">Create Custom Workflow</h2>
           </div>
           <WorkflowCreateForm />
         </Card>
