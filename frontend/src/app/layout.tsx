@@ -3,6 +3,7 @@ import "./globals.css";
 
 import { AppThemeProvider } from "@/components/providers/theme-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 const siteUrl = process.env.SITE_URL || "https://realms2riches.com";
 
@@ -77,6 +78,7 @@ export default function RootLayout({
         <AppThemeProvider>
           <QueryProvider>
             {children}
+            <Toaster position="bottom-right" richColors />
           </QueryProvider>
         </AppThemeProvider>
       </body>

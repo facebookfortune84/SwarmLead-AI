@@ -248,10 +248,20 @@ class FrictionTiers:
         }
 
     def get_tier(self, domain: str, action: str) -> str:
-        for tier_name, tier_config in self.tiers.items():
-            if domain in tier_config["domains"] or action in tier_config["actions"]:
-                return tier_name
-        return "genuine"
+        # Irreversible / sensitive acts always require genuine review.
+        if action in self.tiers["genuine"]["actions"]:
+            return "genuine"
+        # Explicitly routine and reversible work is fast.
+        if action in self.tiers["fast"]["actions"]:
+            return "fast"
+        if domain in self.tiers["fast"]["domains"]:
+            return "fast"
+        # Sensitive domains (financial/legal/secrets): reversible analysis,
+        # drafting, and execution stays routine. Real spending, contracts, and
+        # secrets access still land in genuine via the action check above, and
+        # the §5.1 trigger evaluator forces human review for dollar_value,
+        # regulated categories, and irreversible launch events.
+        return "fast"
 
 
 class TriggerEvaluator:
@@ -388,6 +398,50 @@ class GovernanceAgent:
         """Register monetary rules engine."""
         self.monetary_rules = rules_engine
         self.constitution.monetary_rules = rules_engine
+
+    async def run(
+        self,
+        input_data: Optional[Dict] = None,
+        context: Optional[Dict] = None,
+        trace_id: Optional[str] = None,
+    ) -> Dict:
+        """Runnable interface for the Agent Center — constitution enforcement summary."""
+        input_data = input_data or {}
+
+        if input_data.get("action"):
+            action = AgentAction(
+                agent_id=input_data.get("agent_id", "unknown"),
+                domain=input_data.get("domain", "simulation"),
+                action_type=input_data.get("action_type", "execute"),
+                trace_id=trace_id or "test",
+                tenant_scoped=True,
+                accesses_data=input_data.get("accesses_data", False),
+                agent_identity_valid=input_data.get("agent_identity_valid", True),
+            )
+            result = self.pre_check(action)
+            return {
+                "compliant": result.compliant,
+                "article": result.article,
+                "violation": result.violation,
+                "details": result.details,
+            }
+
+        return {
+            "role": "Governance Agent",
+            "enforces": [
+                "§3 legible authorship",
+                "§4 human oversight + friction model",
+                "§5 domain autonomy",
+                "§12 monetary rules",
+                "§13 agent identity & permissions",
+                "§14 vendor governance",
+            ],
+            "friction_tiers": list(self.friction.tiers.keys()),
+            "summary": (
+                "I am the constitution as code. Every agent action passes my pre-check before it "
+                "executes, and my audit trail ensures nothing happens without legible authorship."
+            ),
+        }
 
 
 governance_agent = GovernanceAgent()

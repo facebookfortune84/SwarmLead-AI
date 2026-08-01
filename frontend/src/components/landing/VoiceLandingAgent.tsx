@@ -58,6 +58,16 @@ interface SpeechRecognitionLike {
 
 type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
 
+async function fetchWithTimeout(url: string, options: RequestInit, ms: number) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 const QUICK_ACTIONS = [
   {
     label: "Qualify leads",
@@ -197,6 +207,7 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
         const finish = (interrupted: boolean) => {
           if (settled) return;
           settled = true;
+          if (speakTimer) window.clearTimeout(speakTimer);
           speakingRef.current = false;
           setState("listening");
           bargeInRef.current.reset();
@@ -217,6 +228,15 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
           finish(true);
         };
         cancelSpeakingRef.current = cancel;
+
+        // Watchdog: never allow the assistant to appear stuck "speaking".
+        let speakTimer: number | null = null;
+        const maxSpeakMs = 30000;
+        speakTimer = window.setTimeout(() => {
+          if (audioElementRef.current) audioElementRef.current.pause();
+          if ("speechSynthesis" in window) speechSynthesis.cancel();
+          finish(false);
+        }, maxSpeakMs);
 
         recognitionGatedRef.current = true;
         restartRecognitionRef.current = false;
@@ -283,11 +303,15 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
 
       try {
         setState("thinking");
-        const response = await fetch("/api/voice/message", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ session_id: sid, text }),
-        });
+        const response = await fetchWithTimeout(
+          "/api/voice/message",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ session_id: sid, text }),
+          },
+          60000
+        );
         if (!response.ok) throw new Error(`Voice API ${response.status}`);
         const data: MessageResponse = await response.json();
         setMessages((prev) => [...prev, { role: "assistant", text: data.reply }]);
@@ -320,11 +344,15 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
     setIsStarting(true);
     setError(null);
     try {
-      const response = await fetch("/api/voice/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ greeting_type: "proactive" }),
-      });
+      const response = await fetchWithTimeout(
+        "/api/voice/session",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ greeting_type: "proactive" }),
+        },
+        20000
+      );
       if (!response.ok) throw new Error(`Voice session ${response.status}`);
       const data: SessionResponse = await response.json();
       sessionIdRef.current = data.session_id;
@@ -435,11 +463,15 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
     sessionIdRef.current = null;
     setMessages([]);
     if (sessionId) {
-      fetch("/api/voice/end", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: sessionId }),
-      }).catch(() => {});
+      fetchWithTimeout(
+        "/api/voice/end",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: sessionId }),
+        },
+        10000
+      ).catch(() => {});
     }
   }, [sessionId, stopMicrophone, stopRecognition]);
 

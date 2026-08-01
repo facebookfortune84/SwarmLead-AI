@@ -1,0 +1,36 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schema.json",
+  "name": "genesis-agentic-os",
+  "description": "Genesis is an agentic operating system that provisions and runs businesses with AI agents and full-duplex voice.",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "provision_business",
+      "description": "Generate a provisionable business skeleton (build manifest, file tree, infra plan, launch checklist) from a founder's intent."
+    },
+    {
+      "name": "generate_content",
+      "description": "Generate marketing/landing content for a business using the content agent."
+    },
+    {
+      "name": "create_landing_page",
+      "description": "Generate landing page structure and copy for a business."
+    },
+    {
+      "name": "analyze_seo",
+      "description": "Run technical SEO analysis and produce JSON-LD, meta, and sitemap recommendations."
+    },
+    {
+      "name": "create_ticket",
+      "description": "Create a follow-up ticket for a lead routed to a department."
+    },
+    {
+      "name": "start_voice_session",
+      "description": "Begin a full-duplex voice conversation with the Genesis launch assistant."
+    },
+    {
+      "name": "create_outreach_campaign",
+      "description": "Draft an outreach campaign for human review and approval."
+    }
+  ]
+}

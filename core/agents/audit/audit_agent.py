@@ -333,6 +333,33 @@ class AuditAgent:
         """Get recent audit log entries."""
         return self.audit_log[-limit:]
 
+    async def run(
+        self,
+        input_data: Optional[Dict[str, Any]] = None,
+        context: Optional[Dict[str, Any]] = None,
+        trace_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Runnable interface for the Agent Center — independent verification."""
+        input_data = input_data or {}
+
+        if input_data.get("verify"):
+            action = input_data.get("action") or {
+                "agent_id": input_data.get("agent_id", "unknown"),
+                "trace_id": trace_id or input_data.get("trace_id", ""),
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+            return self.audit_action(action)
+
+        return {
+            "role": "Audit Agent",
+            "reports": ["constitutional_compliance", "monetary_audit", "agent_activity"],
+            "summary": (
+                "I independently verify legible authorship (§3), audit escalations, and generate "
+                "constitutional, monetary, and agent-activity reports — structurally separate from "
+                "any generation so no agent grades its own homework (ADR-001)."
+            ),
+        }
+
 
 router = APIRouter(prefix="/audit", tags=["Audit"])
 

@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  LeadTicketButton,
-} from "./lead-ticket-button";
+  TicketCreateDialog,
+} from "@/components/tickets/ticket-create-dialog";
 
 import {
   Lead,
@@ -66,10 +66,9 @@ export function LeadTable({
                 </td>
 
                 <td className="p-4">
-                  <LeadTicketButton
-                    leadId={
-                      lead.id
-                    }
+                  <TicketCreateDialog
+                    leadId={lead.id}
+                    leadEmail={lead.email}
                   />
                 </td>
               </tr>

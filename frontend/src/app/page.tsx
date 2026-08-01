@@ -20,10 +20,108 @@ export default function Home() {
             operatingSystem: "Web",
             description:
               "The first autonomous business launch platform powered by constitutional voice AI. Launch your business with your voice.",
+            featureList: [
+              "Full Duplex Voice AI",
+              "Autonomous Business Provisioning",
+              "Agentic OS",
+              "Lead Qualification",
+              "Workflow Automation",
+            ],
             offers: [
               { "@type": "Offer", name: "Starter", price: "29", priceCurrency: "USD" },
               { "@type": "Offer", name: "Growth", price: "99", priceCurrency: "USD" },
               { "@type": "Offer", name: "Enterprise", price: "299", priceCurrency: "USD" },
+            ],
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: [
+              {
+                "@type": "Question",
+                name: "How do I launch a business with AI in 2026?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Genesis provisions your business automatically: landing copy, workflows, agents, and launch checklist are generated in minutes from a single prompt.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "What is an agentic OS?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "An agentic OS is an operating system staffed by AI agents that perform business work for you — outreach, content, monitoring, and provisioning.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "What is full duplex voice AI?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Full duplex voice AI lets you interrupt the assistant mid-sentence. Genesis uses browser-side barge-in detection so the agent stops instantly and listens.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "How fast can Genesis launch a business?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Genesis builds a provisionable business skeleton in minutes, then walks you through go-live with a launch checklist and workflow automation.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "Does Genesis qualify leads automatically?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Yes. Genesis captures inbound leads, qualifies them with its landing agent, and creates follow-up tickets for your sales workflow automatically.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "Can Genesis run my outreach campaigns?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Genesis drafts outreach campaigns and sequences with its outreach agent. You review and approve every send, keeping full control.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "How do I get started with Genesis?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Create a free account, run the guided onboarding, and Genesis provisions your workspace with agents, workflows, and a company builder.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "What is a constitutional AI agent?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Every Genesis agent operates under a written constitution that enforces legible authorship, human oversight, and safe autonomy by domain.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "Can I interrupt the Genesis voice agent?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Yes. The Genesis voice agent listens continuously and supports barge-in, so you can interrupt it naturally without waiting for it to finish.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "What plans does Genesis offer?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Starter ($29/mo), Growth ($99/mo), and Enterprise ($299/mo). Every plan starts free with no credit card required.",
+                },
+              },
             ],
           }),
         }}

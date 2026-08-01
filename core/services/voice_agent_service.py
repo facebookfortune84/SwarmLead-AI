@@ -12,6 +12,7 @@ Graceful degradation:
   conversation always stays on track.
 """
 
+import asyncio
 import base64
 import logging
 import uuid
@@ -19,6 +20,7 @@ from typing import Any, Dict, Optional
 
 from core.integrations.elevenlabs.elevenlabs_client import ElevenLabsClient
 from core.models.local_llm.ollama_client import OllamaClient
+from core.services.product_knowledge import product_knowledge
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +40,11 @@ Your job is to lead a live, voice-first conversation that guides the visitor ste
 CONVERSATION RULES:
 - Respond in 1-3 short spoken sentences. Be warm, concise, and human.
 - Never dump features or pricing tables. Keep it conversational.
+- Use the RETRIEVED KNOWLEDGE sections below to answer "how do I use Genesis" and
+  "how do I run my business" questions with real, specific guidance from the docs.
+- If the question is not covered by the retrieved knowledge, steer them to the
+  right part of Genesis (onboarding, agents, workflows, outreach, tickets, voice)
+  or to creating an account rather than guessing.
 - If they ask to "qualify leads", explain Genesis qualifies inbound leads automatically.
 - If they ask to "launch a business", start the launch discovery flow.
 - If they mention pricing/payment/plans, recommend the best plan and direct them to the \
@@ -69,11 +76,15 @@ GREETINGS = {
 class VoiceAgentService:
     """Conversational voice assistant powering the landing page."""
 
-    def __init__(self) -> None:
+    def __init__(self, llm_timeout_s: int = 25) -> None:
         self._llm = OllamaClient()
         self._elevenlabs = ElevenLabsClient()
         self._sessions: Dict[str, Dict[str, Any]] = {}
         self._session_limit = 2000
+        # Hard cap on LLM generation for voice. This hardware (CPU-only) can take
+        # minutes per generation; the cap keeps the agent responsive via the
+        # scripted fallback. Raise it when a fast hosted model is wired up.
+        self._llm_timeout_s = llm_timeout_s
 
     # ------------------------------------------------------------------
     # Session lifecycle
@@ -141,25 +152,89 @@ class VoiceAgentService:
     # ------------------------------------------------------------------
 
     async def _generate_reply(self, session_id: str, history: list) -> str:
-        """Build a guided prompt and call the LLM."""
+        """Build a guided prompt and call the LLM, grounding it in the docs.
+
+        The LLM call is hard-capped: on this hardware a full generation can take
+        minutes, which reads as a frozen agent. If it exceeds ``_llm_timeout_s``
+        we return an intent-matched scripted reply so the conversation always
+        stays responsive. Swap to a fast hosted model (Groq/cloud GPU) and the
+        cap simply stops being hit.
+        """
         transcript = "\n".join(
             f"{'User' if turn['role'] == 'user' else 'Assistant'}: {turn['content']}"
             for turn in history[-12:]
         )
 
+        last_user = next(
+            (turn["content"] for turn in reversed(history) if turn["role"] == "user"),
+            "",
+        )
+        # Bounded knowledge slice — keep the prompt small so the voice reply stays fast.
+        knowledge = product_knowledge.format_context(last_user, max_chars=900, top_k=2)
+
+        knowledge_block = (
+            "\nRETRIEVED KNOWLEDGE FROM GENESIS DOCS:\n"
+            f"{knowledge}\n"
+            "Use this to give accurate, concrete guidance about using Genesis.\n"
+            if knowledge
+            else ""
+        )
+
         prompt = (
             f"{SYSTEM_PROMPT}\n\n"
+            f"{knowledge_block}"
             "Here is the conversation so far (most recent last):\n"
             f"{transcript}\n\n"
             "Reply now as the assistant, continuing the conversation and steering toward "
             "creating an account / onboarding / payment when appropriate:"
         )
 
-        result = await self._llm.generate(prompt=prompt)
-        reply = (result.get("response") or "").strip()
+        try:
+            result = await asyncio.wait_for(
+                self._llm.generate(prompt=prompt, num_predict=120),
+                timeout=self._llm_timeout_s,
+            )
+            reply = (result.get("response") or "").strip()
+        except Exception:
+            logger.info("Voice LLM capped at %ss — using scripted fallback", self._llm_timeout_s)
+            reply = self._scripted_for(last_user)
         if not reply:
             reply = SCRIPTED_REPLY
         return reply[:600]
+
+    @staticmethod
+    def _scripted_for(user_text: str) -> str:
+        """Fast, intent-relevant fallback so the agent never freezes."""
+        lower = user_text.lower()
+        if any(k in lower for k in ["company builder", "build", "provision", "launch", "startup", "start a"]):
+            return (
+                "I can absolutely help you build that. In Genesis, open the Company Builder, describe "
+                "your business, and it generates your landing copy, workflows, and launch checklist in "
+                "minutes. Sign up free and I'll walk you through it live."
+            )
+        if any(k in lower for k in ["outreach", "email", "campaign", "lead", "qualif"]):
+            return (
+                "Great question. Genesis handles that with the Outreach page: pick a template, add your "
+                "prospects, and our outreach agent drafts every message for you to review and send. "
+                "Inbound leads get qualified automatically and turn into tickets."
+            )
+        if any(k in lower for k in ["workflow", "automate", "follow-up", "sequence"]):
+            return (
+                "Workflows are the easy part. Go to the Workflows page, choose a template like Email "
+                "Follow-Up or Hot Lead Escalation, and apply it to a lead. It runs automatically and "
+                "creates tickets when it needs a human."
+            )
+        if any(k in lower for k in ["ticket", "support", "handoff", "escalat"]):
+            return (
+                "You can create a ticket for any lead from the Leads page, or ask the AI to open one. "
+                "Tickets route to the right department and show up in the Ticket Center for follow-up."
+            )
+        if any(k in lower for k in ["price", "plan", "cost", "pay", "pricing"]):
+            return (
+                "Plans start free at 29 a month for Starter, 99 for Growth, and 299 for Enterprise. "
+                "Every plan begins with a free trial, no credit card needed."
+            )
+        return SCRIPTED_REPLY
 
     async def _synthesize(self, text: str) -> Optional[str]:
         """Synthesize speech to base64 mp3. Returns None on failure."""

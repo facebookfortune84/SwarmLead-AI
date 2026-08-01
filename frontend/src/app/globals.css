@@ -128,3 +128,21 @@
     @apply font-sans;
   }
 }
+
+/* Native <select> popups are drawn by the OS (light background on Windows/macOS).
+   Without explicit colors, the select's `text-white` leaks into the popup and
+   produces unreadable white-on-white options. Force readable options globally. */
+select option {
+  color: #111827;
+  background-color: #ffffff;
+}
+
+select option:checked {
+  color: #111827;
+  background-color: #e0e7ff;
+}
+
+select option:hover {
+  color: #111827;
+  background-color: #eef2ff;
+}

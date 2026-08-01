@@ -39,9 +39,13 @@ class OllamaClient:
         prompt: str,
         model: Optional[str] = None,
         trace_id: Optional[str] = None,
+        num_predict: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Generate response from Ollama with full control layer.
+
+        ``num_predict`` overrides the configured max_tokens for this call
+        (used by the voice path to bound reply length and cut latency).
         """
 
         model = model or self.config.llm.model
@@ -51,6 +55,7 @@ class OllamaClient:
                 prompt=prompt,
                 model=model,
                 trace_id=trace_id,
+                num_predict=num_predict,
             )
 
     # ------------------------------------------------------------------
@@ -62,13 +67,14 @@ class OllamaClient:
         prompt: str,
         model: str,
         trace_id: Optional[str],
+        num_predict: Optional[int] = None,
     ) -> Dict[str, Any]:
 
         retries = self.config.llm.max_retries
 
         for attempt in range(1, retries + 2):  # +1 for initial attempt
             try:
-                return await self._call_ollama(prompt, model, trace_id)
+                return await self._call_ollama(prompt, model, trace_id, num_predict)
 
             except Exception as e:
                 log_with_context(
@@ -105,6 +111,7 @@ class OllamaClient:
                         prompt,
                         fallback_model,
                         trace_id,
+                        num_predict,
                     )
 
                 await asyncio.sleep(0.5 * attempt)
@@ -120,6 +127,7 @@ class OllamaClient:
         prompt: str,
         model: str,
         trace_id: Optional[str],
+        num_predict: Optional[int] = None,
     ) -> Dict[str, Any]:
 
         payload = {
@@ -129,7 +137,7 @@ class OllamaClient:
             "options": {
                 "temperature": self.config.generation.temperature,
                 "top_p": self.config.generation.top_p,
-                "num_predict": self.config.generation.max_tokens,
+                "num_predict": num_predict or self.config.generation.max_tokens,
             },
         }
 

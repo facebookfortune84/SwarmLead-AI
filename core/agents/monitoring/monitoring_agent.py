@@ -1,4 +1,5 @@
 import asyncio
+from dataclasses import asdict
 from typing import Any, Dict, List, Optional
 
 from core.monitoring.system_monitor import HealthCheck, SystemMonitor
@@ -38,6 +39,29 @@ class MonitoringAgent:
 
     async def run_checks(self) -> List[HealthCheck]:
         return await self.monitor.run_checks()
+
+    async def run(
+        self,
+        input_data: Optional[Dict[str, Any]] = None,
+        context: Optional[Dict[str, Any]] = None,
+        trace_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Runnable interface for the Agent Center — reports live system health."""
+        input_data = input_data or {}
+        status = await self.get_status()
+        checks = await self.run_checks()
+        serialized_checks = [
+            asdict(c) if isinstance(c, HealthCheck) else c for c in checks
+        ]
+        return {
+            "role": "Monitoring Agent",
+            "system_status": status,
+            "checks": serialized_checks,
+            "summary": (
+                "I watch every service (database, redis, ollama, agents, cpu, memory, disk) "
+                "and run the self-healing loop — escalating anything I cannot fix myself."
+            ),
+        }
 
     async def _recover_database(self, check: HealthCheck) -> bool:
         return False

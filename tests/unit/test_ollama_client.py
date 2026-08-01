@@ -9,7 +9,7 @@ from core.models.local_llm.ollama_client import OllamaClient
 async def test_generate_success(monkeypatch):
     client = OllamaClient()
 
-    async def mock_call(prompt, model=None, trace_id=None):
+    async def mock_call(prompt, model=None, trace_id=None, num_predict=None):
         return {"model": "test-model", "response": "hello", "done": True}
 
     monkeypatch.setattr(client, "_call_ollama", mock_call)
@@ -48,7 +48,7 @@ async def test_fallback_model(monkeypatch):
 
     calls = {"count": 0}
 
-    async def mock_call(prompt, model, trace_id):
+    async def mock_call(prompt, model, trace_id, num_predict=None):
         calls["count"] += 1
 
         # First attempts fail (primary model)
@@ -69,7 +69,7 @@ async def test_fallback_model(monkeypatch):
     assert result["response"] == "fallback success"
     assert calls["count"] >= 2  # at least one failure + fallback
 
-    async def failing_primary(prompt, model=None, trace_id=None):
+    async def failing_primary(prompt, model=None, trace_id=None, num_predict=None):
         if model != "fallback-model":
             raise ValueError("primary failed")
         return {"response": "fallback success"}
@@ -151,7 +151,7 @@ async def test_no_fallback_when_disabled():
 
     calls = {"count": 0}
 
-    async def fail_all(prompt, model, trace_id):
+    async def fail_all(prompt, model, trace_id, num_predict=None):
         calls["count"] += 1
         raise ValueError("fail")
 
