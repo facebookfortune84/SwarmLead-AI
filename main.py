@@ -8,9 +8,11 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from core.config import *
 from core.persistence.session import init_db
 from interfaces.api.routers.agents import router as agents_router
+from interfaces.api.routers.acquisition import router as acquisition_router
 from interfaces.api.routers.auth import router as auth_router
 from interfaces.api.routers.company import router as company_router
 from interfaces.api.routers.crm import router as crm_router
+from interfaces.api.routers.deliverability import router as deliverability_router
 from interfaces.api.routers.growth import router as growth_router
 from interfaces.api.routers.leads import router as leads_router
 from interfaces.api.routers.notifications import router as notifications_router
@@ -110,8 +112,10 @@ async def ready():
 
 app.include_router(auth_router)
 app.include_router(agents_router)
+app.include_router(acquisition_router)
 app.include_router(company_router)
 app.include_router(crm_router)
+app.include_router(deliverability_router)
 app.include_router(growth_router)
 app.include_router(leads_router)
 app.include_router(notifications_router)

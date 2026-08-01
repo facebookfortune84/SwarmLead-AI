@@ -227,6 +227,16 @@ function HeroSection() {
           </Link>
         </div>
 
+        <div className="mt-6">
+          <Link
+            href="/tools/business-skeleton"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm text-white/60 hover:text-white/80 transition-colors"
+          >
+            <span className="text-lg" aria-hidden="true">⚡</span>
+            Free tool: type a business idea — get the launch skeleton in seconds
+          </Link>
+        </div>
+
         <div className="mt-16 grid grid-cols-3 gap-8 max-w-lg mx-auto">
           {[
             { value: "10x", label: "Faster Launch" },

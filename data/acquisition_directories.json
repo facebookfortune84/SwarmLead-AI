@@ -1,0 +1,69 @@
+{
+  "note": "AI directory submissions for the Monday Product Hunt launch. Mark status=submitted once the swarm/founder posts. Submit in this order; add value, never spam.",
+  "items": [
+    {
+      "name": "Product Hunt",
+      "url": "https://www.producthunt.com",
+      "submission_url": "https://www.producthunt.com/posts/new",
+      "status": "launch_monday",
+      "priority": "critical",
+      "notes": "Launch Monday 00:01 PST. Pre-warm with LaunchDay + early supporters."
+    },
+    {
+      "name": "Futurepedia",
+      "url": "https://www.futurepedia.io",
+      "submission_url": "https://www.futurepedia.io/submit-tool",
+      "status": "todo",
+      "priority": "high",
+      "notes": "AI tool directory; free submission, drives SEO + AI-grounded citations."
+    },
+    {
+      "name": "There's An AI For That",
+      "url": "https://theresanaiforthat.com",
+      "submission_url": "https://theresanaiforthat.com/submit",
+      "status": "todo",
+      "priority": "high",
+      "notes": "Huge directory for AI tools; good GEO signal."
+    },
+    {
+      "name": "Toolify",
+      "url": "https://www.toolify.ai",
+      "submission_url": "https://www.toolify.ai/ai-tools/submit",
+      "status": "todo",
+      "priority": "high",
+      "notes": "Aggregates AI tools; quick win."
+    },
+    {
+      "name": "AI Tool Hunt",
+      "url": "https://www.aitoolhunt.com",
+      "submission_url": "https://www.aitoolhunt.com/tool/submit",
+      "status": "todo",
+      "priority": "medium",
+      "notes": "Listings help long-tail AI search reach."
+    },
+    {
+      "name": "Insidr.ai",
+      "url": "https://insidr.ai",
+      "submission_url": "https://insidr.ai/submit",
+      "status": "todo",
+      "priority": "medium",
+      "notes": "AI newsletter + directory combo."
+    },
+    {
+      "name": "AlternativeTo",
+      "url": "https://alternativeto.net",
+      "submission_url": "https://alternativeto.net/register/",
+      "status": "todo",
+      "priority": "medium",
+      "notes": "Capture 'AI receptionist alternative' search traffic."
+    },
+    {
+      "name": "G2 / Capterra",
+      "url": "https://www.g2.com",
+      "submission_url": "https://www.g2.com/products/new",
+      "status": "todo",
+      "priority": "low",
+      "notes": "Long-cycle but high-purchase-intent audience; needs category fit."
+    }
+  ]
+}

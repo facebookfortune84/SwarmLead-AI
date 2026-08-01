@@ -261,10 +261,16 @@ class GrowthAutomation:
     async def _phase_outreach(self) -> Dict[str, Any]:
         leads = self._qualified_leads(limit=OUTREACH_LIMIT_PER_CYCLE)
         drafted = 0
+        domain_counts: Dict[str, int] = {}
         for lead in leads:
             if self._pending_count("outreach_send") >= OUTREACH_LIMIT_PER_CYCLE:
                 break
             if self._already_contacted(lead["email"]):
+                continue
+            if self._suppressed(lead["email"]):
+                continue
+            domain = lead["email"].split("@")[-1].lower()
+            if domain_counts.get(domain, 0) >= 2:
                 continue
             message = self._draft_outreach(lead)
             self._enqueue(
@@ -276,8 +282,14 @@ class GrowthAutomation:
                     "body": message["body"],
                 },
             )
+            domain_counts[domain] = domain_counts.get(domain, 0) + 1
             drafted += 1
         return {"status": "ok", "leads_qualified": len(leads), "drafted": drafted}
+
+    def _suppressed(self, email: str) -> bool:
+        from core.services.deliverability import deliverability
+
+        return deliverability.is_suppressed(email)
 
     def _qualified_leads(self, limit: int) -> List[Dict]:
         try:
@@ -516,11 +528,41 @@ class GrowthAutomation:
         else:
             result = {"status": "unknown_kind"}
 
+        if result.get("status") == "failed":
+            self._record_failure(action, result)
+        elif action["kind"] == "quote_send" and result.get("status") == "sent":
+            self._record_quote(action)
+
         action["status"] = "approved" if result.get("status") in {"sent", "dry_run"} else "failed"
         action["reviewed_at"] = datetime.now(timezone.utc).isoformat()
         action["result"] = result
         self._save_state()
         return {"status": action["status"], "result": result}
+
+    def _record_failure(self, action: Dict, result: Dict) -> None:
+        """Auto-suppress bounced / failed sends so we never retry a dead address."""
+        try:
+            from core.services.deliverability import deliverability
+
+            email = action["payload"].get("to_email", "")
+            error = str(result.get("error", ""))
+            if any(m in error.lower() for m in ("bounce", "550", "5.1.1", "undeliverable", "blocked")):
+                deliverability.record_bounce(email, error)
+            elif any(m in error.lower() for m in ("unsubscribe", "complaint", "spam")):
+                deliverability.record_complaint(email)
+            else:
+                deliverability.suppress(email, f"failed_send:{error[:60]}")
+        except Exception as exc:  # pragma: no cover
+            logger.warning("Could not record suppression: %s", exc)
+
+    def _record_quote(self, action: Dict) -> None:
+        """Track approved/paid quotes for MRR projection."""
+        tier = action["payload"].get("tier", "growth")
+        monthly = {"starter": 29, "growth": 99, "enterprise": 299}.get(tier, 99)
+        rev = self.state.setdefault("revenue", {"quotes_approved": 0, "projected_mrr": 0})
+        rev["quotes_approved"] = rev.get("quotes_approved", 0) + 1
+        rev["projected_mrr"] = rev.get("projected_mrr", 0) + monthly
+        self._save_state()
 
     def reject(self, action_id: str, note: str = "") -> Dict[str, Any]:
         action = self._find_action(action_id)
@@ -582,6 +624,8 @@ class GrowthAutomation:
         return await self.run_cycle(reason="manual")
 
     def status(self) -> Dict[str, Any]:
+        from core.services.deliverability import deliverability
+
         return {
             "enabled": self.enabled,
             "cycle_hours": self.cycle_hours,
@@ -589,6 +633,8 @@ class GrowthAutomation:
             "last_run": self.state.get("last_run"),
             "next_run": self.state.get("next_run"),
             "funnel": self.state.get("funnel", {}),
+            "revenue": self.state.get("revenue", {"quotes_approved": 0, "projected_mrr": 0}),
+            "deliverability": deliverability.score(),
             "learned_keyword_boosts": self.state.get("learned_keyword_boosts", {}),
             "artifacts": {
                 "seo_pages": len(self.state.get("artifacts", {}).get("seo_pages", [])),
