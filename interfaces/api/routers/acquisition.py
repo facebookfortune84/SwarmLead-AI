@@ -56,18 +56,28 @@ async def business_skeleton(payload: SkeletonRequest):
     lead_id = None
     if payload.email and "@" in payload.email:
         try:
-            from core.persistence.linear_engine import get_swarm_db
+            from core.persistence.session import SessionLocal
 
-            db = get_swarm_db()
-            lead_id = db.create_lead(
-                payload.email,
-                name=payload.name or "Business Skeleton Lead",
-                metadata={
-                    "source": "business_skeleton_generator",
-                    "idea": payload.idea,
-                    "intent_score": 70,
-                },
-            )
+            db = SessionLocal()
+            try:
+                from core.models import Lead
+
+                lead = Lead(
+                    email=payload.email,
+                    name=payload.name or "Business Skeleton Lead",
+                    intent_score=70,
+                    metadata_json=json.dumps(
+                        {
+                            "source": "business_skeleton_generator",
+                            "idea": payload.idea,
+                        }
+                    ),
+                )
+                db.add(lead)
+                db.commit()
+                lead_id = lead.id
+            finally:
+                db.close()
         except Exception as exc:  # pragma: no cover
             logger.warning("Could not capture lead: %s", exc)
 

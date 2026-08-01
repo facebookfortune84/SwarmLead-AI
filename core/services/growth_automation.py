@@ -48,6 +48,21 @@ OUTREACH_ANGLES = [
     "15 agent workforce runs outreach, SEO and follow-ups for you",
 ]
 
+SEO_INDUSTRIES = [
+    {"name": "E-Commerce", "slug": "e-commerce", "industry": "E-Commerce"},
+    {"name": "Real Estate", "slug": "real-estate", "industry": "Real Estate"},
+    {"name": "Home Services", "slug": "home-services", "industry": "Home Services"},
+    {"name": "Dental Clinics", "slug": "dental-clinics", "industry": "Dental Clinics"},
+    {"name": "Fitness Coaching", "slug": "fitness-coaching", "industry": "Fitness Coaching"},
+    {"name": "Legal Practices", "slug": "legal-practices", "industry": "Legal Practices"},
+    {"name": "E-Commerce Fulfillment", "slug": "e-commerce-fulfillment", "industry": "E-Commerce Fulfillment"},
+    {"name": "Boutique Agencies", "slug": "boutique-agencies", "industry": "Boutique Agencies"},
+    {"name": "Property Management", "slug": "property-management", "industry": "Property Management"},
+    {"name": "Auto Dealerships", "slug": "auto-dealerships", "industry": "Auto Dealerships"},
+    {"name": "MedSpas", "slug": "med-spas", "industry": "MedSpas"},
+    {"name": "Contractors", "slug": "contractors", "industry": "Contractors"},
+]
+
 GTM_TASKS = [
     {
         "phase": "Content Marketing",
@@ -176,20 +191,29 @@ class GrowthAutomation:
         from core.agents.seo.seo_agent import SEOAgent
 
         agent = SEOAgent("seo_agent", None)
+        batch = 3
+        start = (self.state.get("cycle_count", 0) * batch) % len(SEO_INDUSTRIES)
         sample = [
-            {"name": "E-Commerce", "slug": "e-commerce", "industry": "E-Commerce"},
-            {"name": "Real Estate", "slug": "real-estate", "industry": "Real Estate"},
-            {"name": "Home Services", "slug": "home-services", "industry": "Home Services"},
+            SEO_INDUSTRIES[(start + i) % len(SEO_INDUSTRIES)] for i in range(batch)
         ]
         pages = await agent.generate_programmatic_pages("industries", sample)
+
+        # Merge into the cumulative artifact set (dedupe by URL, keep latest).
+        merged: Dict[str, dict] = {}
+        for existing in self.state.get("artifacts", {}).get("seo_pages", []):
+            merged[existing["url"]] = existing
         for page in pages:
             page["status"] = "draft"
-        self.state["artifacts"]["seo_pages"] = pages
+            page["generated_at"] = self.state.get("last_run") or datetime.now(timezone.utc).isoformat()
+            merged[page["url"]] = page
+        self.state["artifacts"]["seo_pages"] = list(merged.values())
+
         tech = await agent.generate_technical_seo("landing", {})
         return {
             "status": "ok",
             "pages_generated": len(pages),
-            "sample_slugs": [p["url"] for p in pages[:3]],
+            "cumulative_pages": len(merged),
+            "sample_slugs": [p["url"] for p in pages],
             "technical": tech["meta_tags"]["title"],
         }
 
@@ -198,13 +222,15 @@ class GrowthAutomation:
         from core.agents.content.content_agent import ContentAgent
 
         agent = ContentAgent("content_agent", None)
+        cycle = self.state.get("cycle_count", 0)
         drafts = []
-        for task in GTM_TASKS:
+        for idx, task in enumerate(GTM_TASKS):
             if not self.use_llm:
                 drafts.append(
                     {
                         "task": task["task"],
                         "phase": task["phase"],
+                        "variant": (cycle * len(GTM_TASKS)) + idx,
                         "content": self._content_scaffold(task),
                         "seo_score": None,
                     }
@@ -225,6 +251,7 @@ class GrowthAutomation:
                     {
                         "task": task["task"],
                         "phase": task["phase"],
+                        "variant": (cycle * len(GTM_TASKS)) + idx,
                         "content": result["content"],
                         "seo_score": result.get("seo_score"),
                     }
@@ -234,12 +261,23 @@ class GrowthAutomation:
                     {
                         "task": task["task"],
                         "phase": task["phase"],
+                        "variant": (cycle * len(GTM_TASKS)) + idx,
                         "content": f"[Draft scaffold for {task['task']} — LLM timed out]",
                         "seo_score": None,
                     }
                 )
-        self.state["artifacts"]["content_drafts"] = drafts
-        return {"status": "ok", "drafts_ready": len(drafts)}
+        # Merge into cumulative set keyed by task (latest variant wins).
+        merged: Dict[str, dict] = {}
+        for existing in self.state.get("artifacts", {}).get("content_drafts", []):
+            merged[existing["task"]] = existing
+        for draft in drafts:
+            merged[draft["task"]] = draft
+        self.state["artifacts"]["content_drafts"] = list(merged.values())
+        return {
+            "status": "ok",
+            "drafts_ready": len(drafts),
+            "cumulative_drafts": len(merged),
+        }
 
     @staticmethod
     def _content_scaffold(task: Dict[str, Any]) -> str:
