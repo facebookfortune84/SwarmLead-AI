@@ -38,6 +38,8 @@ class ProductKnowledgeBase:
 
     def __init__(self, docs_root: Optional[str] = None, repo_root: Optional[str] = None):
         self._chunks: List[Dict] = []
+        self._keyword_boosts: Dict[str, float] = {}
+        self._retrieval_stats: Dict[str, Dict] = {}
         root = Path(repo_root or ".").resolve()
         docs_path = Path(docs_root or (root / "docs"))
         self._load(docs_path)
@@ -119,11 +121,14 @@ class ProductKnowledgeBase:
             return []
 
         q_terms = self._terms(query)
+        q_set = set(q_terms)
 
         scored = []
         for chunk in self._chunks:
             text = chunk["text"].lower()
             score = sum(2 if t in chunk["title"].lower() else 1 for t in q_terms if t in text)
+            boost = sum(self._keyword_boosts.get(t, 0.0) for t in q_set if t in text)
+            score += boost
             if score > 0:
                 scored.append((score, chunk))
 
@@ -136,7 +141,50 @@ class ProductKnowledgeBase:
             if budget > max_chars:
                 break
             chosen.append(chunk)
+
+        self._record_retrieval(query, q_set, chosen)
         return chosen
+
+    def record_retrieval(self, query: str) -> None:
+        """Public hook: log a retrieval for voice-learning analytics."""
+        self._record_retrieval(query, set(self._terms(query)), [])
+
+    def _record_retrieval(self, query: str, terms: set, chosen: List[Dict]) -> None:
+        intent = self._detect_intent(terms)
+        stat = self._retrieval_stats.setdefault(intent, {"count": 0, "terms": set()})
+        stat["count"] += 1
+        stat["terms"].update(terms)
+        for chunk in chosen:
+            title = chunk["title"]
+            self._retrieval_stats.setdefault(f"chunk:{title}", {"count": 0})["count"] += 1
+
+    @staticmethod
+    def _detect_intent(terms: set) -> str:
+        money = {"price", "pricing", "cost", "plan", "subscribe", "subscription", "buy", "trial", "billing", "pay", "upgrade"}
+        if terms & money:
+            return "monetization"
+        if terms & {"setup", "provision", "build", "launch", "create", "start", "deploy"}:
+            return "provisioning"
+        if terms & {"voice", "speak", "talk", "agent", "conversation"}:
+            return "voice"
+        if terms & {"ticket", "support", "issue", "bug"}:
+            return "support"
+        return "general"
+
+    def learn(self, keyword_boosts: Dict[str, float]) -> None:
+        """Apply learned keyword boosts from the growth loop (voice self-tuning)."""
+        for kw, weight in keyword_boosts.items():
+            self._keyword_boosts[kw] = max(0.0, self._keyword_boosts.get(kw, 0.0) + weight)
+
+    def analytics_snapshot(self) -> Dict:
+        """Intents observed and per-chunk retrieval counts for the growth loop."""
+        out = {}
+        for key, val in self._retrieval_stats.items():
+            if key.startswith("chunk:"):
+                out[key] = val["count"]
+            else:
+                out[key] = {"count": val["count"], "terms": sorted(val["terms"])[:20]}
+        return out
 
     @staticmethod
     def _terms(query: str) -> List[str]:

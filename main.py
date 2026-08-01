@@ -11,6 +11,7 @@ from interfaces.api.routers.agents import router as agents_router
 from interfaces.api.routers.auth import router as auth_router
 from interfaces.api.routers.company import router as company_router
 from interfaces.api.routers.crm import router as crm_router
+from interfaces.api.routers.growth import router as growth_router
 from interfaces.api.routers.leads import router as leads_router
 from interfaces.api.routers.notifications import router as notifications_router
 from interfaces.api.routers.outreach import router as outreach_router
@@ -30,6 +31,10 @@ async def lifespan(app: FastAPI):
     init_db()
 
     print("Database schema initialized.")
+
+    from core.services.growth_automation import growth_automation
+
+    await growth_automation.start_loop()
 
     yield
 
@@ -107,6 +112,7 @@ app.include_router(auth_router)
 app.include_router(agents_router)
 app.include_router(company_router)
 app.include_router(crm_router)
+app.include_router(growth_router)
 app.include_router(leads_router)
 app.include_router(notifications_router)
 app.include_router(outreach_router)
