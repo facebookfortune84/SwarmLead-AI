@@ -44,7 +44,12 @@ second path (drafts → your approval → delivery).
 3. **Leads go cold** → growth loop drafts a quote within 6h of a high-intent lead;
    one approve-click and Stripe link goes out.
 4. **No real leads in DB** → the Business Skeleton Generator captures emails from
-   every tool visitor; those are high-intent leads (intent_score 70) automatically.
+   every tool visitor (intent_score 70), AND the growth loop's **Discovery** phase
+   now finds real businesses that publish contact emails on their own sites —
+   validated by MX records, filtered against reserved/test domains and role
+   inboxes, and deduped so the pipeline never touches a dead mailbox twice.
+   (This replaces the old "public records scraping" that produced non-response
+   mailboxes and generic addresses.)
 
 ## To actually realize this
 

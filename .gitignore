@@ -68,6 +68,14 @@ assets/raw/*.bak
 *.db
 *.csv
 data/long_term_memory.json
+data/suppression_list.json
+data/growth_state.json
+data/lead_discovery_findings.json
+
+# Large media (unreferenced demo assets)
+frontend/public/*.mp4
+frontend/public/*.mov
+frontend/public/*.webm
 
 # ------------------------------
 # Cache

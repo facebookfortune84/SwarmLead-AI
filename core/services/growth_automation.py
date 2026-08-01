@@ -162,6 +162,7 @@ class GrowthAutomation:
         cycle = {"started_at": started, "reason": reason, "phases": {}}
 
         phases = {
+            "discovery": self._phase_discovery,
             "seo": self._phase_seo,
             "content": self._phase_content,
             "outreach": self._phase_outreach,
@@ -295,6 +296,63 @@ class GrowthAutomation:
             "Try the live voice agent on the landing page — it answers in seconds."
         )
 
+    # --------------------------------------------------------------- discovery
+    async def _phase_discovery(self) -> Dict[str, Any]:
+        """Find real businesses that publish a contact email on their site.
+
+        Discovery is internal prep (DB rows only) — it never sends email.
+        Drafted outreach still lands behind the founder's approve gate.
+        Gated by GROWTH_DISCOVERY=1 so tests and CPU-only setups stay fast.
+        """
+        if os.getenv("GROWTH_DISCOVERY", "1") != "1":
+            return {"status": "ok", "discovered": 0, "written": 0, "verticals": []}
+        from core.services.lead_discovery import lead_discovery
+
+        found = await lead_discovery.discover(max_targets=6)
+        written = 0
+        for lead in found:
+            try:
+                from core.models import Lead
+                from core.persistence.session import SessionLocal
+
+                db = SessionLocal()
+                try:
+                    existing = (
+                        db.query(Lead).filter(Lead.email == lead.email).first()
+                    )
+                    if existing:
+                        continue
+                    db.add(
+                        Lead(
+                            email=lead.email,
+                            name=lead.name or lead.company,
+                            company=lead.company,
+                            status="NEW",
+                            website=lead.website,
+                            intent_score=lead.intent_score,
+                            metadata_json=json.dumps(
+                                {
+                                    "source": lead.source,
+                                    "vertical": lead.vertical,
+                                    "confidence": lead.confidence,
+                                    "details": lead.details,
+                                }
+                            ),
+                        )
+                    )
+                    db.commit()
+                    written += 1
+                finally:
+                    db.close()
+            except Exception as exc:  # pragma: no cover
+                logger.info("Could not persist discovered lead: %s", exc)
+        return {
+            "status": "ok",
+            "discovered": len(found),
+            "written": written,
+            "verticals": sorted({l.vertical for l in found}),
+        }
+
     # --------------------------------------------------------------- outreach
     async def _phase_outreach(self) -> Dict[str, Any]:
         leads = self._qualified_leads(limit=OUTREACH_LIMIT_PER_CYCLE)
@@ -330,6 +388,8 @@ class GrowthAutomation:
         return deliverability.is_suppressed(email)
 
     def _qualified_leads(self, limit: int) -> List[Dict]:
+        from core.services.lead_discovery import RESERVED_DOMAINS, DISPOSABLE_DOMAINS
+
         try:
             from core.models import Lead
             from core.persistence.session import SessionLocal
@@ -341,28 +401,41 @@ class GrowthAutomation:
                     .filter(Lead.email_invalid.isnot(True))
                     .filter(Lead.status == "NEW")
                     .order_by(Lead.intent_score.desc(), Lead.created_at.desc())
-                    .limit(limit)
+                    .limit(limit * 3)
                     .all()
                 )
-                return [
-                    {
-                        "email": r.email,
-                        "name": r.name,
-                        "company": r.company,
-                        "intent_score": r.intent_score or 0,
-                    }
-                    for r in rows
-                    if r.email
-                ]
+                out = []
+                for r in rows:
+                    if not r.email or "@" not in r.email:
+                        continue
+                    domain = r.email.split("@")[-1].lower()
+                    # Accuracy gate: never draft to reserved / disposable /
+                    # free-email test artifacts. Business-domain only.
+                    if domain in RESERVED_DOMAINS or domain in DISPOSABLE_DOMAINS:
+                        continue
+                    if self._suppressed(r.email):
+                        continue
+                    out.append(
+                        {
+                            "email": r.email,
+                            "name": r.name,
+                            "company": r.company,
+                            "intent_score": r.intent_score or 0,
+                            "website": r.website,
+                        }
+                    )
+                    if len(out) >= limit:
+                        break
+                return out
             finally:
                 db.close()
         except Exception as exc:  # DB unavailable in some test contexts
             logger.info("Lead query unavailable (%s); using fixture list", exc)
             return [
                 {
-                    "email": "lead@example.com",
+                    "email": "owner@smithplumbing.com",
                     "name": "Example Lead",
-                    "company": "Example Co",
+                    "company": "Smith Plumbing",
                     "intent_score": 80,
                 }
             ]
@@ -612,6 +685,34 @@ class GrowthAutomation:
         self._save_state()
         return {"status": "rejected"}
 
+    def purge(self, action_id: str) -> Dict[str, Any]:
+        """Remove a queued action AND suppress its email so it never re-drafts."""
+        action = self._find_action(action_id)
+        if not action:
+            return {"status": "not_found"}
+        email = action.get("payload", {}).get("to_email", "")
+        if email:
+            try:
+                from core.services.deliverability import deliverability
+
+                deliverability.suppress(email, "purged_test_lead")
+            except Exception as exc:  # pragma: no cover
+                logger.warning("Could not suppress purged lead: %s", exc)
+        self.state["approval_queue"] = [
+            a for a in self.state.get("approval_queue", []) if a["id"] != action_id
+        ]
+        self._save_state()
+        return {"status": "purged", "email": email}
+
+    def purge_all_pending(self) -> Dict[str, Any]:
+        """Purge every pending action in the queue (bulk cleanup)."""
+        removed = []
+        for action in list(self.state.get("approval_queue", [])):
+            if action["status"] == "pending":
+                self.purge(action["id"])
+                removed.append(action["id"])
+        return {"status": "purged", "removed": len(removed)}
+
     def _find_action(self, action_id: str) -> Optional[Dict]:
         for a in self.state.get("approval_queue", []):
             if a["id"] == action_id:
@@ -674,6 +775,10 @@ class GrowthAutomation:
             "revenue": self.state.get("revenue", {"quotes_approved": 0, "projected_mrr": 0}),
             "deliverability": deliverability.score(),
             "learned_keyword_boosts": self.state.get("learned_keyword_boosts", {}),
+            "discovery": {
+                "findings": self._discovery_count(),
+                "recent": self._recent_discoveries(5),
+            },
             "artifacts": {
                 "seo_pages": len(self.state.get("artifacts", {}).get("seo_pages", [])),
                 "content_drafts": len(self.state.get("artifacts", {}).get("content_drafts", [])),
@@ -690,6 +795,22 @@ class GrowthAutomation:
         self.enabled = enabled
         self.state["enabled"] = enabled
         self._save_state()
+
+    def _discovery_count(self) -> int:
+        try:
+            from core.services.lead_discovery import lead_discovery
+
+            return len(lead_discovery.findings())
+        except Exception:
+            return 0
+
+    def _recent_discoveries(self, n: int) -> List[Dict]:
+        try:
+            from core.services.lead_discovery import lead_discovery
+
+            return lead_discovery.findings()[:n]
+        except Exception:
+            return []
 
 
 growth_automation = GrowthAutomation()

@@ -26,6 +26,10 @@ export type GrowthStatus = {
   next_run: number | null;
   funnel: Record<string, unknown>;
   learned_keyword_boosts: Record<string, number>;
+  discovery?: {
+    findings: number;
+    recent: { email: string; company?: string; vertical?: string; intent_score?: number }[];
+  };
   artifacts: { seo_pages: number; content_drafts: number };
   approval_queue: {
     total: number;
@@ -108,6 +112,34 @@ export function useToggleGrowth() {
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["growth-status"] });
+    },
+  });
+}
+
+export function usePurgeAction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await api.post(`/api/growth/purge/${id}`);
+      return data;
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["growth-status"] });
+      qc.invalidateQueries({ queryKey: ["growth-queue"] });
+    },
+  });
+}
+
+export function usePurgeAllPending() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await api.post("/api/growth/purge-all");
+      return data;
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["growth-status"] });
+      qc.invalidateQueries({ queryKey: ["growth-queue"] });
     },
   });
 }

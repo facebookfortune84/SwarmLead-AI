@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { VoiceWaveform } from "@/components/voice";
 import { Mic, X, Volume2 } from "lucide-react";
@@ -519,7 +520,7 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
         <div className="p-4 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative w-12 h-12 shrink-0">
-              <img
+              <Image
                 src="/voice_agent_image_1.png"
                 alt="Genesis AI Voice Agent"
                 width={48}

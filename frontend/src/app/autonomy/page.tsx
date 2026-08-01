@@ -8,6 +8,8 @@ import {
   useApproveAction,
   useGrowthQueue,
   useGrowthStatus,
+  usePurgeAction,
+  usePurgeAllPending,
   useRejectAction,
   useRunNow,
   useToggleGrowth,
@@ -15,6 +17,7 @@ import {
 import {
   Bot,
   CheckCircle2,
+  Compass,
   Cpu,
   DollarSign,
   Loader2,
@@ -22,6 +25,7 @@ import {
   Play,
   Radio,
   Sparkles,
+  Trash2,
   XCircle,
 } from "lucide-react";
 
@@ -41,6 +45,8 @@ export default function AutonomyPage() {
   const { data: queue = [] } = useGrowthQueue();
   const approve = useApproveAction();
   const reject = useRejectAction();
+  const purge = usePurgeAction();
+  const purgeAll = usePurgeAllPending();
   const runNow = useRunNow();
   const toggle = useToggleGrowth();
 
@@ -125,6 +131,68 @@ export default function AutonomyPage() {
           </Card>
         </div>
 
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Compass className="h-5 w-5 text-cyan-400" />
+              <h2 className="text-lg font-semibold text-white">
+                Lead Discovery{" "}
+                <span className="text-white/40 text-sm">
+                  — real businesses, published contact emails, MX-verified
+                </span>
+              </h2>
+            </div>
+            {!status.discovery || status.discovery.findings === 0 ? (
+              <p className="text-sm text-white/40 py-4 text-center">
+                No verified leads yet. Run a cycle to search for businesses that
+                publish a contact email on their own site.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm text-white/60">
+                  {status.discovery.findings} verified contacts found across{" "}
+                  {new Set(status.discovery.recent.map((r) => r.vertical).filter(Boolean)).size}{" "}
+                  verticals.
+                </p>
+                {status.discovery.recent.slice(0, 5).map((r) => (
+                  <div
+                    key={r.email}
+                    className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm"
+                  >
+                    <span className="text-white">{r.email}</span>
+                    <span className="text-white/40 ml-2">· {r.company ?? r.vertical}</span>
+                    <Badge className="ml-2 bg-cyan-500/20 text-cyan-300">
+                      intent {r.intent_score}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Trash2 className="h-5 w-5 text-amber-400" />
+              <h2 className="text-lg font-semibold text-white">
+                Test Data Cleanup{" "}
+                <span className="text-white/40 text-sm">— never send to junk</span>
+              </h2>
+            </div>
+            <p className="text-sm text-white/50 mb-4">
+              Purging removes the item and suppresses the address so the loop never
+              re-drafts it. Test addresses (example.com, test.co, fake Gmails) would
+              hard-bounce and damage deliverability — keep them out.
+            </p>
+            <Button
+              variant="outline"
+              className="text-amber-300 border-amber-500/30"
+              onClick={() => purgeAll.mutate()}
+              disabled={purgeAll.isPending || pending.pending === 0}
+            >
+              <Trash2 className="h-4 w-4 mr-2" /> Purge All Pending ({pending.pending})
+            </Button>
+          </Card>
+        </div>
+
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-4">
             <Bot className="h-5 w-5 text-emerald-400" />
@@ -178,6 +246,16 @@ export default function AutonomyPage() {
                         disabled={reject.isPending}
                       >
                         <XCircle className="h-4 w-4 mr-1" /> Reject
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-amber-300 border-amber-500/30"
+                        onClick={() => purge.mutate(item.id)}
+                        disabled={purge.isPending}
+                        title="Remove and suppress — never re-draft"
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" /> Purge
                       </Button>
                     </div>
                   </div>

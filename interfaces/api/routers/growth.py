@@ -50,6 +50,29 @@ async def reject_action(action_id: str, _=Depends(get_current_active_user)):
     return result
 
 
+@router.post("/purge/{action_id}")
+async def purge_action(action_id: str, _=Depends(get_current_active_user)):
+    result = growth_automation.purge(action_id)
+    if result.get("status") == "not_found":
+        raise HTTPException(status_code=404, detail="Action not found")
+    return result
+
+
+@router.post("/purge-all")
+async def purge_all(_=Depends(get_current_active_user)):
+    return growth_automation.purge_all_pending()
+
+
+@router.post("/discover")
+async def discover(_=Depends(get_current_active_user)):
+    from core.services.lead_discovery import lead_discovery
+
+    return {
+        "findings": len(lead_discovery.findings()),
+        "recent": lead_discovery.findings()[:10],
+    }
+
+
 @router.post("/run-now")
 async def run_now(_=Depends(get_current_active_user)):
     return await growth_automation.run_now()
