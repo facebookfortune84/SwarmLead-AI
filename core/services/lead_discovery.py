@@ -40,6 +40,7 @@ logger = logging.getLogger("LeadDiscovery")
 # RFC 2606 reserved + common junk domains that would hard-bounce.
 RESERVED_DOMAINS = {
     "example.com", "example.net", "example.org", "example.edu",
+    "ejemplo.com", "ejemplo.net", "ejemplo.org",
     "test.com", "test.net", "test.org", "test.co", "test.io",
     "invalid", "localhost", "domain.com", "domain.org", "email.com",
     "yourdomain.com", "somedomain.com", "yourcompany.com", "acme.com",
@@ -86,7 +87,16 @@ BLOCKED_MAIL_DOMAINS = {
     "aetna.com", "humana.com", "uhc.com", "cigna.com", "metlife.com",
     "guardianlife.com", "principal.com", "aaa.com", "statefarm.com",
     "geico.com", "progressive.com", "allstate.com", "email.de", "gmx.de",
-    "web.de", "freenet.de", "t-online.de",
+    "web.de", "freenet.de", "t-online.de", "realmadrid.com",
+    "realmadrid.es", "eonline.com", "eentertainment.com", "espn.com",
+    "cnn.com", "bbc.co.uk", "nytimes.com", "washingtonpost.com",
+    "wsj.com", "forbes.com", "bloomberg.com", "reuters.com", "ap.org",
+    "nike.com", "adidas.com", "apple.com", "microsoft.com", "google.com",
+    "amazon.com", "meta.com", "facebook.com", "twitter.com", "x.com",
+    "instagram.com", "tiktok.com", "youtube.com", "netflix.com",
+    "disney.com", "nba.com", "nfl.com", "mlb.com", "fifa.com", "uefa.com",
+    "imdb.com", "wikipedia.org", "yahoo.com", "aol.com", "outlook.com",
+    "hotmail.com", "gmail.com", "icloud.com", "protonmail.com",
 }
 
 
@@ -409,13 +419,16 @@ class LeadDiscoveryEngine:
                     company = re.sub(r"\s*[|–—-]\s*.*$", "", company).strip()
                     if _looks_generic_company(company):
                         continue
+                    if _looks_big_brand(domain, company, maildomain):
+                        logger.info("Skip %s (big brand)", email)
+                        continue
                     score = _score_lead(maildomain, mx_host)
                     lead = DiscoveredLead(
                         email=email,
                         name=name,
                         company=company,
                         website=meta.get("final_url") or url,
-                        vertical=query.split(" ")[0].title(),
+                        vertical=_clean_vertical(query),
                         source="search_website",
                         intent_score=score,
                         confidence="high" if maildomain not in FREE_DOMAINS else "medium",
@@ -462,6 +475,28 @@ def _looks_generic_company(company: str) -> bool:
     if not low or len(low) < 3:
         return True
     return any(m in low for m in GENERIC_COMPANY_MARKERS)
+
+
+def _clean_vertical(query: str) -> str:
+    """Strip quotes / search noise from the vertical label."""
+    first = query.strip().lstrip('"').split()[0] if query.strip() else ""
+    return first.title() if first else "General"
+
+
+def _looks_big_brand(site_domain: str, company: str, maildomain: str) -> bool:
+    """Heuristic: reject Fortune-scale / media / sports / national chains."""
+    low = f"{site_domain} {company}".lower()
+    brand_markers = (
+        "real madrid", "corp.realmadrid", "eonline", "entertainment news",
+        "espn", "cnn ", "bbc ", "nytimes", "washington post", "wall street",
+        "forbes", "bloomberg", "reuters", "nike", "adidas", "apple ",
+        "microsoft", "amazon ", "google ", "facebook", "instagram",
+        "tiktok", "youtube", "netflix", "disney", "nba ", "nfl ", "mlb ",
+        "fifa", "uefa", "starbucks", "mcdonald", "walmart", "target ",
+        "costco", "home depot", "lowes", "kroger", "subway",
+        "university of", ".edu", "city of", "county of", "state of",
+    )
+    return any(m in low for m in brand_markers)
 
 
 def _score_lead(maildomain: str, mx_host: Optional[str]) -> int:

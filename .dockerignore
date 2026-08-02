@@ -18,6 +18,11 @@ node_modules/
 .git/
 
 __pycache__/
+
+# Runtime state (never bake into image — recreated per environment)
+data/suppression_list.json
+data/growth_state.json
+data/lead_discovery_findings.json
 *.pyc
 *.pyo
 

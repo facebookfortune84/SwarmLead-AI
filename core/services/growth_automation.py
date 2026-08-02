@@ -696,6 +696,23 @@ class GrowthAutomation:
                 from core.services.deliverability import deliverability
 
                 deliverability.suppress(email, "purged_test_lead")
+                # Durable: mark the Lead row invalid so purge survives container
+                # recreates (the file-based suppression list does not).
+                try:
+                    from core.models import Lead
+                    from core.persistence.session import SessionLocal
+
+                    db = SessionLocal()
+                    try:
+                        rows = db.query(Lead).filter(Lead.email == email).all()
+                        for row in rows:
+                            row.email_invalid = True
+                            row.status = "PURGED"
+                        db.commit()
+                    finally:
+                        db.close()
+                except Exception as exc:  # pragma: no cover
+                    logger.warning("Could not mark lead purged: %s", exc)
             except Exception as exc:  # pragma: no cover
                 logger.warning("Could not suppress purged lead: %s", exc)
         self.state["approval_queue"] = [

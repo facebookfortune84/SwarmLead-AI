@@ -47,6 +47,25 @@ def test_score_prefers_business_domain():
     )
 
 
+def test_blocked_maildomains():
+    assert mod._blocked_maildomain("realmadrid.com") is True
+    assert mod._blocked_maildomain("eonline.com") is True
+    assert mod._blocked_maildomain("cnn.com") is True
+    assert mod._blocked_maildomain("smithplumbing.com") is False
+
+
+def test_big_brand_detection():
+    assert mod._looks_big_brand("realmadrid.com", "Real Madrid CF", "realmadrid.com") is True
+    assert mod._looks_big_brand("eonline.com", "E! Online", "eentertainment.com") is True
+    assert mod._looks_big_brand("smithplumbing.com", "Smith Plumbing LLC", "smithplumbing.com") is False
+    assert mod._looks_big_brand("dcummingslaw.com", "DCummings Law LLC", "dcummingslaw.com") is False
+
+
+def test_clean_vertical_strips_quotes():
+    assert mod._clean_vertical('"dental clinic" site owner contact') == "Dental"
+    assert mod._clean_vertical("law firm official website") == "Law"
+
+
 @pytest.mark.asyncio
 async def test_discover_end_to_end_with_stubbed_search(tmp_path, monkeypatch):
     findings = tmp_path / "findings.json"
