@@ -1,0 +1,32 @@
+# Scale the stateless API horizontally on CPU. The growth loop is a single
+# in-process scheduler — it is safe to run multiple replicas because the
+# approval queue and lead writes are Postgres-backed, and deliverability
+# suppression persists to disk/DB. Keep replicas modest so in-memory voice
+# sessions stay sticky to any pod.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: genesis-api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: genesis-api
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300

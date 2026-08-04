@@ -89,7 +89,11 @@ def test_decode_nonexistent_token():
     assert result is None
 
 
-def test_token_revocation_fails_gracefully_without_redis():
+def test_token_revocation_fails_gracefully_without_redis(monkeypatch):
+    import interfaces.api.auth.jwt_handler as jwt_module
+
+    monkeypatch.setattr(jwt_module, "redis_client", None)
+
     token = create_access_token(data={"sub": "revoke_test"})
 
     assert is_token_revoked(token) is False

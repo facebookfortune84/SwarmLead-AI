@@ -14,6 +14,7 @@ Graceful degradation:
 
 import asyncio
 import base64
+import json
 import logging
 import uuid
 from typing import Any, Dict, Optional
@@ -21,6 +22,7 @@ from typing import Any, Dict, Optional
 from core.integrations.elevenlabs.elevenlabs_client import ElevenLabsClient
 from core.models.local_llm.ollama_client import OllamaClient
 from core.services.product_knowledge import product_knowledge
+from core.services.voice_model import voice_model_registry
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +34,9 @@ Your job is to lead a live, voice-first conversation that guides the visitor ste
 2. DISCOVER: Ask about their business - what it is, who it serves, and their top goal.
 3. QUALIFY: Ask 1-2 light questions (budget range, timeline) - keep it casual, never interrogate.
 4. RECOMMEND: Based on their answers recommend the right plan:
-   - Starter ($49/mo): solo founders validating an idea.
-   - Growth ($149/mo): small teams ready to scale outreach.
-   - Enterprise ($499/mo): established companies needing unlimited tenants and voice runtime.
+   - Starter ($29/mo): solo founders validating an idea.
+   - Growth ($99/mo): small teams ready to scale outreach.
+   - Enterprise ($299/mo): established companies needing unlimited tenants and voice runtime.
 5. GUIDE: Direct them to action - create a free account, complete onboarding, or make a payment.
 
 CONVERSATION RULES:
@@ -61,15 +63,16 @@ SCRIPTED_REPLY = (
 )
 
 GREETINGS = {
-    "proactive": "Hi there! Welcome to Genesis. I'm your launch assistant. We help people start "
-    "and grow real businesses using AI agents. What brings you here today - are you looking to "
-    "qualify more leads, or launch a business?",
-    "scroll": "I noticed you're exploring our features. Genesis can automate your entire customer "
-    "acquisition - from inbound leads to follow-up. What's the biggest thing you want to automate?",
-    "exit_intent": "Before you go - Genesis could be launching your business within the hour. "
-    "Would you like me to walk you through how it works?",
-    "voice": "Hey there! Great to meet you. I'm your voice launch guide. Tell me a little about "
-    "the business you want to build, and I'll point you in the right direction.",
+    "proactive": "Hi there! Welcome to Genesis Forge. I'm your launch assistant. We help "
+    "people start and grow real businesses using AI agents. What brings you here today - "
+    "are you looking to qualify more leads, or launch a business?",
+    "scroll": "I noticed you're exploring our features. Genesis Forge can automate your "
+    "entire customer acquisition - from inbound leads to follow-up. What's the biggest "
+    "thing you want to automate?",
+    "exit_intent": "Before you go - Genesis Forge could be launching your business within "
+    "the hour. Would you like me to walk you through how it works?",
+    "voice": "Hey there! Great to meet you. I'm your voice launch guide. Tell me a little "
+    "about the business you want to build, and I'll point you in the right direction.",
 }
 
 
@@ -116,6 +119,61 @@ class VoiceAgentService:
         return self._sessions.pop(session_id, None) is not None
 
     # ------------------------------------------------------------------
+    # Lead capture
+    # ------------------------------------------------------------------
+
+    def capture_lead(
+        self,
+        email: str,
+        name: Optional[str] = None,
+        company: Optional[str] = None,
+        source: str = "voice",
+        intent_score: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Persist a visitor captured through voice conversation as a lead.
+
+        Returns ``{"created": bool, "lead_id": str, "email": str}``. Leads are
+        deduped on email; repeat captures bump ``needs_review`` instead of
+        creating duplicates. Never raises on DB failure — the voice loop must
+        stay live even if persistence is down.
+        """
+        email = (email or "").strip().lower()
+        if not email or "@" not in email:
+            return {"created": False, "lead_id": None, "email": email}
+
+        try:
+            from core.models import Lead
+            from core.persistence.session import SessionLocal
+
+            db = SessionLocal()
+            try:
+                existing = db.query(Lead).filter(Lead.email == email).first()
+                if existing:
+                    existing.needs_review = True
+                    db.add(existing)
+                    db.commit()
+                    return {"created": False, "lead_id": existing.id, "email": email}
+
+                lead = Lead(
+                    email=email,
+                    name=name or None,
+                    company=company or None,
+                    status="NEW",
+                    intent_score=intent_score or 80,
+                    needs_review=True,
+                    metadata_json=json.dumps({"source": source, "origin": "voice_capture"}),
+                )
+                db.add(lead)
+                db.commit()
+                return {"created": True, "lead_id": lead.id, "email": email}
+            finally:
+                db.close()
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning("Voice lead capture failed: %s", exc)
+            return {"created": False, "lead_id": None, "email": email}
+
+
+    # ------------------------------------------------------------------
     # Conversation
     # ------------------------------------------------------------------
 
@@ -123,7 +181,7 @@ class VoiceAgentService:
         """Process user input and return a guided reply (text + audio)."""
         session = self._sessions.get(session_id)
         if session is None:
-            created = self.create_session("voice")
+            created = await self.create_session("voice")
             session = self._sessions[created["session_id"]]
             session_id = created["session_id"]
 
@@ -191,7 +249,11 @@ class VoiceAgentService:
 
         try:
             result = await asyncio.wait_for(
-                self._llm.generate(prompt=prompt, num_predict=120),
+                self._llm.generate(
+                    prompt=prompt,
+                    num_predict=120,
+                    model=voice_model_registry.resolve().model,
+                ),
                 timeout=self._llm_timeout_s,
             )
             reply = (result.get("response") or "").strip()
@@ -263,6 +325,14 @@ class VoiceAgentService:
         """Evict the oldest session when over the limit."""
         first_key = next(iter(self._sessions))
         self._sessions.pop(first_key, None)
+
+    # ------------------------------------------------------------------
+    # Model / ops status
+    # ------------------------------------------------------------------
+
+    def model_status(self) -> Dict[str, Any]:
+        """Report which model is powering the voice assistant."""
+        return voice_model_registry.status()
 
 
 voice_agent_service = VoiceAgentService()

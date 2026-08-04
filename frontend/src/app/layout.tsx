@@ -10,12 +10,12 @@ const siteUrl = process.env.SITE_URL || "https://realms2riches.com";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Genesis — Autonomous Business Launch Platform",
-    template: "%s | Genesis",
+    default: "Genesis Forge — Autonomous Business Launch Platform by Realms 2 Riches",
+    template: "%s | Genesis Forge",
   },
   description:
-    "Genesis is the first autonomous business launch platform powered by constitutional voice AI. Launch your business with your voice.",
-  applicationName: "Genesis",
+    "Genesis Forge by Realms 2 Riches is the first autonomous business launch platform powered by constitutional voice AI. Launch your business with your voice.",
+  applicationName: "Genesis Forge",
   keywords: [
     "AI business launch",
     "voice AI",
@@ -30,11 +30,11 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   openGraph: {
-    title: "Genesis — Autonomous Business Launch Platform",
+    title: "Genesis Forge — Autonomous Business Launch Platform",
     description:
-      "Launch your business with your voice. The first autonomous business platform powered by constitutional voice AI.",
+      "Launch your business with your voice. Genesis Forge by Realms 2 Riches — the first autonomous business platform powered by constitutional voice AI.",
     url: siteUrl,
-    siteName: "Genesis",
+    siteName: "Genesis Forge",
     type: "website",
     locale: "en_US",
     images: [
@@ -48,9 +48,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Genesis — Autonomous Business Launch Platform",
+    title: "Genesis Forge — Autonomous Business Launch Platform",
     description:
-      "Launch your business with your voice. The first autonomous business platform powered by constitutional voice AI.",
+      "Launch your business with your voice. Genesis Forge by Realms 2 Riches — the first autonomous business platform powered by constitutional voice AI.",
     images: [`${siteUrl}/genesis_forge_hero_image_1.png`],
   },
   robots: {
@@ -58,8 +58,8 @@ export const metadata: Metadata = {
     follow: true,
   },
   icons: {
-    icon: "/genesis_forge_logo_1.png",
-    apple: "/genesis_forge_logo_1.png",
+    icon: "/voice_agent_image_1.png",
+    apple: "/voice_agent_image_1.png",
   },
   manifest: "/manifest.webmanifest",
   other: {

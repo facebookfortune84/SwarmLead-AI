@@ -1,0 +1,28 @@
+# Ingress for the API + docs. Point domains here after DNS is set.
+# TLS via cert-manager annotation (edit cluster-issuer name as needed).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: genesis-api
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/limit-rps: "50"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.realms2riches.com
+      secretName: genesis-api-tls
+  rules:
+    - host: api.realms2riches.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: genesis-api
+                port:
+                  name: http

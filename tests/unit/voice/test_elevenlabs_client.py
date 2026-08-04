@@ -49,14 +49,16 @@ def mock_response():
 
 
 @pytest.mark.asyncio
-async def test_init_without_api_key_warns():
+async def test_init_without_api_key_warns(monkeypatch):
+    monkeypatch.delenv("ELEVENLABS_API_KEY", raising=False)
     with patch("core.integrations.elevenlabs.elevenlabs_client.logger") as mock_logger:
         ElevenLabsClient(api_key=None)
         mock_logger.warning.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_tts_stream_no_api_key():
+async def test_tts_stream_no_api_key(monkeypatch):
+    monkeypatch.delenv("ELEVENLABS_API_KEY", raising=False)
     c = ElevenLabsClient(api_key=None)
     with pytest.raises(RuntimeError, match="ELEVENLABS_API_KEY not configured"):
         async for _ in c.text_to_speech_stream("hello"):
@@ -64,14 +66,16 @@ async def test_tts_stream_no_api_key():
 
 
 @pytest.mark.asyncio
-async def test_tts_bytes_no_api_key():
+async def test_tts_bytes_no_api_key(monkeypatch):
+    monkeypatch.delenv("ELEVENLABS_API_KEY", raising=False)
     c = ElevenLabsClient(api_key=None)
     with pytest.raises(RuntimeError, match="ELEVENLABS_API_KEY not configured"):
         await c.text_to_speech_bytes("hello")
 
 
 @pytest.mark.asyncio
-async def test_stt_no_api_key():
+async def test_stt_no_api_key(monkeypatch):
+    monkeypatch.delenv("ELEVENLABS_API_KEY", raising=False)
     c = ElevenLabsClient(api_key=None)
     with pytest.raises(RuntimeError, match="ELEVENLABS_API_KEY not configured"):
         await c.speech_to_text(b"audio_data")
@@ -222,7 +226,8 @@ async def test_stt_passes_language_hint(client, mock_response):
 
 
 @pytest.mark.asyncio
-async def test_create_conversation_no_api_key():
+async def test_create_conversation_no_api_key(monkeypatch):
+    monkeypatch.delenv("ELEVENLABS_API_KEY", raising=False)
     c = ElevenLabsClient(api_key=None)
     with pytest.raises(RuntimeError, match="ELEVENLABS_API_KEY not configured"):
         await c.create_conversation({})

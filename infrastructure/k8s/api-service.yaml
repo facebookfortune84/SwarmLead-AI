@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: genesis-api
+  labels:
+    app: genesis-api
+spec:
+  type: ClusterIP
+  selector:
+    app: genesis-api
+  ports:
+    - port: 8000
+      targetPort: http
+      name: http
+---
+# Optional headless service for horizontal discovery / worker addressing.
+apiVersion: v1
+kind: Service
+metadata:
+  name: genesis-api-headless
+spec:
+  clusterIP: None
+  selector:
+    app: genesis-api
+  ports:
+    - port: 8000
+      targetPort: http

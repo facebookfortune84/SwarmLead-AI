@@ -22,6 +22,12 @@ async def records(domain: str):
     return deliverability.recommended_records(domain)
 
 
+@router.get("/alias")
+async def alias(domain: str, local: str = "hello"):
+    """Suggested branded sending alias + DNS records for cold outreach."""
+    return deliverability.recommended_alias(domain, local)
+
+
 @router.get("/dns")
 async def dns(domain: str):
     """Live SPF/DMARC TXT lookup for a domain."""

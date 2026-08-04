@@ -9,7 +9,7 @@ from typing import Optional
 
 from fastapi import HTTPException, Request, status
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response
+from starlette.responses import JSONResponse, Response
 
 from core.auth import decode_token
 from core.auth.agent_identity import AgentIdentity, AgentIdentityRegistry
@@ -54,9 +54,11 @@ class TenantContextMiddleware(BaseHTTPMiddleware):
         # Extract and validate Authorization header
         auth_header = request.headers.get("Authorization")
         if not auth_header or not auth_header.startswith("Bearer "):
-            raise HTTPException(
+            # Return directly: raising HTTPException here would bypass
+            # FastAPI's exception handlers and surface as a 500 in production.
+            return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Missing or invalid Authorization header",
+                content={"detail": "Missing or invalid Authorization header"},
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
@@ -78,9 +80,9 @@ class TenantContextMiddleware(BaseHTTPMiddleware):
 
             # Validate tenant context for non-public endpoints
             if not tenant_id and not is_agent_request:
-                raise HTTPException(
+                return JSONResponse(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Missing tenant_id in token",
+                    content={"detail": "Missing tenant_id in token"},
                 )
 
             # Attach to request state
@@ -95,23 +97,23 @@ class TenantContextMiddleware(BaseHTTPMiddleware):
             if is_agent_request:
                 agent_identity = AgentIdentityRegistry.get(agent_id)
                 if not agent_identity:
-                    raise HTTPException(
+                    return JSONResponse(
                         status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail=f"Unknown agent: {agent_id}",
+                        content={"detail": f"Unknown agent: {agent_id}"},
                     )
                 if not agent_identity.is_valid():
-                    raise HTTPException(
+                    return JSONResponse(
                         status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail=f"Agent identity invalid or expired: {agent_id}",
+                        content={"detail": f"Agent identity invalid or expired: {agent_id}"},
                     )
                 request.state.agent_identity = agent_identity
 
         except HTTPException:
             raise
         except Exception as e:
-            raise HTTPException(
+            return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"Invalid token: {str(e)}",
+                content={"detail": f"Invalid token: {str(e)}"},
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
@@ -120,14 +122,13 @@ class TenantContextMiddleware(BaseHTTPMiddleware):
 
 
 def get_tenant_id(request: Request) -> str:
-    """Get tenant_id from request state. Raises if not set."""
-    tenant_id = getattr(request.state, "tenant_id", None)
-    if not tenant_id:
+    """Get tenant_id from request state. Raises if middleware never ran."""
+    if not hasattr(request.state, "tenant_id"):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Tenant context not available. Middleware not configured?",
         )
-    return tenant_id
+    return request.state.tenant_id
 
 
 def get_agent_id(request: Request) -> Optional[str]:

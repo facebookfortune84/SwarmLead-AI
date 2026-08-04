@@ -62,10 +62,12 @@ class NamespacedLongTermMemory:
 
     def query(self, query: str, top_k: int = 10) -> List[Dict[str, Any]]:
         """Query memories within tenant namespace."""
-        # Search with namespace prefix
-        namespaced_query = f"{self.namespace}:{query}"
-        results = self._ltm.query(namespaced_query, top_k=top_k)
-        return [self._denamespace_record(r) for r in results]
+        # Search the raw query text, then filter to this tenant's namespace
+        results = self._ltm.search_text(query)
+        namespaced = [
+            r for r in results if r.get("key", "").startswith(f"{self.namespace}:")
+        ]
+        return [self._denamespace_record(r) for r in namespaced[:top_k]]
 
     def all(self) -> List[Dict[str, Any]]:
         """Get all memories within tenant namespace."""

@@ -126,6 +126,31 @@ class DeliverabilityEngine:
         }
 
     @staticmethod
+    def recommended_alias(domain: str, local: str = "hello") -> Dict[str, str]:
+        """Suggest a branded sending alias for a domain.
+
+        Cold outreach from a personal Gmail gets filtered fast. Point ``SMTP_FROM``
+        at a branded address (``hello@yourdomain.com``) with SPF/DKIM/DMARC in
+        place, and delivery rates improve dramatically. Gmail allows sending as
+        a verified alias; the provider (e.g. Amazon SES) supplies the DKIM key.
+        """
+        base = domain.strip().lower().rstrip(".")
+        if not base or "." not in base:
+            return {"error": "invalid domain"}
+        from_address = f"{local}@{base}"
+        return {
+            "from_address": from_address,
+            "display_name": "Genesis Forge by Realms 2 Riches",
+            "smtp_from_env": f"SMTP_FROM={from_address}",
+            "records": DeliverabilityEngine.recommended_records(base),
+            "gmail_alias_hint": (
+                "In Gmail: Settings → Accounts → Send mail as → Add another "
+                f"email address → {from_address}. Verify the address, then keep "
+                "your sending domain's SPF/DKIM/DMARC records live."
+            ),
+        }
+
+    @staticmethod
     def check_dns(domain: str) -> Dict[str, str]:
         """Live lookup of SPF / DMARC records for a domain.
 

@@ -1,7 +1,17 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { FeatureShowcase, SocialProof, CTASection, Testimonials } from "@/components/landing/FeatureShowcase";
 import { VoiceLandingAgent } from "@/components/landing/VoiceLandingAgent";
+import { ProductHuntCountdown } from "@/components/landing/ProductHuntCountdown";
+import { ROICalculator } from "@/components/landing/ROICalculator";
+import { SocialShare } from "@/components/landing/SocialShare";
+import { LiveActivityTicker } from "@/components/landing/LiveActivityTicker";
+import { PlanFinderQuiz } from "@/components/landing/PlanFinderQuiz";
+import { LaunchChecklistMagnet, ExitIntentPopup } from "@/components/landing/LaunchMagnet";
+import { IntegrationsStrip, ReferralBanner, LaunchPromoBar } from "@/components/landing/LaunchBoosters";
 import {
   HowItWorks, SecurityTrust, ComparisonSection, FAQSection, FinalCTA, Footer,
 } from "@/components/landing/PremiumSections";
@@ -15,11 +25,15 @@ export default function Home() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "SoftwareApplication",
-            name: "Genesis",
+            name: "Genesis Forge",
             applicationCategory: "BusinessApplication",
             operatingSystem: "Web",
             description:
               "The first autonomous business launch platform powered by constitutional voice AI. Launch your business with your voice.",
+            publisher: {
+              "@type": "Organization",
+              name: "Realms 2 Riches",
+            },
             featureList: [
               "Full Duplex Voice AI",
               "Autonomous Business Provisioning",
@@ -129,20 +143,28 @@ export default function Home() {
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-gray-900 focus:rounded-lg focus:shadow-lg">
         Skip to content
       </a>
+      <LaunchPromoBar />
       <Header />
       <HeroSection />
+      <LiveActivityTicker />
       <FeatureShowcase />
+      <IntegrationsStrip />
+      <ROICalculator />
       <HowItWorks />
       <SecurityTrust />
       <ComparisonSection />
       <PricingShowcase />
+      <PlanFinderQuiz />
       <Testimonials />
       <SocialProof />
       <FAQSection />
+      <LaunchChecklistMagnet />
+      <ReferralBanner />
       <CTASection />
       <FinalCTA />
       <Footer />
       <VoiceLandingAgent />
+      <ExitIntentPopup />
     </main>
   );
 }
@@ -153,13 +175,18 @@ function Header() {
       <nav className="max-w-7xl mx-auto flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3 group">
           <Image
-            src="/genesis_forge_logo_1.png"
-            alt="Genesis Forge"
-            width={32}
-            height={32}
-            className="rounded-lg group-hover:scale-110 transition-transform"
+            src="/voice_agent_image_1.png"
+            alt="Genesis Forge — Realms 2 Riches"
+            width={36}
+            height={36}
+            className="rounded-full object-cover ring-1 ring-white/20 group-hover:scale-110 transition-transform"
           />
-          <span className="text-white font-bold text-lg">Genesis Forge</span>
+          <span className="flex flex-col leading-tight">
+            <span className="text-white font-bold text-lg">Genesis Forge</span>
+            <span className="text-[10px] tracking-wide text-white/50 uppercase">
+              by Realms 2 Riches
+            </span>
+          </span>
         </Link>
         <div className="flex items-center gap-6">
           <Link href="/demo" className="text-white/60 hover:text-white/80 transition-colors text-sm font-medium">Demo</Link>
@@ -193,6 +220,9 @@ function HeroSection() {
       </div>
 
       <div className="relative z-10 text-center px-6 max-w-5xl mx-auto">
+        <div className="mb-8 max-w-xl mx-auto">
+          <ProductHuntCountdown />
+        </div>
         <div className="mb-8 inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm font-medium text-white/80">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true" />
           Voice AI is live — start a conversation
@@ -249,29 +279,37 @@ function HeroSection() {
             </div>
           ))}
         </div>
+
+        <div className="mt-14">
+          <SocialShare />
+        </div>
       </div>
     </section>
   );
 }
 
 function PricingShowcase() {
+  const [annual, setAnnual] = useState(false);
   const plans = [
     {
       name: "Starter",
-      price: "$29",
+      monthly: 29,
       image: "/stripe_image_genesis_starter.png",
+      tagline: "For solo founders validating an idea",
       features: ["CRM", "Lead Management", "Workflow Engine", "Single Tenant", "Basic Outreach"],
     },
     {
       name: "Growth",
-      price: "$99",
+      monthly: 99,
       image: "/stripe_image_genesis_growth.png",
+      tagline: "For small teams ready to scale outreach",
       features: ["Everything in Starter", "Advanced Workflows", "Multi-Tenant", "Campaign Outreach", "Reporting"],
     },
     {
       name: "Enterprise",
-      price: "$299",
+      monthly: 299,
       image: "/stripe_image_genesis_enterprise.png",
+      tagline: "For established companies needing unlimited tenants + voice runtime",
       features: ["Everything in Growth", "Unlimited Tenants", "Voice Runtime", "Agent Runtime", "Priority Support"],
     },
   ];
@@ -289,50 +327,82 @@ function PricingShowcase() {
           <p className="text-xl text-white/60 max-w-2xl mx-auto">
             Start free, upgrade as you grow. No hidden fees, no surprises.
           </p>
+          <div className="mt-8 inline-flex items-center gap-3 rounded-full bg-white/5 border border-white/10 p-1.5">
+            <button
+              onClick={() => setAnnual(false)}
+              className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${
+                !annual ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25" : "text-white/60 hover:text-white"
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setAnnual(true)}
+              className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${
+                annual ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25" : "text-white/60 hover:text-white"
+              }`}
+            >
+              Annual{" "}
+              <span className={annual ? "text-emerald-300" : "text-emerald-400/80"}>
+                −20%
+              </span>
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {plans.map((plan, i) => (
-            <div
-              key={plan.name}
-              className="group relative bg-white/[0.03] backdrop-blur-xl rounded-2xl border border-white/[0.06] p-8 hover:border-indigo-500/30 transition-all duration-300 overflow-hidden"
-            >
-              {i === 1 && (
-                <div className="absolute top-0 right-0 px-3 py-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-semibold rounded-bl-xl">
-                  Most Popular
-                </div>
-              )}
-              <div className="relative h-40 mb-6 rounded-xl overflow-hidden bg-white/5">
-                <Image
-                  src={plan.image}
-                  alt={`${plan.name} plan`}
-                  fill
-                  className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"
-                />
-              </div>
-              <h3 className="text-2xl font-bold text-white">{plan.name}</h3>
-              <div className="mt-2 text-4xl font-bold text-white">
-                {plan.price}
-                <span className="text-lg text-white/50">/mo</span>
-              </div>
-              <ul className="mt-6 space-y-3">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-sm text-white/70">
-                    <svg className="w-4 h-4 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/onboarding"
-                className="mt-8 block w-full text-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-500 hover:to-purple-500 shadow-lg shadow-indigo-500/25 transition-all"
+          {plans.map((plan, i) => {
+            const price = annual
+              ? Math.round(plan.monthly * 0.8)
+              : plan.monthly;
+            return (
+              <div
+                key={plan.name}
+                className="group relative bg-white/[0.03] backdrop-blur-xl rounded-2xl border border-white/[0.06] p-8 hover:border-indigo-500/30 transition-all duration-300 overflow-hidden"
               >
-                Get Started
-              </Link>
-            </div>
-          ))}
+                {i === 1 && (
+                  <div className="absolute top-0 right-0 px-3 py-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-semibold rounded-bl-xl">
+                    Most Popular
+                  </div>
+                )}
+                <div className="relative h-40 mb-6 rounded-xl overflow-hidden bg-white/5">
+                  <Image
+                    src={plan.image}
+                    alt={`${plan.name} plan`}
+                    fill
+                    className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"
+                  />
+                </div>
+                <h3 className="text-2xl font-bold text-white">{plan.name}</h3>
+                <p className="text-sm text-white/50 mt-1">{plan.tagline}</p>
+                <div className="mt-4 text-4xl font-bold text-white">
+                  ${price}
+                  <span className="text-lg text-white/50">/mo</span>
+                  {annual && (
+                    <span className="ml-2 align-middle text-xs font-medium text-emerald-400">
+                      billed yearly
+                    </span>
+                  )}
+                </div>
+                <ul className="mt-6 space-y-3">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm text-white/70">
+                      <svg className="w-4 h-4 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/onboarding"
+                  className="mt-8 block w-full text-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-500 hover:to-purple-500 shadow-lg shadow-indigo-500/25 transition-all"
+                >
+                  Get Started
+                </Link>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

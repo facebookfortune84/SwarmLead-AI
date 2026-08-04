@@ -1,5 +1,8 @@
-def test_default_config_load():
+def test_default_config_load(monkeypatch):
     from configs.config_loader import ConfigLoader
+
+    monkeypatch.delenv("ENV", raising=False)
+    monkeypatch.delenv("JWT_SECRET_KEY", raising=False)
 
     config = ConfigLoader.load()
 

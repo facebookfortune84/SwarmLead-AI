@@ -119,6 +119,22 @@ class LongTermMemory:
 
         return record
 
+    def get(self, key: str) -> Optional[Dict[str, Any]]:
+        """Get the first record whose key matches."""
+        for record in self.memory:
+            if record.get("key") == key:
+                return record
+        return None
+
+    def delete(self, key: str) -> bool:
+        """Delete all records whose key matches. Returns True if any removed."""
+        kept = [record for record in self.memory if record.get("key") != key]
+        if len(kept) == len(self.memory):
+            return False
+        self.memory = kept
+        self._save()
+        return True
+
     def all(self) -> List[Dict[str, Any]]:
         return list(self.memory)
 
@@ -160,13 +176,14 @@ class LongTermMemory:
         text: str,
     ) -> List[Dict[str, Any]]:
         text = text.lower()
+        tokens = [t for t in text.split() if t]
 
         results = []
 
         for record in self.memory:
             content = str(record.get("content", "")).lower()
 
-            if text in content:
+            if tokens and all(t in content for t in tokens):
                 results.append(record)
 
         return results

@@ -64,8 +64,9 @@ def get_tenant_session(tenant_id: str) -> Generator[Session, None, None]:
 
     session = SessionLocal()
     try:
-        # Set tenant context for RLS
-        session.execute(text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
+        # Set tenant context for RLS (Postgres only; SQLite uses per-tenant files)
+        if session.bind and session.bind.dialect.name == "postgresql":
+            session.execute(text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
         yield session
         session.commit()
     except Exception:

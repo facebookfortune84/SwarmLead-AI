@@ -79,10 +79,10 @@ class NamespacedVectorStore:
 
     def clear(self) -> None:
         """Clear all vectors in tenant namespace."""
-        all_records = self.search("", top_k=10000)
+        all_records = self.all()
         for record in all_records:
             if "key" in record:
-                self._store.delete(record["key"])
+                self.delete(record["key"])
 
     def delete(self, key: str) -> bool:
         """Delete a vector by namespaced key."""

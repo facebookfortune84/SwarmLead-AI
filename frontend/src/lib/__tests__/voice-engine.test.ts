@@ -118,5 +118,72 @@ describe("BargeInDetector", () => {
     expect((d as unknown as { attackFrames: number }).attackFrames).toBe(
       VOICE_CONSTANTS.BARGE_IN_ATTACK_FRAMES
     );
+    expect((d as unknown as { holdFrames: number }).holdFrames).toBe(0);
+  });
+
+  it("keeps the attack counter across short pauses (hold frames)", () => {
+    const d = new BargeInDetector({ threshold: 0.2, attackFrames: 3, holdFrames: 2 });
+    // loud, quiet (1 frame), loud, loud -> still fires despite one gap
+    expect(d.feed(0.3)).toBe(false);
+    expect(d.feed(0.05)).toBe(false);
+    expect(d.feed(0.3)).toBe(false);
+    expect(d.feed(0.3)).toBe(true);
+  });
+
+  it("resets the attack counter after too many quiet frames", () => {
+    const d = new BargeInDetector({ threshold: 0.2, attackFrames: 3, holdFrames: 2 });
+    d.feed(0.3);
+    d.feed(0.05);
+    d.feed(0.05);
+    d.feed(0.05);
+    d.feed(0.3);
+    d.feed(0.3);
+    expect(d.feed(0.3)).toBe(true);
+  });
+
+  it("arm() uses the higher no-AEC threshold when AEC is absent", () => {
+    const d = new BargeInDetector();
+    d.arm(false);
+    const threshold = (d as unknown as { threshold: number }).threshold;
+    expect(threshold).toBe(VOICE_CONSTANTS.BARGE_IN_NO_AEC_THRESHOLD);
+    // a level above the AEC threshold but below the no-AEC threshold must NOT fire
+    expect(d.feed(VOICE_CONSTANTS.BARGE_IN_NO_AEC_THRESHOLD - 0.01)).toBe(false);
+  });
+
+  it("arm() keeps the low threshold when AEC is present", () => {
+    const d = new BargeInDetector();
+    d.arm(true);
+    expect((d as unknown as { threshold: number }).threshold).toBe(
+      VOICE_CONSTANTS.BARGE_IN_THRESHOLD
+    );
+  });
+
+  it("trackNoise raises the effective threshold above room noise", () => {
+    const d = new BargeInDetector({ threshold: 0.06, attackFrames: 3 });
+    // Ambient hum ~0.05 for a while
+    for (let i = 0; i < 200; i++) d.trackNoise(0.05);
+    const effective = d.effectiveThreshold;
+    expect(effective).toBeGreaterThan(0.1);
+    // a modest noise burst below the adaptive threshold does not fire
+    expect(d.feed(0.09)).toBe(false);
+    expect(d.feed(0.09)).toBe(false);
+    // a real voice above it still fires within the attack window
+    expect(d.feed(0.2)).toBe(false);
+    expect(d.feed(0.2)).toBe(false);
+    expect(d.feed(0.2)).toBe(true);
+  });
+
+  it("trackNoise ignores speech-like levels (never skews the floor up)", () => {
+    const d = new BargeInDetector();
+    d.trackNoise(0.5); // loud burst, must not be absorbed as noise
+    d.trackNoise(0.5);
+    const floor = (d as unknown as { noiseFloor: number }).noiseFloor;
+    expect(floor).toBeLessThan(0.1);
+  });
+
+  it("effectiveThreshold never falls below the base threshold", () => {
+    const d = new BargeInDetector({ threshold: 0.2 });
+    d.trackNoise(0.004);
+    expect(d.effectiveThreshold).toBeGreaterThanOrEqual(0.2);
   });
 });

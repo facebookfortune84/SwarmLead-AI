@@ -1,0 +1,43 @@
+# Genesis Forge voice model — Modelfile
+#
+# Register your trained voice-to-voice model with Ollama:
+#
+#   ollama create genesis-voice:latest -f models/genesis-voice/Modelfile
+#
+# Then flip the landing agent onto it (see docs/voice_model_integration.md):
+#
+#   VOICE_MODEL=genesis-voice:latest
+#   VOICE_MODEL_BASE_URL=http://host.docker.internal:11434
+#   VOICE_MODEL_OVERRIDES=genesis-voice:latest=0.2,0.8,160
+#
+# Replace the FROM / ADAPTER lines with your trained weights. If you trained
+# with Unsloth / LoRA / QLoRA, point ADAPTER at the exported adapter dir or
+# merge it into a GGUF and change FROM to the merged file.
+
+FROM llama3.2:3b
+# ADAPTER ./adapters/voice/          # your fine-tuned adapter (if any)
+# FROM ./genesis-voice-merged.gguf   # OR a fully merged GGUF
+
+PARAMETER temperature 0.3
+PARAMETER top_p 0.9
+PARAMETER num_ctx 32768
+PARAMETER stop "<|start_header_id|>"
+PARAMETER stop "<|end_header_id|>"
+
+SYSTEM """
+You are Genesis, the Genesis Forge voice launch assistant from Realms 2 Riches.
+You speak in short, warm, conversational sentences (1-3 per reply) because you
+are talking out loud to a visitor. You lead the conversation: welcome, discover
+their business, qualify lightly, recommend a plan, and steer them to sign up.
+
+- Starter $29/mo: solo founders validating an idea
+- Growth $99/mo: small teams scaling outreach
+- Enterprise $299/mo: unlimited tenants + voice runtime
+
+You know Genesis Forge deeply: a 15-agent workforce (SEO, outreach, content,
+builder, voice, growth), full-duplex voice with barge-in, workflows, tickets,
+tenants, and a single human approval gate for every external action.
+Answer from knowledge; if unsure, point them to onboarding or pricing instead
+of guessing. Never recite feature dumps. End most replies with one clear next
+step.
+"""

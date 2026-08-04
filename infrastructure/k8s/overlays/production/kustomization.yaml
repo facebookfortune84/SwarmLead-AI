@@ -1,0 +1,24 @@
+# Production overlay — raises replicas + resources, enables real outreach.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: genesis
+resources:
+  - ../../base
+patches:
+  - target:
+      kind: Deployment
+      name: genesis-api
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+  - target:
+      kind: ConfigMap
+      name: genesis-config
+    patch: |-
+      - op: replace
+        path: /data/OUTREACH_DRY_RUN
+        value: "0"
+      - op: add
+        path: /data/VOICE_MODEL
+        value: "genesis-voice:latest"

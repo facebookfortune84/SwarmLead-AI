@@ -1,0 +1,17 @@
+# Genesis Forge — Kubernetes multi-tenant deployment
+#
+# Applies to a cluster namespace (default `genesis`). Multi-tenant isolation is
+# namespace-first: create one namespace per tenant/box, apply the same
+# manifests with `-n <tenant>` and tenant-scoped Secrets. The API is
+# stateless (sessions in memory, state in Postgres/Redis) so it scales
+# horizontally — that is what the HorizontalPodAutoscaler below exploits.
+#
+#   kubectl create ns genesis
+#   kubectl apply -k infrastructure/k8s/overlays/production/
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: genesis
+  labels:
+    app.kubernetes.io/name: genesis-forge
+    app.kubernetes.io/part-of: realms2riches

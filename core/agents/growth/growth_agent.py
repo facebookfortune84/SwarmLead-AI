@@ -182,7 +182,7 @@ class GrowthAgent(StrategyAgent):
 
         return {
             "risk_score": min(risk_score, 1.0),
-            "risk_level": "high" if risk_score > 0.7 else "medium" if risk_score > 0.4 else "low",
+            "risk_level": "high" if risk_score >= 0.7 else "medium" if risk_score > 0.4 else "low",
             "risk_factors": risk_factors,
             "recommended_actions": [
                 "Trigger re-engagement email",

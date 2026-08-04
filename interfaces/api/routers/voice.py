@@ -49,6 +49,21 @@ class EndSessionRequest(BaseModel):
     session_id: str
 
 
+class LeadCaptureRequest(BaseModel):
+    email: str
+    name: Optional[str] = None
+    company: Optional[str] = None
+    session_id: Optional[str] = None
+    source: str = "voice"
+    intent_score: Optional[int] = None
+
+
+class LeadCaptureResponse(BaseModel):
+    created: bool
+    lead_id: Optional[str] = None
+    email: str
+
+
 @router.post("/session", response_model=CreateSessionResponse)
 async def create_voice_session(payload: CreateSessionRequest):
     """
@@ -88,3 +103,29 @@ async def end_voice_session(payload: EndSessionRequest):
     """End and clean up a voice session."""
     removed = voice_agent_service.end_session(payload.session_id)
     return {"session_id": payload.session_id, "ended": removed}
+
+
+@router.get("/models")
+async def voice_models():
+    """Report which LLM model is powering the voice assistant right now."""
+    return voice_agent_service.model_status()
+
+
+@router.post("/capture", response_model=LeadCaptureResponse)
+async def capture_voice_lead(payload: LeadCaptureRequest):
+    """
+    Persist a lead captured during a voice conversation.
+
+    The voice agent asks for name + email; the frontend posts it here and the
+    visitor becomes a high-intent lead (source: voice) that flows into the
+    pipeline exactly like discovered leads.
+    """
+    result = voice_agent_service.capture_lead(
+        email=payload.email,
+        name=payload.name,
+        company=payload.company,
+        source=payload.source,
+        intent_score=payload.intent_score,
+    )
+    logger.info("Voice lead capture: %s", result)
+    return result

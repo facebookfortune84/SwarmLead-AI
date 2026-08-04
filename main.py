@@ -15,6 +15,7 @@ from interfaces.api.routers.crm import router as crm_router
 from interfaces.api.routers.deliverability import router as deliverability_router
 from interfaces.api.routers.growth import router as growth_router
 from interfaces.api.routers.leads import router as leads_router
+from interfaces.api.routers.launch import router as launch_router
 from interfaces.api.routers.notifications import router as notifications_router
 from interfaces.api.routers.outreach import router as outreach_router
 from interfaces.api.routers.payments import router as payments_router
@@ -118,6 +119,7 @@ app.include_router(crm_router)
 app.include_router(deliverability_router)
 app.include_router(growth_router)
 app.include_router(leads_router)
+app.include_router(launch_router)
 app.include_router(notifications_router)
 app.include_router(outreach_router)
 app.include_router(payments_router)

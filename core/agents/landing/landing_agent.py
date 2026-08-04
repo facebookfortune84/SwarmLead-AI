@@ -179,7 +179,11 @@ class LandingAgent(StrategyAgent):
         if flow not in self.flows:
             return {"error": f"Unknown flow: {flow}"}
 
-        return await self.flows[flow](session_id, context)
+        handler = getattr(self, f"_flow_{flow}", None)
+        if handler is None:
+            return {"error": f"Unknown flow handler: {flow}"}
+
+        return await handler(session_id, context)
 
     async def _flow_lead_qualification(self, session_id: str, context: Dict) -> Dict:
         """Lead qualification flow."""

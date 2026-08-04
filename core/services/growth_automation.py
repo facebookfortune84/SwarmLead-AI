@@ -27,7 +27,6 @@ import asyncio
 import json
 import logging
 import os
-import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -166,6 +165,7 @@ class GrowthAutomation:
             "seo": self._phase_seo,
             "content": self._phase_content,
             "outreach": self._phase_outreach,
+            "traffic": self._phase_traffic,
             "voice": self._phase_voice,
             "monetize": self._phase_monetize,
         }
@@ -350,7 +350,7 @@ class GrowthAutomation:
             "status": "ok",
             "discovered": len(found),
             "written": written,
-            "verticals": sorted({l.vertical for l in found}),
+            "verticals": sorted({ld.vertical for ld in found}),
         }
 
     # --------------------------------------------------------------- outreach
@@ -382,13 +382,57 @@ class GrowthAutomation:
             drafted += 1
         return {"status": "ok", "leads_qualified": len(leads), "drafted": drafted}
 
+    # ---------------------------------------------------------------- traffic
+    async def _phase_traffic(self) -> Dict[str, Any]:
+        """Compose launch-traffic drafts (social posts + PH comments).
+
+        Only runs during launch week, caps at 2 drafts per cycle, and never
+        duplicates a pending/approved post. Posts are *drafts for the human
+        gate* — the system never posts to social networks on its own.
+        """
+        from core.services.launch_config import compose_traffic_drafts, is_launch_week
+
+        if not is_launch_week():
+            return {"status": "skipped", "reason": "outside launch week"}
+
+        drafts = compose_traffic_drafts()
+        queued = 0
+        for draft in drafts:
+            if self._pending_count("traffic_post") >= 2:
+                break
+            fingerprint = (draft.get("network"), draft.get("kind", "social_post"))
+            if self._traffic_drafted(fingerprint):
+                continue
+            self._enqueue(
+                "traffic_post",
+                {
+                    "network": draft["network"],
+                    "kind": draft.get("kind", "social_post"),
+                    "text": draft["text"],
+                    "note": (
+                        "Copy-paste this post to the network, or use the "
+                        "share links from /api/launch/status."
+                    ),
+                },
+            )
+            queued += 1
+        return {"status": "ok", "drafts_queued": queued, "total_available": len(drafts)}
+
+    def _traffic_drafted(self, fingerprint: tuple) -> bool:
+        return any(
+            a["kind"] == "traffic_post"
+            and (a["payload"].get("network"), a["payload"].get("kind")) == fingerprint
+            and a["status"] in {"pending", "approved"}
+            for a in self.state.get("approval_queue", [])
+        )
+
     def _suppressed(self, email: str) -> bool:
         from core.services.deliverability import deliverability
 
         return deliverability.is_suppressed(email)
 
     def _qualified_leads(self, limit: int) -> List[Dict]:
-        from core.services.lead_discovery import RESERVED_DOMAINS, DISPOSABLE_DOMAINS
+        from core.services.lead_discovery import DISPOSABLE_DOMAINS, RESERVED_DOMAINS
 
         try:
             from core.models import Lead
@@ -636,6 +680,17 @@ class GrowthAutomation:
             result = await self._dispatch_outreach(action)
         elif action["kind"] == "quote_send":
             result = await self._dispatch_quote(action)
+        elif action["kind"] == "traffic_post":
+            from core.services.launch_config import share_links
+
+            result = {
+                "status": "approved_for_manual_post",
+                "note": (
+                    "Approved copy. Post it on the target network and record "
+                    "the URL in the payload when done."
+                ),
+                "share_links": share_links(),
+            }
         else:
             result = {"status": "unknown_kind"}
 
@@ -644,7 +699,8 @@ class GrowthAutomation:
         elif action["kind"] == "quote_send" and result.get("status") == "sent":
             self._record_quote(action)
 
-        action["status"] = "approved" if result.get("status") in {"sent", "dry_run"} else "failed"
+        approved_statuses = {"sent", "dry_run", "approved_for_manual_post"}
+        action["status"] = "approved" if result.get("status") in approved_statuses else "failed"
         action["reviewed_at"] = datetime.now(timezone.utc).isoformat()
         action["result"] = result
         self._save_state()

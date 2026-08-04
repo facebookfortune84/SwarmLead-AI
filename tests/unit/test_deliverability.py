@@ -44,3 +44,22 @@ def test_score_never_negative_or_over_100(de):
 
 def test_free_email_domains_defined():
     assert "gmail.com" in FREE_EMAIL_DOMAINS
+
+
+def test_recommended_alias_returns_branded_from(de):
+    alias = de.recommended_alias("realms2riches.com")
+    assert alias["from_address"] == "hello@realms2riches.com"
+    assert "Genesis Forge" in alias["display_name"]
+    assert "SMTP_FROM=hello@realms2riches.com" in alias["smtp_from_env"]
+    assert "records" in alias
+    assert "gmail_alias_hint" in alias
+
+
+def test_recommended_alias_custom_local(de):
+    alias = de.recommended_alias("realms2riches.com", local="genesis")
+    assert alias["from_address"] == "genesis@realms2riches.com"
+
+
+def test_recommended_alias_rejects_bad_domain(de):
+    assert de.recommended_alias("not-a-domain")["error"]
+    assert de.recommended_alias("")["error"]

@@ -63,7 +63,20 @@ export function Sidebar() {
     <aside className="flex w-64 flex-col border-r bg-background">
         <div className="border-b p-6">
         <h1 className="text-xl font-bold">
-          <Link href="/">SwarmLead AI</Link>
+          <Link href="/" className="flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/voice_agent_image_1.png"
+              alt="Genesis Forge"
+              className="h-8 w-8 rounded-full object-cover ring-1 ring-border"
+            />
+            <span className="flex flex-col leading-tight">
+              <span>Genesis Forge</span>
+              <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                by Realms 2 Riches
+              </span>
+            </span>
+          </Link>
         </h1>
 
         <div className="text-xs text-muted-foreground">

@@ -1,0 +1,16 @@
+# Non-secret runtime configuration. Secrets live in genesis-secrets.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: genesis-config
+data:
+  APP_ENV: "production"
+  GROWTH_AUTO_MODE: "1"
+  GROWTH_CYCLE_HOURS: "6"
+  GROWTH_USE_LLM: "0"
+  GROWTH_DISCOVERY: "1"
+  OUTREACH_DRY_RUN: "1"
+  OUTREACH_RATE_LIMIT_PER_HOUR: "40"
+  OLLAMA_API_BASE: "http://ollama:11434"
+  # Point the voice assistant at a trained model by setting VOICE_MODEL here.
+  # VOICE_MODEL: "genesis-voice:latest"

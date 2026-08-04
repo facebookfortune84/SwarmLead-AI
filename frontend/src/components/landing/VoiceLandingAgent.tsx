@@ -36,6 +36,12 @@ interface MessageResponse {
   intent: string;
 }
 
+interface LeadCaptureResponse {
+  created: boolean;
+  lead_id?: string | null;
+  email: string;
+}
+
 interface SpeechRecognitionResultItem {
   0: { transcript: string };
   isFinal: boolean;
@@ -86,9 +92,9 @@ const QUICK_ACTIONS = [
     text: "What are the pricing plans?",
   },
   {
-    label: "Get started",
-    hint: "Start onboarding",
-    text: "I want to sign up and get started.",
+    label: "Contact me",
+    hint: "Leave your email",
+    text: "Please contact me, I want to leave my email.",
   },
 ];
 
@@ -102,6 +108,8 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
   const [error, setError] = useState<string | null>(null);
   const [listening, setListening] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [showLeadCapture, setShowLeadCapture] = useState(false);
+  const [leadCaptured, setLeadCaptured] = useState(false);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -117,7 +125,9 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
   const sessionIdRef = useRef<string | null>(null);
   const sessionActiveRef = useRef<boolean>(false);
   const micHasAecRef = useRef<boolean>(true);
-  const bargeInRef = useRef<BargeInDetector>(new BargeInDetector());
+  const bargeInRef = useRef<BargeInDetector>(
+    new BargeInDetector({ holdFrames: VOICE_CONSTANTS.BARGE_IN_HOLD_FRAMES })
+  );
   const cancelSpeakingRef = useRef<() => void>(() => {});
   const sendMessageRef = useRef<(text: string, role?: "user" | "assistant") => void>(() => {});
   const resumeListeningRef = useRef<() => void>(() => {});
@@ -225,6 +235,10 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
           resolve();
         };
         const cancel = () => {
+          if (audioElementRef.current) {
+            audioElementRef.current.pause();
+            audioElementRef.current = null;
+          }
           if ("speechSynthesis" in window) speechSynthesis.cancel();
           finish(true);
         };
@@ -316,6 +330,12 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
         if (!response.ok) throw new Error(`Voice API ${response.status}`);
         const data: MessageResponse = await response.json();
         setMessages((prev) => [...prev, { role: "assistant", text: data.reply }]);
+        const lower = text.toLowerCase();
+        const wantsContact =
+          /contact|reach out|call me|follow up|get in touch|talk to|email me|my email|my name|leave.*(email|info)|speak to someone/.test(
+            lower
+          );
+        if (wantsContact && !leadCaptured) setShowLeadCapture(true);
         await speak(data.reply_audio_b64, data.reply);
       } catch (e) {
         console.error("Voice message failed", e);
@@ -339,6 +359,31 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
   useEffect(() => {
     sendMessageRef.current = sendMessage;
   }, [sendMessage]);
+
+  const captureLead = useCallback(async (email: string, name?: string, company?: string) => {
+    if (!email || !email.includes("@")) return false;
+    try {
+      const response = await fetchWithTimeout(
+        "/api/voice/capture",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email,
+            name: name || undefined,
+            company: company || undefined,
+            session_id: sessionIdRef.current || undefined,
+          }),
+        },
+        15000
+      );
+      if (!response.ok) return false;
+      const data: LeadCaptureResponse = await response.json();
+      return data.created === true || data.lead_id != null;
+    } catch {
+      return false;
+    }
+  }, []);
 
   const startSession = useCallback(async () => {
     if (sessionActiveRef.current || isStarting) return;
@@ -385,6 +430,7 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         micHasAecRef.current = false;
       }
+      bargeInRef.current.arm(micHasAecRef.current);
       mediaStreamRef.current = stream;
       const ctx = new AudioContext();
       audioContextRef.current = ctx;
@@ -399,11 +445,15 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
         if (!analyserRef.current) return;
         const timeDomain = new Float32Array(analyserRef.current.fftSize);
         analyserRef.current.getFloatTimeDomainData(timeDomain);
-        if (speakingRef.current && micHasAecRef.current) {
+        if (speakingRef.current) {
           const level = rmsFromFloat32(timeDomain);
           if (bargeInRef.current.feed(level)) {
             cancelSpeakingRef.current();
           }
+        } else {
+          // Adaptive noise floor: measure ambient audio between turns so the
+          // barge-in threshold rises above room noise and never misfires.
+          bargeInRef.current.trackNoise(rmsFromFloat32(timeDomain));
         }
         const bufferLength = analyserRef.current.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
@@ -463,6 +513,8 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
     setSessionId(null);
     sessionIdRef.current = null;
     setMessages([]);
+    setShowLeadCapture(false);
+    setLeadCaptured(false);
     if (sessionId) {
       fetchWithTimeout(
         "/api/voice/end",
@@ -536,7 +588,7 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
               )}
             </div>
             <div>
-              <h3 className="font-semibold text-white text-sm">Genesis Voice Agent</h3>
+              <h3 className="font-semibold text-white text-sm">Genesis Forge Voice</h3>
               <p className="text-xs text-white/50">
                 {state === "idle"
                   ? "Starting your guided experience…"
@@ -598,6 +650,62 @@ export function VoiceLandingAgent({ onSessionStart }: VoiceLandingAgentProps) {
         {error && (
           <div className="px-4 py-2 bg-red-500/10 border-b border-red-500/20 text-xs text-red-300">
             {error}
+          </div>
+        )}
+
+        {showLeadCapture && !leadCaptured && (
+          <div className="p-4 border-b border-white/10">
+            <p className="text-xs text-white/60 mb-3">
+              {sessionActive
+                ? "Say or type your email and I'll follow up — or drop it here:"
+                : "Leave your email and we'll follow up:"}
+            </p>
+            <form
+              className="flex flex-col gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const email = (e.currentTarget.elements.namedItem("leadEmail") as HTMLInputElement).value;
+                const name = (e.currentTarget.elements.namedItem("leadName") as HTMLInputElement).value;
+                captureLead(email, name).then((ok) => {
+                  if (ok) {
+                    setLeadCaptured(true);
+                    if (sessionActive) {
+                      speak(
+                        null,
+                        "Perfect, I've saved your details. Our team will reach out shortly. Anything else I can help with?"
+                      );
+                    }
+                  } else {
+                    setError("Couldn't save that email. Please double-check it and try again.");
+                  }
+                });
+              }}
+            >
+              <input
+                type="email"
+                name="leadEmail"
+                required
+                placeholder="you@company.com"
+                className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/40 focus:outline-none focus:border-indigo-500/40"
+              />
+              <input
+                type="text"
+                name="leadName"
+                placeholder="Your name (optional)"
+                className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/40 focus:outline-none focus:border-indigo-500/40"
+              />
+              <button
+                type="submit"
+                className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm font-semibold rounded-lg hover:from-indigo-500 hover:to-purple-500 transition-colors"
+              >
+                Save my contact
+              </button>
+            </form>
+          </div>
+        )}
+        {showLeadCapture && leadCaptured && (
+          <div className="px-4 py-3 border-b border-white/10 bg-emerald-500/10 text-xs text-emerald-300">
+            You're on the list — our team will reach out. Want to explore now instead?
           </div>
         )}
 

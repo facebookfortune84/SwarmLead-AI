@@ -24,6 +24,17 @@ def register_default_agents() -> None:
     if _registered:
         return
 
+    # Self-heal identity registry: agent registration requires a valid
+    # §13 identity for every name. Reload defaults when the registry is
+    # empty (fresh process, test resets, or partial init failure).
+    from core.auth.agent_identity import (
+        DEFAULT_AGENT_CONFIG,
+        AgentIdentityRegistry,
+    )
+
+    if not AgentIdentityRegistry._identities:
+        AgentIdentityRegistry.load_from_config(DEFAULT_AGENT_CONFIG)
+
     from core.agents.audit.audit_agent import audit_agent
     from core.agents.builder.builder_agent import BuilderAgent
     from core.agents.content.content_agent import ContentAgent
