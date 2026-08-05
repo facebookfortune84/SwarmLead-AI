@@ -161,6 +161,73 @@ def is_launch_week() -> bool:
         return False
 
 
+def activity() -> Dict[str, object]:
+    """Real launch-week activity metrics for the landing ticker.
+
+    Counts leads captured since launch (bucketed by source), high-intent
+    leads, growth-loop cycles, and the approval queue. Never raises — if the
+    DB is unreachable it returns zeroed stats so the landing page stays live.
+    """
+    launch = datetime.fromisoformat(LAUNCH_AT_ISO)
+    if launch.tzinfo is None:
+        launch = launch.replace(tzinfo=timezone.utc)
+    since = launch.astimezone(timezone.utc).replace(tzinfo=None)
+
+    leads_total = 0
+    leads_by_source: Dict[str, int] = {}
+    high_intent = 0
+    try:
+        import json as _json
+
+        from core.models import Lead
+        from core.persistence.session import SessionLocal
+
+        db = SessionLocal()
+        try:
+            rows = (
+                db.query(Lead)
+                .filter(Lead.created_at >= since)
+                .all()
+            )
+            for row in rows:
+                leads_total += 1
+                source = "voice"
+                if row.metadata_json:
+                    try:
+                        meta = _json.loads(row.metadata_json)
+                        source = meta.get("source") or "voice"
+                    except ValueError:  # pragma: no cover - legacy row
+                        pass
+                leads_by_source[source] = leads_by_source.get(source, 0) + 1
+                if (row.intent_score or 0) >= 70:
+                    high_intent += 1
+        finally:
+            db.close()
+    except Exception:  # pragma: no cover - DB down, keep page live
+        leads_total = 0
+        leads_by_source = {}
+        high_intent = 0
+
+    cycles = 0
+    approval_pending = 0
+    try:
+        from core.services.growth_automation import growth_automation
+
+        cycles = growth_automation.state.get("cycle_count", 0)
+        approval_pending = len(growth_automation.pending_actions())
+    except Exception:  # pragma: no cover - growth loop not wired
+        pass
+
+    return {
+        "launch_week": is_launch_week(),
+        "leads_since_launch": leads_total,
+        "leads_by_source": leads_by_source,
+        "high_intent_leads": high_intent,
+        "growth_cycles": cycles,
+        "approval_pending": approval_pending,
+    }
+
+
 __all__ = [
     "SITE_URL",
     "PRODUCT_HUNT_URL",
@@ -171,4 +238,5 @@ __all__ = [
     "share_links",
     "status",
     "is_launch_week",
+    "activity",
 ]

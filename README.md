@@ -95,7 +95,8 @@ your trained weights and the landing agent runs on them.
   posts into your approval queue during launch week (`/api/launch/traffic/drafts`);
   your explicit daily job list is **`docs/launch_traffic_playbook.md`**.
 - **Launch API**: `GET /api/launch/status` (promo `LAUNCH100`, share links,
-  referral config) powers the landing page share buttons.
+  referral config) + `GET /api/launch/activity` (real launch-week metrics)
+  power the landing page share buttons and the live activity ticker.
 - **Launch plan**: `docs/ph_launch_plan.md`
 - **Voice-of-market research**: `docs/marketing_voice.md`
 - **Revenue projection**: `docs/mrr_projection.md`

@@ -269,9 +269,9 @@ function HeroSection() {
 
         <div className="mt-16 grid grid-cols-3 gap-8 max-w-lg mx-auto">
           {[
-            { value: "10x", label: "Faster Launch" },
-            { value: "85%", label: "Lead Conversion" },
-            { value: "3min", label: "Avg Setup" },
+            { value: "15", label: "AI Agents on Staff" },
+            { value: "24/7", label: "Voice Coverage" },
+            { value: "3min", label: "Typical Setup" },
           ].map((stat) => (
             <div key={stat.label} className="text-center">
               <div className="text-3xl md:text-4xl font-bold text-white">{stat.value}</div>

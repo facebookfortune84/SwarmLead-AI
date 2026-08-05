@@ -9,6 +9,7 @@ import {
   PRODUCT_HUNT_LAUNCH_AT,
   TimeLeft,
 } from "@/lib/countdown";
+import { PRODUCT_HUNT_URL } from "@/lib/launch";
 
 function TimeUnit({ value, label }: { value: string; label: string }) {
   return (
@@ -58,7 +59,7 @@ export function ProductHuntCountdown() {
               Genesis Forge is launching right now
             </h3>
             <a
-              href="https://www.producthunt.com/products/genesis-5?utm_source=realms2riches.com&utm_medium=landing_countdown"
+              href={PRODUCT_HUNT_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-500 hover:to-purple-500 shadow-lg shadow-indigo-500/25 transition-all"

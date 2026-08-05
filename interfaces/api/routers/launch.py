@@ -21,6 +21,12 @@ async def launch_status() -> Dict[str, object]:
     return launch_config.status()
 
 
+@router.get("/activity")
+async def launch_activity() -> Dict[str, object]:
+    """Real launch-week activity metrics (leads, intent, growth cycles)."""
+    return launch_config.activity()
+
+
 @router.get("/share")
 async def share() -> Dict[str, str]:
     """Pre-filled share links for X / Facebook / LinkedIn / WhatsApp / email."""

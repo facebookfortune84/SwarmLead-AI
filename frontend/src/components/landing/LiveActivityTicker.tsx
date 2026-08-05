@@ -1,23 +1,67 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { PRODUCT_HUNT_URL } from "@/lib/launch";
 
-const EVENTS = [
-  "A founder just launched their agency with Genesis",
-  "Voice agent qualified 12 leads overnight",
-  "New: full-duplex barge-in — interrupt mid-sentence",
-  "Growth plan founders shipped in under 3 minutes",
-  "15 agents now run outreach, SEO & follow-ups",
-  "A solo founder closed her first client on day 1",
+interface LaunchActivity {
+  launch_week: boolean;
+  leads_since_launch: number;
+  leads_by_source: Record<string, number>;
+  high_intent_leads: number;
+  growth_cycles: number;
+  approval_pending: number;
+}
+
+const FALLBACK_EVENTS = [
+  "15 agents run outreach, SEO & follow-ups behind one approval gate",
+  "Full-duplex barge-in — interrupt the voice agent mid-sentence",
+  "A business skeleton from a single spoken prompt",
+  "Every lead qualified, every send human-approved",
+  "Launch week: 1 month free on any plan",
 ];
 
+function activityMoments(a: LaunchActivity): string[] {
+  const moments: string[] = [];
+  if (a.launch_week) moments.push(`Launch week is live — ${a.leads_since_launch} leads captured so far`);
+  if (a.high_intent_leads > 0) moments.push(`${a.high_intent_leads} high-intent leads waiting in your queue`);
+  const bySource = Object.entries(a.leads_by_source);
+  if (bySource.length > 0) {
+    const top = bySource.sort((x, y) => y[1] - x[1])[0];
+    moments.push(`Most leads coming from ${top[0] === "voice" ? "the voice agent" : top[0].replace(/_/g, " ")} — ${top[1]}`);
+  }
+  if (a.growth_cycles > 0) moments.push(`${a.growth_cycles} growth cycles run since launch`);
+  if (a.approval_pending > 0) moments.push(`${a.approval_pending} actions awaiting your approval`);
+  return moments.length >= 3 ? moments : [...moments, ...FALLBACK_EVENTS].slice(0, 6);
+}
+
 export function LiveActivityTicker() {
-  const row = [...EVENTS, ...EVENTS];
+  const [events, setEvents] = useState<string[]>(FALLBACK_EVENTS);
+
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 8000);
+    fetch("/api/launch/activity", { signal: controller.signal })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("not ok"))))
+      .then((data: LaunchActivity) => {
+        if (!cancelled) setEvents(activityMoments(data));
+      })
+      .catch(() => {
+        /* keep the honest fallback copy */
+      })
+      .finally(() => window.clearTimeout(timer));
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, []);
+
+  const row = [...events, ...events];
   return (
     <section className="relative py-10 overflow-hidden border-y border-white/5 bg-white/[0.02]">
       <p className="text-center text-xs font-semibold uppercase tracking-widest text-white/40 mb-6">
-        Live from the launch
+        Launch-week activity
       </p>
       <div className="relative flex overflow-hidden" aria-hidden="true">
         <motion.div

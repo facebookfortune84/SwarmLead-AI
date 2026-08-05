@@ -35,7 +35,7 @@ export function LaunchChecklistMagnet() {
           /* ignore */
         }
       } else {
-        setStatus("saved");
+        setStatus("error");
       }
     } catch {
       setStatus("error");
@@ -160,11 +160,15 @@ export function ExitIntentPopup() {
       });
       if (!res.ok) throw new Error("capture failed");
       const data = await res.json();
-      setStatus(data.created === true || data.lead_id != null ? "saved" : "saved");
-      try {
-        localStorage.setItem(LEAD_CAPTURE_STORAGE_KEY, "1");
-      } catch {
-        /* ignore */
+      if (data.created === true || data.lead_id != null) {
+        setStatus("saved");
+        try {
+          localStorage.setItem(LEAD_CAPTURE_STORAGE_KEY, "1");
+        } catch {
+          /* ignore */
+        }
+      } else {
+        setStatus("error");
       }
     } catch {
       setStatus("error");
@@ -237,29 +241,28 @@ export function ExitIntentPopup() {
                   Drop your email and we'll hold your spot plus send the 30-point
                   launch checklist.
                 </p>
-                {status === "error" ? (
+                {status === "error" && (
                   <p className="text-sm text-red-300 mb-4">
-                    That email didn't save — please try again.
+                    Couldn't save that — please check your email and try again.
                   </p>
-                ) : (
-                  <form onSubmit={submit} className="flex flex-col gap-3">
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="you@company.com"
-                      className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:outline-none focus:border-indigo-500/40"
-                      aria-label="Email address"
-                    />
-                    <button
-                      type="submit"
-                      className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-500 hover:to-purple-500 shadow-lg shadow-indigo-500/25 transition-all"
-                    >
-                      Claim 1 month free
-                    </button>
-                  </form>
                 )}
+                <form onSubmit={submit} className="flex flex-col gap-3">
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@company.com"
+                    className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:outline-none focus:border-indigo-500/40"
+                    aria-label="Email address"
+                  />
+                  <button
+                    type="submit"
+                    className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-500 hover:to-purple-500 shadow-lg shadow-indigo-500/25 transition-all"
+                  >
+                    Claim 1 month free
+                  </button>
+                </form>
                 <p className="mt-4 text-[11px] text-white/40">
                   No spam — just the checklist and launch updates.
                 </p>

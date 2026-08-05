@@ -65,6 +65,8 @@ export function PlanFinderQuiz() {
   const [result, setResult] = useState<keyof typeof PLAN_DETAILS | null>(null);
   const [email, setEmail] = useState("");
   const [captured, setCaptured] = useState(false);
+  const [captureError, setCaptureError] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const resultRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -85,7 +87,9 @@ export function PlanFinderQuiz() {
 
   const capture = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.includes("@")) return;
+    if (!email.includes("@") || isSubmitting) return;
+    setIsSubmitting(true);
+    setCaptureError(false);
     try {
       const res = await fetch("/api/voice/capture", {
         method: "POST",
@@ -94,10 +98,15 @@ export function PlanFinderQuiz() {
       });
       if (!res.ok) throw new Error("capture failed");
       const data = await res.json();
-      if (data.created === true || data.lead_id != null) setCaptured(true);
+      if (data.created === true || data.lead_id != null) {
+        setCaptured(true);
+      } else {
+        setCaptureError(true);
+      }
     } catch {
-      /* fall through — quiz still shows the recommendation */
-      setCaptured(true);
+      setCaptureError(true);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -106,7 +115,9 @@ export function PlanFinderQuiz() {
     setAnswers({});
     setResult(null);
     setCaptured(false);
+    setCaptureError(false);
     setEmail("");
+    setIsSubmitting(false);
   };
 
   return (
@@ -183,23 +194,31 @@ export function PlanFinderQuiz() {
               <p className="text-white/60 mb-6">{PLAN_DETAILS[result].blurb}</p>
 
               {!captured ? (
-                <form onSubmit={capture} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto mb-4">
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@company.com"
-                    className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:outline-none focus:border-indigo-500/40"
-                    aria-label="Email address"
-                  />
-                  <button
-                    type="submit"
-                    className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-500 hover:to-purple-500 shadow-lg shadow-indigo-500/25 transition-all"
-                  >
-                    Unlock plan
-                  </button>
-                </form>
+                <div>
+                  <form onSubmit={capture} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto mb-4">
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@company.com"
+                      className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:outline-none focus:border-indigo-500/40"
+                      aria-label="Email address"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-500 hover:to-purple-500 shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-50"
+                    >
+                      {isSubmitting ? "Saving…" : "Unlock plan"}
+                    </button>
+                  </form>
+                  {captureError && (
+                    <p className="text-sm text-red-300 mb-4">
+                      Couldn't save that — please check your email and try again.
+                    </p>
+                  )}
+                </div>
               ) : (
                 <p className="text-sm text-emerald-300 mb-4">
                   Saved! We'll send your setup steps and the 1-month-free code.

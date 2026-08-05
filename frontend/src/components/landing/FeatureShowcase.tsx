@@ -82,10 +82,10 @@ export function FeatureShowcase() {
 
 export function SocialProof() {
   const stats = [
-    { value: "10x", label: "Faster Launch" },
-    { value: "85%", label: "Lead Conversion" },
-    { value: "3min", label: "Avg Setup Time" },
-    { value: "99.9%", label: "Uptime SLA" }
+    { value: "15", label: "AI Agents on Staff" },
+    { value: "24/7", label: "Voice Agent Coverage" },
+    { value: "1", label: "Human Approval Gate" },
+    { value: "0", label: "Lines of Code Required" }
   ];
 
   return (
@@ -112,21 +112,18 @@ export function SocialProof() {
   );
 }
 
-const testimonials = [
+const testimonialThemes = [
   {
-    name: "Sarah Chen",
-    role: "Founder, Lumos Ventures",
-    quote: "Genesis transformed how I launch businesses. I went from idea to first customer in under 48 hours. The voice AI setup is genuinely magical.",
+    title: "From idea to first customer",
+    quote: "Speak your vision, and Genesis provisions the workspace, launches the landing page, and starts qualifying leads while you do your day job.",
   },
   {
-    name: "Marcus Rivera",
-    role: "CEO, NexGen Properties",
-    quote: "The constitutional AI framework gives me complete confidence. Every action is auditable, every dollar tracked. It's like having a full compliance team built in.",
+    title: "Every action, auditable",
+    quote: "Constitutional AI means nothing goes out without your approval. Every lead, every draft, every dollar is tracked and reviewable.",
   },
   {
-    name: "Dr. Aisha Patel",
-    role: "Founder, HealthBridge AI",
-    quote: "I've tried every business launch platform. Nothing comes close to Genesis. The voice-first onboarding alone saves me weeks of setup time.",
+    title: "Setup in minutes, not weeks",
+    quote: "Voice-first onboarding builds your agent workforce, workflows, and company skeleton from a single spoken prompt.",
   },
 ];
 
@@ -141,17 +138,18 @@ export function Testimonials() {
           className="text-center mb-16"
         >
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-            Trusted by Ambitious Founders
+            What Launching with Genesis Looks Like
           </h2>
           <p className="text-xl text-white/60 max-w-2xl mx-auto">
-            Join thousands of founders who launched their businesses with Genesis.
+            One workspace, 15 agents, one human approval gate. No code, no
+            waiting on an agency.
           </p>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {testimonials.map((t, i) => (
+          {testimonialThemes.map((t, i) => (
             <motion.div
-              key={t.name}
+              key={t.title}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -165,11 +163,8 @@ export function Testimonials() {
                   </svg>
                 ))}
               </div>
-              <p className="text-white/80 leading-relaxed mb-6">&ldquo;{t.quote}&rdquo;</p>
-              <div>
-                <p className="text-white font-semibold">{t.name}</p>
-                <p className="text-white/40 text-sm">{t.role}</p>
-              </div>
+              <h3 className="text-white font-semibold mb-3">{t.title}</h3>
+              <p className="text-white/80 leading-relaxed">&ldquo;{t.quote}&rdquo;</p>
             </motion.div>
           ))}
         </div>
@@ -191,7 +186,7 @@ export function CTASection() {
           Ready to Launch Your Business?
         </h2>
         <p className="text-xl text-white/60 mb-10 max-w-2xl mx-auto">
-          Join 10,000+ founders who launched with Genesis. Start free, scale infinitely.
+          Start free, no credit card. Scale your lead pipeline with your voice.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <a 
