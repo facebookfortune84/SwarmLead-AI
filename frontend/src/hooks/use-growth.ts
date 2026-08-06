@@ -36,6 +36,7 @@ export type GrowthStatus = {
     pending: number;
     pending_outreach: number;
     pending_quotes: number;
+    pending_dunning?: number;
   };
 };
 

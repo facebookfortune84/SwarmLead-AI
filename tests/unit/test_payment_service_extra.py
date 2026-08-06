@@ -343,6 +343,41 @@ def test_handle_webhook_unknown_event_ignored(service, mock_stripe):
     sc.assert_not_called()
 
 
+def test_payment_failed_queues_dunning_behind_gate(service):
+    invoice = {"id": "in_fail", "customer_email": "owner@smithplumbing.com"}
+
+    class FakeGrowth:
+        def __init__(self):
+            self.queue = []
+
+        def _enqueue(self, kind, payload):
+            self.queue.append((kind, payload))
+
+    fake_growth = FakeGrowth()
+    with patch(
+        "core.services.growth_automation.growth_automation", fake_growth
+    ):
+        service._handle_payment_failed(invoice)
+
+    assert len(fake_growth.queue) == 1
+    kind, payload = fake_growth.queue[0]
+    assert kind == "dunning_retry"
+    assert payload["to_email"] == "owner@smithplumbing.com"
+    assert "payment" in payload["subject"].lower()
+    assert payload["grace_days"] == 7
+    assert "in_fail" in payload["body"]
+
+
+def test_payment_failed_without_email_is_noop(service):
+    """No customer identifiers to contact -> nothing queued, no exception."""
+    fake_growth = Mock()
+    with patch(
+        "core.services.growth_automation.growth_automation", fake_growth
+    ):
+        service._handle_payment_failed({"id": "in_x"})
+    fake_growth._enqueue.assert_not_called()
+
+
 def test_handle_webhook_invalid_signature(service, mock_stripe):
     mock_stripe.Webhook.construct_event.side_effect = Exception("Invalid signature")
 

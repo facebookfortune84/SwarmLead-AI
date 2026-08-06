@@ -319,6 +319,33 @@ DEFAULT_AGENT_CONFIG = {
             ],
             "data_allowlist": ["growth_metrics", "referrals", "expansion_data"],
         },
+        {
+            "agent_id": "sdr_agent",
+            "agent_type": "SDRAgent",
+            "display_name": "SDR Agent",
+            "domains": ["external_comms", "simulation"],
+            "tool_allowlist": [
+                "call_llm",
+                "draft_followup",
+                "read_memory",
+                "write_memory",
+            ],
+            "data_allowlist": ["leads", "deals", "pipeline", "prospecting_data"],
+        },
+        {
+            "agent_id": "closer_agent",
+            "agent_type": "CloserAgent",
+            "display_name": "Closer Agent",
+            "domains": ["external_comms", "financial"],
+            "tool_allowlist": [
+                "call_llm",
+                "compose_offer",
+                "handle_objection",
+                "read_memory",
+                "write_memory",
+            ],
+            "data_allowlist": ["deals", "pipeline", "quotes", "pricing"],
+        },
     ]
 }
 

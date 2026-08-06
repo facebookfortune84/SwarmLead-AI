@@ -116,7 +116,8 @@ export default function AutonomyPage() {
             </div>
             <p className="mt-2 text-2xl font-bold text-white">{pending.pending}</p>
             <p className="text-xs text-white/40 mt-1">
-              {pending.pending_outreach} outreach · {pending.pending_quotes} quotes
+              {pending.pending_outreach} outreach · {pending.pending_quotes} quotes ·{" "}
+              {pending.pending_dunning ?? 0} dunning
             </p>
           </Card>
           <Card className="p-5">

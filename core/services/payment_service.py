@@ -207,7 +207,11 @@ class PaymentService:
         )
 
     def _handle_payment_failed(self, invoice: Dict):
-        """Handle failed payment."""
+        """Handle failed payment.
+
+        Drafts a dunning recovery email into the growth loop's approval
+        queue (human-gated, never sent without approval) and logs per §12.5.
+        """
         logger.warning(f"Payment failed for invoice: {invoice.get('id')}")
         self._audit_log(
             "payment_failed",
@@ -218,6 +222,26 @@ class PaymentService:
                 "rail": "stripe_card",
             },
         )
+        try:
+            from core.services.growth_automation import growth_automation
+            from core.services.monetization import monetization
+
+            email = invoice.get("customer_email") or invoice.get("customer")
+            if not email:
+                return
+            notice = monetization.dunning_notice(email, {"id": invoice.get("id")})
+            growth_automation._enqueue(
+                "dunning_retry",
+                {
+                    "to_email": email,
+                    "subject": notice["subject"],
+                    "body": notice["body"],
+                    "grace_days": notice["grace_days"],
+                },
+            )
+            logger.info("Dunning retry queued behind approval gate for %s", email)
+        except Exception as exc:  # pragma: no cover
+            logger.warning("Could not queue dunning notice: %s", exc)
 
     def _handle_subscription_canceled(self, subscription: Dict):
         """Handle subscription cancellation."""

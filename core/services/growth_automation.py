@@ -265,11 +265,11 @@ class GrowthAutomation:
         """Auto-approve queued emails so the pipeline runs without a human.
 
         Only real deliveries that can be performed by the machine are approved:
-        outreach sends and quote sends. Traffic posts are *always* left for the
-        founder (they require an account on each social network). Supplied
-        safety rails from the manual gate remain: SMTP must be configured,
-        dry-run is honored, the hourly rate cap holds, and bounces/complaints
-        auto-suppress the address.
+        outreach sends, quote sends and dunning recovery notices. Traffic posts
+        are *always* left for the founder (they require an account on each social
+        network). Supplied safety rails from the manual gate remain: SMTP must be
+        configured, dry-run is honored, the hourly rate cap holds, and
+        bounces/complaints auto-suppress the address.
         """
         from core.services.email_sender import email_sender
 
@@ -283,7 +283,7 @@ class GrowthAutomation:
         failed = 0
         rate_limited = 0
         for action in self.pending_actions():
-            if action["kind"] not in {"outreach_send", "quote_send"}:
+            if action["kind"] not in {"outreach_send", "quote_send", "dunning_retry"}:
                 continue  # traffic posts stay behind the founder's hand
             result = await self.approve(action["id"])
             status = result.get("status")
@@ -845,6 +845,8 @@ class GrowthAutomation:
             result = await self._dispatch_outreach(action)
         elif action["kind"] == "quote_send":
             result = await self._dispatch_quote(action)
+        elif action["kind"] == "dunning_retry":
+            result = await self._dispatch_dunning(action)
         elif action["kind"] == "traffic_post":
             from core.services.launch_config import share_links
 
@@ -869,6 +871,8 @@ class GrowthAutomation:
             self._record_failure(action, result)
         elif action["kind"] == "quote_send" and result.get("status") == "sent":
             self._record_quote(action)
+        elif action["kind"] == "dunning_retry" and result.get("status") == "sent":
+            self._record_dunning(action)
 
         approved_statuses = {"sent", "dry_run", "approved_for_manual_post"}
         action["status"] = "approved" if result.get("status") in approved_statuses else "failed"
@@ -983,6 +987,23 @@ class GrowthAutomation:
             payload["body"],
         )
 
+    async def _dispatch_dunning(self, action: Dict) -> Dict:
+        """Send the dunning recovery email drafted for a failed payment."""
+        from core.services.email_sender import email_sender
+
+        payload = action["payload"]
+        return await email_sender.send(
+            payload["to_email"],
+            payload["subject"],
+            payload["body"],
+        )
+
+    def _record_dunning(self, action: Dict) -> None:
+        """Track dunning notices dispatched for failed-payment recovery."""
+        rev = self.state.setdefault("revenue", {"quotes_approved": 0, "projected_mrr": 0})
+        rev["dunning_notices"] = rev.get("dunning_notices", 0) + 1
+        self._save_state()
+
     # -------------------------------------------------------------- lifecycle
     async def start_loop(self) -> None:
         """Background loop: run a cycle now, then every cycle_hours."""
@@ -1009,6 +1030,19 @@ class GrowthAutomation:
     def status(self) -> Dict[str, Any]:
         from core.services.deliverability import deliverability
 
+        pipeline = {}
+        try:
+            from core.services.sales_pipeline import sales_pipeline
+
+            snapshot = sales_pipeline.pipeline_snapshot()
+            pipeline = {
+                "open_deals": snapshot["open_deals"],
+                "weighted_pipeline_cents": snapshot["weighted_pipeline_cents"],
+                "closed_won_mrr_cents": sales_pipeline.forecast()["closed_won_mrr_cents"],
+            }
+        except Exception:  # pragma: no cover
+            pipeline = {}
+
         return {
             "enabled": self.enabled,
             "auto_approve": self.auto_approve,
@@ -1018,6 +1052,7 @@ class GrowthAutomation:
             "next_run": self.state.get("next_run"),
             "funnel": self.state.get("funnel", {}),
             "revenue": self.state.get("revenue", {"quotes_approved": 0, "projected_mrr": 0}),
+            "sales_pipeline": pipeline,
             "deliverability": deliverability.score(),
             "learned_keyword_boosts": self.state.get("learned_keyword_boosts", {}),
             "discovery": {
@@ -1033,6 +1068,7 @@ class GrowthAutomation:
                 "pending": len(self.pending_actions()),
                 "pending_outreach": self._pending_count("outreach_send"),
                 "pending_quotes": self._pending_count("quote_send"),
+                "pending_dunning": self._pending_count("dunning_retry"),
             },
         }
 

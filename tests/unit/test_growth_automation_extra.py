@@ -536,6 +536,34 @@ async def test_approve_quote_tiers_mrr(ga, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_approve_dunning_retry_dispatches(ga, monkeypatch):
+    _fake_sender(monkeypatch, {"status": "sent", "to_email": "late@x.com"})
+    ga._enqueue(
+        "dunning_retry",
+        {"to_email": "late@x.com", "subject": "s", "body": "b", "grace_days": 7},
+    )
+    item = ga.pending_actions()[0]
+    result = await ga.approve(item["id"])
+    assert result["status"] == "approved"
+    assert ga._find_action(item["id"])["status"] == "approved"
+    assert ga.state["revenue"].get("dunning_notices") == 1
+
+
+@pytest.mark.asyncio
+async def test_auto_approve_pending_dispatches_dunning(ga, monkeypatch):
+    _fake_sender(monkeypatch, {"status": "sent", "to_email": "late@x.com"})
+    ga._enqueue(
+        "dunning_retry",
+        {"to_email": "late@x.com", "subject": "s", "body": "b", "grace_days": 7},
+    )
+    result = await ga._auto_approve_pending()
+    assert result["status"] == "ok"
+    assert result["approved"] == 1
+    assert ga.pending_actions() == []
+    assert ga.state["revenue"]["dunning_notices"] == 1
+
+
+@pytest.mark.asyncio
 async def test_approve_not_found(ga):
     result = await ga.approve("DOES-NOT-EXIST")
     assert result == {"status": "not_found"}
@@ -746,6 +774,35 @@ def test_status_discovery_exception_paths(ga, monkeypatch):
     status = ga.status()
     assert status["discovery"]["findings"] == 0
     assert status["discovery"]["recent"] == []
+
+
+def test_status_includes_sales_pipeline_and_dunning(ga, monkeypatch):
+    ga._enqueue(
+        "dunning_retry",
+        {"to_email": "late@x.com", "subject": "s", "body": "b", "grace_days": 7},
+    )
+    status = ga.status()
+    assert status["sales_pipeline"] == {
+        "open_deals": 0,
+        "weighted_pipeline_cents": 0,
+        "closed_won_mrr_cents": 0,
+    }
+    assert status["approval_queue"]["pending_dunning"] == 1
+
+
+def test_status_sales_pipeline_survives_missing_deals_db(ga, monkeypatch):
+    import core.services.sales_pipeline as sp_mod
+
+    class BoomPipeline:
+        def pipeline_snapshot(self):
+            raise RuntimeError("no deals table")
+
+        def forecast(self):
+            raise RuntimeError("no deals table")
+
+    monkeypatch.setattr(sp_mod, "sales_pipeline", BoomPipeline())
+    status = ga.status()
+    assert status["sales_pipeline"] == {}
 
 
 # ------------------------------------------------------------ autopilot mode

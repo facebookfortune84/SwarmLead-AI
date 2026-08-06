@@ -1,5 +1,7 @@
 import pytest
 
+from core.auth.agent_identity import DEFAULT_AGENT_CONFIG, AgentIdentityRegistry
+
 
 @pytest.mark.asyncio
 async def test_register_and_list_agents(agent_manager, simple_agent):
@@ -52,6 +54,23 @@ async def test_missing_identity_raises_error(agent_manager):
 
     with pytest.raises(ValueError, match="not found in identity registry"):
         agent_manager.register_agent("unknown_agent", orphan_agent)
+
+
+@pytest.mark.asyncio
+async def test_sales_agents_register_with_identity(agent_manager):
+    """SDR and Closer identities must exist in the default config so the
+    startup warning 'Agent x not found in identity registry' never fires."""
+
+    async def sdr_handler(data, ctx):
+        return {"ok": True}
+
+    async def closer_handler(data, ctx):
+        return {"ok": True}
+
+    for name in ("sdr_agent", "closer_agent"):
+        AgentIdentityRegistry.load_from_config(DEFAULT_AGENT_CONFIG)
+        agent_manager.register_agent(name, sdr_handler)
+        assert agent_manager.get_agent(name) is not None
 
 
 @pytest.mark.asyncio
