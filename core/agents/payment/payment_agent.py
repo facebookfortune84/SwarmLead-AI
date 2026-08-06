@@ -28,7 +28,6 @@ class PaymentAgent(BaseAgent):
     ) -> Dict[str, Any]:
         plan_name = (input_data.get("plan") or "growth").lower()
         product = input_data.get("product", "")
-        text = input_data.get("text", "")
 
         if plan_name not in self.PLANS:
             plan_name = "growth"

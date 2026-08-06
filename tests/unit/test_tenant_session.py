@@ -1,7 +1,7 @@
 """Unit tests for tenant-scoped sessions (core.persistence.tenant_session)."""
 
-import sqlalchemy
 import pytest
+import sqlalchemy
 
 from core.persistence.tenant_session import (
     _tenant_engines,

@@ -453,10 +453,10 @@ async def test_discover_full_e2e_persists_and_dedups(tmp_path, monkeypatch):
 
     engine = _patched_engine(tmp_path, monkeypatch, handler, mx=(True, "mx.acmeplumbing.com"))
     leads = await engine.discover(verticals=["plumber"], max_targets=1)
-    emails = {l.email for l in leads}
+    emails = {lead.email for lead in leads}
     assert emails == {"bob@acmeplumbing.com", "jane@acmeplumbing.com"}
 
-    bob = [l for l in leads if l.email == "bob@acmeplumbing.com"][0]
+    bob = [lead for lead in leads if lead.email == "bob@acmeplumbing.com"][0]
     assert bob.name == "Bob"
     assert bob.company == "Acme Plumbing LLC"
     assert bob.vertical.strip('"') == "Plumber"

@@ -2,8 +2,6 @@
 
 import os
 
-import pytest
-
 from core.services.voice_model import (
     DEFAULT_VOICE_MODEL_ENV,
     VoiceModelRegistry,

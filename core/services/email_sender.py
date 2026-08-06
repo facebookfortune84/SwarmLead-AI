@@ -2,7 +2,9 @@
 SMTP email sender for the autonomous growth loop.
 
 Sends plaintext email via the configured SMTP provider (env: SMTP_HOST,
-SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM). Rate-limited per send window
+SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM). SMTP_SECURITY selects the
+transport: "tls" (STARTTLS, default), "ssl" (implicit TLS), or "none"
+(unencrypted, for local/dev relays only). Rate-limited per send window
 and supports a dry-run mode (OUTREACH_DRY_RUN=1) so the pipeline can be
 validated before real delivery is enabled.
 
@@ -31,6 +33,7 @@ class EmailSender:
         self.port = int(os.getenv("SMTP_PORT", "587"))
         self.user = os.getenv("SMTP_USER", "")
         self.password = os.getenv("SMTP_PASS", "")
+        self.security = os.getenv("SMTP_SECURITY", "tls")
         self.from_name = os.getenv("SMTP_FROM_NAME", "SwarmOS")
         self.from_email = os.getenv("SMTP_FROM", self.user)
         self.dry_run = os.getenv("OUTREACH_DRY_RUN", "0") == "1"
@@ -98,8 +101,14 @@ class EmailSender:
         msg.set_content(body)
 
         context = ssl.create_default_context()
+        if self.security == "ssl":
+            with smtplib.SMTP_SSL(self.host, self.port, context=context, timeout=30) as server:
+                server.login(self.user, self.password)
+                server.send_message(msg)
+            return
         with smtplib.SMTP(self.host, self.port, timeout=30) as server:
-            server.starttls(context=context)
+            if self.security == "tls":
+                server.starttls(context=context)
             server.login(self.user, self.password)
             server.send_message(msg)
 

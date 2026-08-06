@@ -9,9 +9,10 @@ env:
   JWT_SECRET_KEY: ci-test-secret-key-for-github-actions-2026
   SWARM_DB_URL: ""
   DATABASE_URL: ""
+  GROWTH_AUTO_MODE: "0"
 
 jobs:
-  test:
+  backend:
     runs-on: ubuntu-latest
 
     steps:
@@ -28,6 +29,34 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Run tests
+    - name: Lint (ruff)
       run: |
-        pytest --cov=core --cov=utils
+        ruff check core interfaces tests utils
+
+    - name: Run tests (unit + integration)
+      run: |
+        python tests/run_tests.py --cov-fail-under=96
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run frontend tests
+      run: npm test
+
+    - name: Build
+      run: npm run build

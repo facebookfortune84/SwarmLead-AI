@@ -63,7 +63,7 @@ class RepairAgent(BaseAgent):
         return {"category": "unknown", "severity": "info", "needs_human_approval": False}
 
     def _root_cause(self, logs: str) -> str:
-        lines = [l.strip() for l in (logs or "").splitlines() if l.strip()]
+        lines = [line.strip() for line in (logs or "").splitlines() if line.strip()]
         if not lines:
             return "No error logs provided — attach logs or describe the symptom."
         return f"Most relevant signal: {lines[0][:200]}"

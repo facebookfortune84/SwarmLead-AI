@@ -188,7 +188,6 @@ class DeliverabilityEngine:
         warnings: List[str] = []
 
         from_email = os.getenv("SMTP_FROM", os.getenv("SMTP_USER", ""))
-        smtp_user = os.getenv("SMTP_USER", "")
 
         if not from_email:
             warnings.append("SMTP_FROM not set")

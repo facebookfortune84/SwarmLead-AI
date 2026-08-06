@@ -99,4 +99,4 @@ async def test_discover_end_to_end_with_stubbed_search(tmp_path, monkeypatch):
 
     # Second pass must not re-emit the same lead (dedup).
     again = await engine.discover(verticals=["plumber"], max_targets=1)
-    assert all(l.email != "owner@smithplumbing.com" for l in again)
+    assert all(lead.email != "owner@smithplumbing.com" for lead in again)

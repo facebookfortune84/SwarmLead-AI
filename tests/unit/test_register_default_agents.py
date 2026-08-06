@@ -2,9 +2,9 @@
 
 import pytest
 
-from core.orchestration.register_default_agents import register_default_agents
-from core.orchestration.agent_manager import agent_manager
 from core.auth.agent_identity import AgentIdentityRegistry
+from core.orchestration.agent_manager import agent_manager
+from core.orchestration.register_default_agents import register_default_agents
 
 
 @pytest.fixture(autouse=True)

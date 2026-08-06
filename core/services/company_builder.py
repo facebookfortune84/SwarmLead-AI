@@ -282,8 +282,8 @@ tenant, AI voice agent, and lead workflows for {package['name']}.
 
     def _persist_tenant(self, company_id: str, slug: str, name: str, package: Dict, zip_path: Path) -> None:
         try:
-            from core.persistence.session import SessionLocal
             from core.models.tenant import CompanyTenant
+            from core.persistence.session import SessionLocal
 
             session = SessionLocal()
             try:

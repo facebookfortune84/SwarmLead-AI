@@ -4,8 +4,8 @@ import pytest
 
 from core.auth.agent_identity import AgentDomain, AgentIdentity, AgentIdentityRegistry
 from core.orchestration.agent_manager import AgentManager
-from tests.fixtures.agent_fixtures import *
-from tests.fixtures.data_fixtures import *
+from tests.fixtures.agent_fixtures import *  # noqa: F403,F401
+from tests.fixtures.data_fixtures import *  # noqa: F403,F401
 
 
 @pytest.fixture(scope="session")

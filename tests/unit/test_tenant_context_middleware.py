@@ -21,7 +21,6 @@ from core.middleware.tenant_context import (
     require_agent_context,
     require_tenant_context,
 )
-
 from interfaces.api.auth.jwt_handler import create_access_token
 
 

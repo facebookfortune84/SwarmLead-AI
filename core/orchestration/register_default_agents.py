@@ -35,6 +35,7 @@ def register_default_agents() -> None:
     if not AgentIdentityRegistry._identities:
         AgentIdentityRegistry.load_from_config(DEFAULT_AGENT_CONFIG)
 
+    from configs.config_loader import ConfigLoader
     from core.agents.audit.audit_agent import audit_agent
     from core.agents.builder.builder_agent import BuilderAgent
     from core.agents.content.content_agent import ContentAgent
@@ -51,7 +52,6 @@ def register_default_agents() -> None:
     from core.agents.strategy.strategy_agent import StrategyAgent
     from core.agents.voice.voice_agent import VoiceAgent
     from core.integrations.elevenlabs.elevenlabs_client import ElevenLabsClient
-    from configs.config_loader import ConfigLoader
 
     config = ConfigLoader.load()
 

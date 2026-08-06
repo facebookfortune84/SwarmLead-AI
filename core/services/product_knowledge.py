@@ -13,7 +13,7 @@ tight, bounded slice of the highest-scoring chunks per turn.
 import logging
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

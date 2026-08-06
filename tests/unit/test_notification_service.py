@@ -5,9 +5,9 @@ import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 
 import core.models  # noqa: F401
+from core.models.user import User
 from core.persistence.base import Base
 from core.services.notification_service import NotificationService
-from core.models.user import User
 
 
 @pytest.fixture

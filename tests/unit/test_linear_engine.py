@@ -45,7 +45,7 @@ def test_list_leads_orders_by_created_desc(engine_db):
     id1 = engine.create_lead("first@b.com")
     id2 = engine.create_lead("second@b.com")
     leads = engine.list_leads()
-    assert [l["id"] for l in leads][:2] == [id2, id1]
+    assert [lead["id"] for lead in leads][:2] == [id2, id1]
 
 
 def test_list_leads_respects_limit(engine_db):

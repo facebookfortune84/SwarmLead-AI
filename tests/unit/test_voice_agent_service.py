@@ -4,7 +4,6 @@ import pytest
 
 from core.services.voice_agent_service import (
     GREETINGS,
-    SCRIPTED_REPLY,
     VoiceAgentService,
     voice_agent_service,
 )
@@ -120,8 +119,8 @@ def test_capture_lead_persists(service, tmp_path, monkeypatch):
     import sqlalchemy
     from sqlalchemy.orm import sessionmaker
 
-    from core.persistence.base import Base
     import core.models  # noqa: F401  (register models on Base.metadata)
+    from core.persistence.base import Base
 
     db_path = tmp_path / "leads.db"
     engine = sqlalchemy.create_engine(f"sqlite:///{db_path.as_posix()}")
@@ -158,8 +157,8 @@ def test_capture_lead_dedup_flags_review(service, tmp_path, monkeypatch):
     import sqlalchemy
     from sqlalchemy.orm import sessionmaker
 
-    from core.persistence.base import Base
     import core.models  # noqa: F401
+    from core.persistence.base import Base
 
     db_path = tmp_path / "leads2.db"
     engine = sqlalchemy.create_engine(f"sqlite:///{db_path.as_posix()}")

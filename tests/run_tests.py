@@ -8,6 +8,8 @@ ENV_PATH = ROOT / ".env"
 
 
 def load_env(path: Path) -> None:
+    if not path.exists():
+        return
     for line in path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if not line or line.startswith("#") or "=" not in line:
@@ -24,6 +26,7 @@ def load_env(path: Path) -> None:
 def main() -> int:
     load_env(ENV_PATH)
     os.environ.setdefault("JWT_SECRET_KEY", "test-secret-for-local-runs-only")
+    os.environ.setdefault("TEST_MODE", "1")
     # Integration tests run on the host against the Docker-published services,
     # so rewrite docker-network hostnames to localhost when present in .env.
     _remap("DATABASE_URL", "postgres", "localhost")

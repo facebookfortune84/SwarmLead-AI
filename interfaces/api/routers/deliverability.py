@@ -5,9 +5,8 @@ Deliverability API — DNS records, sender-health score, suppression list.
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from interfaces.api.auth.middleware import get_current_active_user
-
 from core.services.deliverability import deliverability
+from interfaces.api.auth.middleware import get_current_active_user
 
 router = APIRouter(
     prefix="/api/deliverability",

@@ -2,7 +2,7 @@
 
 import pytest
 
-from core.services.deliverability import DeliverabilityEngine, FREE_EMAIL_DOMAINS
+from core.services.deliverability import FREE_EMAIL_DOMAINS, DeliverabilityEngine
 
 
 @pytest.fixture

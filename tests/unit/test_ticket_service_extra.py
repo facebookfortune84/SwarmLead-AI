@@ -10,7 +10,7 @@ import pytest
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 
-from core.models.ticket import Ticket
+import core.models  # noqa: F401  (register all models on Base.metadata)
 from core.models.ticket_history import TicketHistory
 from core.persistence.base import Base
 from core.services.ticket_service import (
@@ -19,8 +19,6 @@ from core.services.ticket_service import (
     VALID_STATUSES,
     TicketService,
 )
-
-import core.models  # noqa: F401  (register all models on Base.metadata)
 
 
 @pytest.fixture
@@ -168,7 +166,7 @@ def test_list_tickets_filter_status(service):
 
 def test_list_tickets_filter_priority_and_assignee(service):
     hi = service.create_ticket(title="hi", instruction="i", priority="high", assignee_id="a1")
-    lo = service.create_ticket(title="lo", instruction="i", priority="low", assignee_id="a2")
+    service.create_ticket(title="lo", instruction="i", priority="low", assignee_id="a2")
     result = service.list_tickets(priority="high", assignee_id="a1")
     assert [t.id for t in result] == [hi.id]
     assert service.list_tickets(priority="low", assignee_id="a1") == []

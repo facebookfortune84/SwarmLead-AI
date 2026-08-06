@@ -7,9 +7,9 @@ and that the reporting router no longer depends on a missing module.
 
 from datetime import date
 
+from core.models.outreach import OutreachDailyMetrics
 from core.persistence.session import SessionLocal, init_db
 from core.services.reporting_agent import ReportingAgent
-from core.models.outreach import OutreachDailyMetrics
 
 
 def test_metrics_range_returns_continuous_series():

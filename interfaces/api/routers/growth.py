@@ -13,9 +13,8 @@ Endpoints:
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from interfaces.api.auth.middleware import get_current_active_user
-
 from core.services.growth_automation import growth_automation
+from interfaces.api.auth.middleware import get_current_active_user
 
 router = APIRouter(
     prefix="/api/growth",
@@ -82,3 +81,10 @@ async def run_now(_=Depends(get_current_active_user)):
 async def toggle(enabled: bool, _=Depends(get_current_active_user)):
     growth_automation.set_enabled(enabled)
     return {"enabled": enabled}
+
+
+@router.post("/auto-approve")
+async def set_auto_approve(auto_approve: bool, _=Depends(get_current_active_user)):
+    """Enable/disable zero-input delivery: the loop approves outreach + quotes."""
+    growth_automation.set_auto_approve(auto_approve)
+    return {"auto_approve": auto_approve}

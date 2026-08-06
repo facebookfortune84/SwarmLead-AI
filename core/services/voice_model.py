@@ -21,8 +21,8 @@ agent immediately runs on your trained model. See ``docs/voice_model_integration
 
 import logging
 import os
-from dataclasses import dataclass, field
-from typing import Dict, Optional
+from dataclasses import dataclass
+from typing import Dict
 
 from configs.config_loader import ConfigLoader
 

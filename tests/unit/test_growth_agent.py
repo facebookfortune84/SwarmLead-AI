@@ -2,13 +2,13 @@
 
 import pytest
 
+from configs.config_loader import ConfigLoader
 from core.agents.growth.growth_agent import (
     FunnelStage,
     GrowthAgent,
     GrowthExperiment,
     GrowthMetric,
 )
-from configs.config_loader import ConfigLoader
 
 
 @pytest.fixture

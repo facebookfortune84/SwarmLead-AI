@@ -746,3 +746,263 @@ def test_status_discovery_exception_paths(ga, monkeypatch):
     status = ga.status()
     assert status["discovery"]["findings"] == 0
     assert status["discovery"]["recent"] == []
+
+
+# ------------------------------------------------------------ autopilot mode
+def test_auto_approve_flag_read_from_env(tmp_path, monkeypatch):
+    monkeypatch.setenv("GROWTH_AUTO_APPROVE", "1")
+    instance = GrowthAutomation(state_path=tmp_path / "growth_state.json")
+    assert instance.auto_approve is True
+
+
+def test_set_auto_approve_persists_flag(ga):
+    ga.set_auto_approve(True)
+    assert ga.auto_approve is True
+    assert ga.state["auto_approve"] is True
+    ga.set_auto_approve(False)
+    assert ga.auto_approve is False
+
+
+@pytest.mark.asyncio
+async def test_auto_approve_pending_outreach_and_quotes(ga, monkeypatch):
+    _fake_sender(monkeypatch, {"status": "sent", "to_email": "owner@x.com"})
+    ga._enqueue("outreach_send", {"to_email": "o@x.com", "subject": "s", "body": "b"})
+    ga._enqueue("quote_send", {"to_email": "q@x.com", "subject": "s", "body": "b", "tier": "growth"})
+    result = await ga._auto_approve_pending()
+    assert result["status"] == "ok"
+    assert result["approved"] == 2
+    assert result["failed"] == 0
+    assert ga.pending_actions() == []
+    assert ga.state["revenue"]["quotes_approved"] == 1
+
+
+@pytest.mark.asyncio
+async def test_auto_approve_skips_traffic_posts(ga, monkeypatch):
+    _fake_sender(monkeypatch, {"status": "sent", "to_email": "owner@x.com"})
+    ga._enqueue("traffic_post", {"network": "x", "text": "Post it"})
+    ga._enqueue("outreach_send", {"to_email": "o@x.com", "subject": "s", "body": "b"})
+    result = await ga._auto_approve_pending()
+    assert result["approved"] == 1
+    pending = [a for a in ga.pending_actions() if a["kind"] == "traffic_post"]
+    assert pending, "traffic posts must stay behind the founder"
+
+
+
+@pytest.mark.asyncio
+async def test_auto_approve_unconfigured_smtp_skips(ga, monkeypatch):
+    from core.services.email_sender import email_sender
+
+    monkeypatch.setattr(email_sender, "host", "")
+    monkeypatch.setattr(email_sender, "user", "")
+    monkeypatch.setattr(email_sender, "password", "")
+    ga._enqueue("outreach_send", {"to_email": "o@x.com", "subject": "s", "body": "b"})
+    result = await ga._auto_approve_pending()
+    assert result["status"] == "skipped"
+    assert result["reason"].startswith("SMTP")
+    assert ga.pending_actions(), "nothing should be dispatched without SMTP"
+
+
+@pytest.mark.asyncio
+async def test_auto_approve_counts_rate_limited(ga, monkeypatch):
+    _fake_sender(monkeypatch, {"status": "rate_limited", "message": "limit hit"})
+    ga._enqueue("outreach_send", {"to_email": "o@x.com", "subject": "s", "body": "b"})
+    result = await ga._auto_approve_pending()
+    assert result["rate_limited"] == 1
+    assert ga.pending_actions(), "rate-limited action must stay pending"
+
+
+@pytest.mark.asyncio
+async def test_auto_approve_failed_sends_suppress(ga, monkeypatch):
+    _fake_sender(monkeypatch, {"status": "failed", "error": "SMTP 550 5.1.1 bounce"})
+    ga._enqueue("outreach_send", {"to_email": "bounce@x.com", "subject": "s", "body": "b"})
+    result = await ga._auto_approve_pending()
+    assert result["failed"] == 1
+    assert deliverability.is_suppressed("bounce@x.com")
+
+
+@pytest.mark.asyncio
+async def test_run_cycle_invokes_auto_approve_when_enabled(tmp_path, monkeypatch):
+    instance = _make_instance(tmp_path, monkeypatch)
+    instance.auto_approve = True
+    monkeypatch.setattr(instance, "_qualified_leads", lambda limit: [])
+
+    async def fake_auto():
+        return {"status": "ok", "approved": 0}
+
+    monkeypatch.setattr(instance, "_auto_approve_pending", fake_auto)
+    cycle = await instance.run_cycle(reason="test")
+    assert cycle["auto_approve"]["status"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_run_cycle_skips_auto_approve_when_disabled(tmp_path, monkeypatch):
+    instance = _make_instance(tmp_path, monkeypatch)
+    instance.auto_approve = False
+    monkeypatch.setattr(instance, "_qualified_leads", lambda limit: [])
+    called = {"count": 0}
+
+    async def _auto(**kwargs):
+        called["count"] += 1
+        return {"status": "ok"}
+
+    monkeypatch.setattr(instance, "_auto_approve_pending", _auto)
+    await instance.run_cycle(reason="test")
+    assert called["count"] == 0
+
+
+# ------------------------------------------------------------- leader lock
+@pytest.mark.asyncio
+async def test_run_cycle_skipped_when_another_replica_holds_lock(tmp_path, monkeypatch):
+    instance = _make_instance(tmp_path, monkeypatch)
+    instance.auto_approve = False
+
+    async def hold():
+        return "skipped"
+
+    monkeypatch.setattr(instance, "_acquire_leader_lock", hold)
+    result = await instance.run_cycle(reason="test")
+    assert result["status"] == "skipped"
+    assert "another replica" in result["reason"]
+
+
+@pytest.mark.asyncio
+async def test_run_cycle_disabled_returns_early(tmp_path, monkeypatch):
+    instance = _make_instance(tmp_path, monkeypatch)
+    instance.enabled = False
+    result = await instance.run_cycle(reason="test")
+    assert result == {"status": "disabled"}
+
+
+@pytest.mark.asyncio
+async def test_leader_lock_acquired_sets_redis_key(monkeypatch):
+    monkeypatch.setenv("TEST_MODE", "0")
+    import redis.asyncio as redis_module
+
+    class FakeRedis:
+        def __init__(self):
+            self.value = None
+            self.closed = False
+
+        async def set(self, key, value, nx=False, px=None):
+            self.value = value
+            return True
+
+        async def get(self, key):
+            return self.value.encode() if self.value else None
+
+        async def delete(self, key):
+            self.value = None
+
+        async def aclose(self):
+            self.closed = True
+
+    monkeypatch.setattr(redis_module, "from_url", lambda url, **kw: FakeRedis())
+    from core.services.growth_automation import GrowthAutomation
+
+    instance = GrowthAutomation(state_path=None)
+    result = await instance._acquire_leader_lock()
+    assert result == "acquired"
+    assert instance._leader_client is not None
+
+
+@pytest.mark.asyncio
+async def test_leader_lock_skipped_when_key_held(monkeypatch):
+    monkeypatch.setenv("TEST_MODE", "0")
+    import redis.asyncio as redis_module
+
+    class HeldRedis:
+        async def set(self, key, value, nx=False, px=None):
+            return False  # someone else owns the lock
+
+        async def get(self, key):
+            return b"other-replica"
+
+        async def delete(self, key):
+            pass
+
+        async def aclose(self):
+            pass
+
+    monkeypatch.setattr(redis_module, "from_url", lambda url, **kw: HeldRedis())
+    from core.services.growth_automation import GrowthAutomation
+
+    instance = GrowthAutomation(state_path=None)
+    assert await instance._acquire_leader_lock() == "skipped"
+
+
+@pytest.mark.asyncio
+async def test_leader_lock_unavailable_redis_down(tmp_path, monkeypatch):
+    monkeypatch.setenv("TEST_MODE", "0")
+    import redis.asyncio as redis_module
+
+    def boom(url, **kwargs):
+        raise RuntimeError("connection refused")
+
+    monkeypatch.setattr(redis_module, "from_url", boom)
+    from core.services.growth_automation import GrowthAutomation
+
+    instance = GrowthAutomation(state_path=tmp_path / "growth_state.json")
+    assert await instance._acquire_leader_lock() == "unavailable"
+
+
+@pytest.mark.asyncio
+async def test_release_leader_lock_only_when_owner(tmp_path, monkeypatch):
+    from core.services.growth_automation import GrowthAutomation
+
+    class FakeRedis:
+        def __init__(self):
+            self.deleted = False
+            self.value = None
+
+        async def set(self, key, value, nx=False, px=None):
+            self.value = value
+            return True
+
+        async def get(self, key):
+            return self.value.encode() if self.value else None
+
+        async def delete(self, key):
+            self.deleted = True
+            self.value = None
+
+        async def aclose(self):
+            pass
+
+    client = FakeRedis()
+    instance = GrowthAutomation(state_path=tmp_path / "growth_state.json")
+    instance._leader_client = client
+    client.value = instance.instance_id
+    await instance._release_leader_lock()
+    assert client.deleted is True
+
+
+@pytest.mark.asyncio
+async def test_release_leader_lock_not_owner(tmp_path, monkeypatch):
+    from core.services.growth_automation import GrowthAutomation
+
+    class FakeRedis:
+        def __init__(self):
+            self.deleted = False
+
+        async def get(self, key):
+            return b"another-replica"
+
+        async def delete(self, key):
+            self.deleted = True
+
+        async def aclose(self):
+            pass
+
+    client = FakeRedis()
+    instance = GrowthAutomation(state_path=tmp_path / "growth_state.json")
+    instance._leader_client = client
+    await instance._release_leader_lock()
+    assert client.deleted is False
+
+
+def test_instance_id_is_unique():
+    from core.services.growth_automation import GrowthAutomation
+
+    a = GrowthAutomation(state_path=None)
+    b = GrowthAutomation(state_path=None)
+    assert a.instance_id != b.instance_id

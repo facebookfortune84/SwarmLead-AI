@@ -35,6 +35,9 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger("GrowthAutomation")
 
 STATE_PATH = Path(__file__).resolve().parents[2] / "data" / "growth_state.json"
+LEADER_LOCK_KEY = "growth_loop:leader"
+LEADER_LOCK_TTL_MS = 60 * 60 * 1000  # 1h; safe since cycles are short-lived
+REDIS_URL_DEFAULT = "redis://localhost:6379/0"
 
 DEFAULT_CYCLE_HOURS = 6
 OUTREACH_LIMIT_PER_CYCLE = 8
@@ -103,16 +106,91 @@ class GrowthAutomation:
     def __init__(self, state_path: Optional[Path] = None) -> None:
         self.state_path = state_path or STATE_PATH
         self.enabled = os.getenv("GROWTH_AUTO_MODE", "1") == "1"
+        self.auto_approve = os.getenv("GROWTH_AUTO_APPROVE", "0") == "1"
         self.use_llm = os.getenv("GROWTH_USE_LLM", "0") == "1"
         self.cycle_hours = float(os.getenv("GROWTH_CYCLE_HOURS", DEFAULT_CYCLE_HOURS))
+        self.instance_id = f"growth_{uuid.uuid4().hex[:12]}"
         self.state: Dict[str, Any] = self._load_state()
         self._loop_task: Optional[asyncio.Task] = None
         self._lock: Optional[asyncio.Lock] = None
+        self._leader_client: Optional[Any] = None
 
+    # ------------------------------------------------------------- run cycle
     def _cycle_lock(self) -> asyncio.Lock:
         if self._lock is None:
             self._lock = asyncio.Lock()
         return self._lock
+
+    async def run_cycle(self, reason: str = "scheduled") -> Dict[str, Any]:
+        """Run one full growth cycle, guarded by a multi-replica leader lock
+        and an in-process lock. Skips cleanly if another replica owns the
+        leader lock so k8s pods never double-run the loop."""
+        if not self.enabled:
+            return {"status": "disabled"}
+
+        leader = await self._acquire_leader_lock()
+        if leader == "skipped":
+            return {
+                "status": "skipped",
+                "reason": "another replica owns the growth-loop lock",
+            }
+        try:
+            lock = self._cycle_lock()
+            if lock.locked():
+                return {"status": "already_running", "reason": reason}
+            async with lock:
+                return await self._run_cycle_unlocked(reason)
+        finally:
+            await self._release_leader_lock()
+
+    async def _acquire_leader_lock(self) -> str:
+        """Try to become the single growth-loop leader across replicas.
+
+        Uses a Redis SET-NX key with a TTL. Returns:
+        - "acquired" — this instance won the lock and may run the cycle
+        - "skipped"  — another replica holds the lock (or TTL not expired)
+        - "unavailable" — Redis is unreachable; run anyway (single-instance
+          docker-compose and tests must keep working)
+        """
+        if os.getenv("TEST_MODE", "").lower() in ("1", "true", "yes"):
+            return "unavailable"
+        try:
+            import redis.asyncio as redis
+
+            client = redis.from_url(
+                os.getenv("REDIS_URL", REDIS_URL_DEFAULT),
+                socket_connect_timeout=2,
+            )
+            self._leader_client = client
+            won = await client.set(
+                LEADER_LOCK_KEY,
+                self.instance_id,
+                nx=True,
+                px=LEADER_LOCK_TTL_MS,
+            )
+            return "acquired" if won else "skipped"
+        except Exception as exc:  # pragma: no cover - env dependent
+            logger.info("Leader lock unavailable (%s); running cycle", exc)
+            self._leader_client = None
+            return "unavailable"
+
+    async def _release_leader_lock(self) -> None:
+        """Release the lock only if we still own it."""
+        client = self._leader_client
+        self._leader_client = None
+        if client is None:
+            return
+        try:
+            owner = await client.get(LEADER_LOCK_KEY)
+            if owner == self.instance_id.encode():
+                await client.delete(LEADER_LOCK_KEY)
+        except Exception:  # pragma: no cover - env dependent
+            logger.info("Leader lock release skipped (Redis unreachable)")
+        finally:
+            try:
+                await client.aclose()
+            except Exception:  # pragma: no cover - defensive
+                pass
 
     # ------------------------------------------------------------------ state
     def _load_state(self) -> Dict[str, Any]:
@@ -147,15 +225,6 @@ class GrowthAutomation:
         except OSError as exc:
             logger.warning("Could not persist growth state: %s", exc)
 
-    # ------------------------------------------------------------- run cycle
-    async def run_cycle(self, reason: str = "scheduled") -> Dict[str, Any]:
-        """Run one full growth cycle across all phases (serialized by a lock)."""
-        lock = self._cycle_lock()
-        if lock.locked():
-            return {"status": "already_running", "reason": reason}
-        async with lock:
-            return await self._run_cycle_unlocked(reason)
-
     async def _run_cycle_unlocked(self, reason: str) -> Dict[str, Any]:
         started = datetime.now(timezone.utc).isoformat()
         cycle = {"started_at": started, "reason": reason, "phases": {}}
@@ -185,7 +254,55 @@ class GrowthAutomation:
             datetime.now(timezone.utc).timestamp() + self.cycle_hours * 3600
         )
         self._save_state()
+
+        if self.auto_approve:
+            cycle["auto_approve"] = await self._auto_approve_pending()
+
         return cycle
+
+    # ------------------------------------------------------------- autopilot
+    async def _auto_approve_pending(self) -> Dict[str, Any]:
+        """Auto-approve queued emails so the pipeline runs without a human.
+
+        Only real deliveries that can be performed by the machine are approved:
+        outreach sends and quote sends. Traffic posts are *always* left for the
+        founder (they require an account on each social network). Supplied
+        safety rails from the manual gate remain: SMTP must be configured,
+        dry-run is honored, the hourly rate cap holds, and bounces/complaints
+        auto-suppress the address.
+        """
+        from core.services.email_sender import email_sender
+
+        if not email_sender.configured:
+            return {
+                "status": "skipped",
+                "reason": "SMTP not configured (SMTP_HOST/USER/PASS missing)",
+            }
+
+        approved = 0
+        failed = 0
+        rate_limited = 0
+        for action in self.pending_actions():
+            if action["kind"] not in {"outreach_send", "quote_send"}:
+                continue  # traffic posts stay behind the founder's hand
+            result = await self.approve(action["id"])
+            status = result.get("status")
+            if action["kind"] == "quote_send" and status == "approved":
+                # approve() already recorded MRR for sent quotes.
+                pass
+            if status == "approved":
+                approved += 1
+            elif status == "failed":
+                failed += 1
+            elif status == "rate_limited":
+                rate_limited += 1
+
+        return {
+            "status": "ok",
+            "approved": approved,
+            "failed": failed,
+            "rate_limited": rate_limited,
+        }
 
     # ------------------------------------------------------------------ seo
     async def _phase_seo(self) -> Dict[str, Any]:
@@ -694,6 +811,12 @@ class GrowthAutomation:
         else:
             result = {"status": "unknown_kind"}
 
+        if result.get("status") == "rate_limited":
+            # Not a delivery failure — keep the action pending for a later cycle.
+            action["result"] = result
+            self._save_state()
+            return {"status": "rate_limited", "result": result}
+
         if result.get("status") == "failed":
             self._record_failure(action, result)
         elif action["kind"] == "quote_send" and result.get("status") == "sent":
@@ -840,6 +963,7 @@ class GrowthAutomation:
 
         return {
             "enabled": self.enabled,
+            "auto_approve": self.auto_approve,
             "cycle_hours": self.cycle_hours,
             "cycle_count": self.state.get("cycle_count", 0),
             "last_run": self.state.get("last_run"),
@@ -867,6 +991,11 @@ class GrowthAutomation:
     def set_enabled(self, enabled: bool) -> None:
         self.enabled = enabled
         self.state["enabled"] = enabled
+        self._save_state()
+
+    def set_auto_approve(self, auto_approve: bool) -> None:
+        self.auto_approve = auto_approve
+        self.state["auto_approve"] = auto_approve
         self._save_state()
 
     def _discovery_count(self) -> int:

@@ -225,7 +225,7 @@ class LeadDiscoveryEngine:
                 for m in re.finditer(r'class="result__a"[^>]*href="([^"]+)"', r.text):
                     href = m.group(1)
                     if "uddg=" in href:
-                        from urllib.parse import unquote, parse_qs
+                        from urllib.parse import parse_qs
 
                         qs = parse_qs(href)
                         if "uddg" in qs:
@@ -383,7 +383,6 @@ class LeadDiscoveryEngine:
             "dental clinic", "home services contractor", "real estate brokerage",
             "fitness coaching studio", "law firm", "e-commerce store",
         ]
-        geo_suffix = geo or "United States"
         for v in base_verticals[:max_targets]:
             # Query for the business's *own* site — not directories.
             queries.append(f'"{v}" site owner contact -yelp -healthgrades -facebook')

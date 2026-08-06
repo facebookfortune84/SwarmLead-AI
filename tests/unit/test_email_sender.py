@@ -38,6 +38,59 @@ def test_rate_limit_blocks(monkeypatch, sender):
     assert result["status"] == "rate_limited"
 
 
+def test_security_modes_select_transport(monkeypatch):
+    monkeypatch.setenv("OUTREACH_DRY_RUN", "0")
+    monkeypatch.setenv("SMTP_HOST", "smtp.test.local")
+    monkeypatch.setenv("SMTP_USER", "test@example.com")
+    monkeypatch.setenv("SMTP_PASS", "secret")
+    monkeypatch.setenv("SMTP_SECURITY", "ssl")
+    ssl_sender = EmailSender()
+    assert ssl_sender.security == "ssl"
+
+    monkeypatch.setenv("SMTP_SECURITY", "none")
+    plain_sender = EmailSender()
+    assert plain_sender.security == "none"
+
+    monkeypatch.setenv("SMTP_SECURITY", "tls")
+    tls_sender = EmailSender()
+    assert tls_sender.security == "tls"
+
+
+def test_send_sync_ssl_uses_smtp_ssl(monkeypatch):
+    import smtplib
+
+    monkeypatch.setenv("SMTP_HOST", "smtp.test.local")
+    monkeypatch.setenv("SMTP_USER", "test@example.com")
+    monkeypatch.setenv("SMTP_PASS", "secret")
+    monkeypatch.setenv("SMTP_SECURITY", "ssl")
+    s = EmailSender()
+
+    class FakeSmtp:
+        instance = None
+
+        def __init__(self, host, port, context=None, timeout=None):
+            self.sent = False
+            self.logged_in = False
+            FakeSmtp.instance = self
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def login(self, user, password):
+            self.logged_in = True
+
+        def send_message(self, msg):
+            self.sent = True
+
+    monkeypatch.setattr(smtplib, "SMTP_SSL", FakeSmtp)
+    monkeypatch.setattr(smtplib, "SMTP", FakeSmtp)
+    s._send_sync("a@b.com", "Subject", "Body")
+    assert FakeSmtp.instance.sent is True
+
+
 def asyncio_run(coro):
     import asyncio
 
