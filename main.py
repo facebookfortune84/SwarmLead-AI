@@ -22,6 +22,7 @@ from interfaces.api.routers.payments import router as payments_router
 from interfaces.api.routers.reporting import router as reporting_router
 from interfaces.api.routers.revenue import router as revenue_router
 from interfaces.api.routers.sales import router as sales_router
+from interfaces.api.routers.seo import router as seo_router
 from interfaces.api.routers.tenants import router as tenants_router
 from interfaces.api.routers.usage import router as usage_router
 from interfaces.api.routers.users import router as users_router
@@ -128,6 +129,7 @@ app.include_router(payments_router)
 app.include_router(reporting_router)
 app.include_router(revenue_router)
 app.include_router(sales_router)
+app.include_router(seo_router)
 app.include_router(tenants_router)
 app.include_router(usage_router)
 app.include_router(users_router)
