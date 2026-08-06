@@ -48,6 +48,8 @@ def register_default_agents() -> None:
     from core.agents.payment.payment_agent import PaymentAgent
     from core.agents.repair.repair_agent import RepairAgent
     from core.agents.review.review_agent import ReviewAgent
+    from core.agents.sales.closer_agent import CloserAgent
+    from core.agents.sales.sdr_agent import SDRAgent
     from core.agents.seo.seo_agent import SEOAgent
     from core.agents.strategy.strategy_agent import StrategyAgent
     from core.agents.voice.voice_agent import VoiceAgent
@@ -91,6 +93,8 @@ def register_default_agents() -> None:
         ("seo_agent", SEOAgent("seo_agent", config), ["seo analysis", "keywords"]),
         ("content_agent", ContentAgent("content_agent", config), ["content generation"]),
         ("growth_agent", GrowthAgent("growth_agent", config), ["growth analysis"]),
+        ("sdr_agent", SDRAgent("sdr_agent", config), ["lead qualification", "prospecting", "cadence"]),
+        ("closer_agent", CloserAgent("closer_agent", config), ["offers", "objection handling", "closing"]),
     ]
 
     for agent_id, handler, capabilities in agents:

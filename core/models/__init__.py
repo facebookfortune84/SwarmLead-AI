@@ -1,4 +1,5 @@
 from .api_key import APIKey
+from .deal import Deal, DealStageEvent
 from .deployment import Deployment
 from .lead import Lead
 from .message import Message
@@ -25,6 +26,8 @@ __all__ = [
     "User",
     "APIKey",
     "Lead",
+    "Deal",
+    "DealStageEvent",
     "UsageEvent",
     "Deployment",
     "CompanyTenant",

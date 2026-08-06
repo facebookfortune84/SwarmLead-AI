@@ -463,10 +463,33 @@ class GrowthAutomation:
                     db.close()
             except Exception as exc:  # pragma: no cover
                 logger.info("Could not persist discovered lead: %s", exc)
+
+        # SDR qualification: discovered leads roll straight into the sales
+        # pipeline as deals. Pure internal DB work — no external contact.
+        deals_created = 0
+        if found:
+            try:
+                from core.agents.sales.sdr_agent import SDRAgent
+
+                sdr = SDRAgent("sdr_agent", None)
+                qualified = await sdr.run(
+                    {
+                        "action": "qualify",
+                        "leads": [
+                            {**ld.__dict__, "id": ld.email, "metadata": {"source": ld.source}}
+                            for ld in found
+                        ],
+                    }
+                )
+                deals_created = qualified.get("result", {}).get("deals_created", 0)
+            except Exception as exc:  # pragma: no cover
+                logger.info("SDR qualification unavailable: %s", exc)
+
         return {
             "status": "ok",
             "discovered": len(found),
             "written": written,
+            "deals_created": deals_created,
             "verticals": sorted({ld.vertical for ld in found}),
         }
 
@@ -689,6 +712,7 @@ class GrowthAutomation:
                     "checkout_url": offer["checkout_url"],
                 },
             )
+            self._mark_deal_quoted(lead["email"], tier=offer["tier"])
             quoted += 1
 
         return {
@@ -702,6 +726,30 @@ class GrowthAutomation:
         from core.services.monetization import monetization
 
         return monetization.offer_for(lead)
+
+    def _mark_deal_quoted(self, email: str, tier: str = "growth") -> None:
+        """Closer hand-off: advance an engaged deal to 'quoted' when a quote
+        is prepared, or create one so the pipeline always reflects outreach.
+
+        Internal DB bookkeeping only — the quote stays behind the gate."""
+        try:
+            from core.services.sales_pipeline import sales_pipeline
+
+            deals = sales_pipeline.list_deals(stage="engaged") + sales_pipeline.list_deals(
+                stage="discovery"
+            )
+            deal = next(
+                (d for d in deals if d["email"] == email and d["active"]), None
+            )
+            if deal:
+                sales_pipeline.advance(
+                    deal["id"],
+                    "quoted",
+                    triggered_by="closer_agent",
+                    note=f"quote_send prepared ({tier} tier) by closer_agent",
+                )
+        except Exception as exc:  # pragma: no cover
+            logger.info("Could not advance deal to quoted: %s", exc)
 
     def _funnel_snapshot(self) -> Dict[str, Any]:
         try:
