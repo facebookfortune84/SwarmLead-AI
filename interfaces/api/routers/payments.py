@@ -37,6 +37,7 @@ class CheckoutCreate(BaseModel):
     product_name: str | None = None
     amount_cents: int | None = None
     price_id: str | None = None
+    billing: str = "monthly"  # "monthly" | "annual" (annual = 2 months free)
 
 
 @router.post("/create-checkout-session")
@@ -67,6 +68,8 @@ async def create_checkout_session(payload: CheckoutCreate):
         success_url = f"{frontend_url}/success?session_id={{CHECKOUT_SESSION_ID}}"
         cancel_url = f"{frontend_url}/cancel"
 
+        annual = payload.billing == "annual"
+
         # Use existing price ID if provided
         if payload.price_id:
             price_id = payload.price_id
@@ -81,9 +84,15 @@ async def create_checkout_session(payload: CheckoutCreate):
             product = stripe.Product.create(name=payload.product_name)
             price = stripe.Price.create(
                 product=product.id,
-                unit_amount=payload.amount_cents,
+                # Annual = 10x monthly (2 months free). Exact USD math so the
+                # pricing page and Stripe always agree.
+                unit_amount=(
+                    payload.amount_cents * 10 if annual else payload.amount_cents
+                ),
                 currency="usd",
-                recurring={"interval": "month"},
+                recurring={
+                    "interval": "year" if annual else "month",
+                },
             )
             price_id = price.id
 

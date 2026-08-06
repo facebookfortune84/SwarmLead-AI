@@ -34,6 +34,14 @@ const items = [
     label: "Outreach",
   },
   {
+    href: "/sales",
+    label: "Sales",
+  },
+  {
+    href: "/revenue",
+    label: "Revenue",
+  },
+  {
     href: "/autonomy",
     label: "Autonomy",
   },
