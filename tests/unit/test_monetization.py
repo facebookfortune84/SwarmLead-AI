@@ -12,11 +12,17 @@ def monetizer(monkeypatch):
 
 
 def test_tiers_match_pricing_page():
-    assert TIERS == {
+    from core.services.monetization import ANNUAL_MULTIPLIER
+
+    assert {t: {k: spec[k] for k in ("price_cents", "name")} for t, spec in TIERS.items()} == {
         "starter": {"price_cents": 2900, "name": "Starter"},
         "growth": {"price_cents": 9900, "name": "Growth"},
         "enterprise": {"price_cents": 29900, "name": "Enterprise"},
     }
+    assert ANNUAL_MULTIPLIER == 10
+    # annual = 10x monthly (2 months free)
+    assert TIERS["growth"]["annual_price_cents"] == 99000
+    assert TIERS["growth"]["annual_savings_cents"] == 19800
 
 
 def test_ready_false_without_api_key(monetizer):
