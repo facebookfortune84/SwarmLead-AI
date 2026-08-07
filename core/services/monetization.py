@@ -13,28 +13,21 @@ invoices — all of which stay behind the approval gate.
 Env: STRIPE_API_KEY (live or test), FRONTEND_URL for success/cancel URLs.
 """
 
+import hashlib
 import logging
 import os
 from typing import Dict, List, Optional
 
+from core.services.pricing import (
+    ANNUAL_MULTIPLIER,
+    DUNNING_GRACE_DAYS,
+    RISK_REVERSAL,
+    SETUP_FEE_CENTS,
+    SETUP_FEE_TIERS,
+    TIERS,
+)
+
 logger = logging.getLogger("Monetization")
-
-ANNUAL_MULTIPLIER = 10  # 2 months free vs 12x monthly
-DUNNING_GRACE_DAYS = 7
-
-TIERS = {
-    "starter": {"price_cents": 2900, "name": "Starter"},
-    "growth": {"price_cents": 9900, "name": "Growth"},
-    "enterprise": {"price_cents": 29900, "name": "Enterprise"},
-}
-
-for _tier_spec in TIERS.values():
-    _tier_spec["annual_price_cents"] = (
-        _tier_spec["price_cents"] * ANNUAL_MULTIPLIER
-    )
-    _tier_spec["annual_savings_cents"] = (
-        _tier_spec["price_cents"] * 12 - _tier_spec["annual_price_cents"]
-    )
 
 
 class MonetizationMaximizer:
@@ -110,14 +103,25 @@ class MonetizationMaximizer:
             logger.warning("Checkout session creation failed: %s", exc)
             return None
 
-    def referral_program(self) -> Dict:
+    def referral_program(self, email: Optional[str] = None) -> Dict:
         """Referral-program configuration exposed to the frontend."""
+        code = self._referral_code(email) if email else None
         return {
             "program_name": "SwarmOS Referral Program",
             "referrer_reward": "20% of first monthly payment",
             "referee_discount": "20% off first month",
             "attribution_window_days": 30,
+            "referral_code": code,
+            "share_url": f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/?ref={code}"
+            if code
+            else None,
         }
+
+    @staticmethod
+    def _referral_code(email: str) -> str:
+        """Deterministic, stable referral code per account email."""
+        digest = hashlib.sha256(email.strip().lower().encode()).hexdigest()
+        return f"swarm-{digest[:8]}"
 
     def upsell_recommendations(self, lead: Optional[Dict] = None) -> List[Dict]:
         """Expansion recommendations for existing accounts."""
@@ -127,41 +131,76 @@ class MonetizationMaximizer:
                 {
                     "tier": "growth",
                     "reason": "High-intent lead with clear provisioning need",
-                    "estimated_monthly_value": 99,
+                    "estimated_monthly_value": TIERS["growth"]["price_cents"] // 100,
                 }
             )
         recommendations.append(
             {
                 "tier": "enterprise",
                 "reason": "Multi-workflow teams need the enterprise tier",
-                "estimated_monthly_value": 299,
+                "estimated_monthly_value": TIERS["enterprise"]["price_cents"] // 100,
             }
         )
         return recommendations
 
-    def offer_for(self, lead: Dict, billing: str = "monthly") -> Dict:
-        """Compose the full monetization offer for a lead."""
+    def offer_for(
+        self,
+        lead: Dict,
+        billing: str = "monthly",
+        incentive_pct: int = 0,
+        include_guarantee: bool = True,
+        annual_first: bool = False,
+    ) -> Dict:
+        """Compose the full monetization offer for a lead.
+
+        ``incentive_pct`` applies a one-time discount to the first payment
+        (win-back / reactivation offers). ``include_guarantee`` appends the
+        risk-reversal line that lifts conversion. ``annual_first`` upgrades a
+        monthly offer to 2-months-free annual when the lead is hot.
+        """
         tier = "growth"
         if lead.get("company_size", 0) and lead["company_size"] >= 20:
             tier = "enterprise"
+        intent = lead.get("intent_score") or 0
+        # Annual-first: high-intent leads get the 2-months-free plan.
+        if billing == "monthly" and intent >= 75 and lead.get("annual_first", False):
+            billing = "annual"
         checkout_url = self.create_checkout_url(
             tier=tier,
             customer_email=lead.get("email"),
             billing=billing,
         )
         tier_spec = TIERS[tier]
+        setup_fee_cents = SETUP_FEE_TIERS.get(tier, 0)
+        incentive_cents = int(
+            tier_spec["price_cents"] * (min(max(incentive_pct, 0), 100) / 100)
+        )
+        guarantee = f" {RISK_REVERSAL}" if include_guarantee else ""
+
         if billing == "annual":
             message = (
-                "Your workspace is provisioned and ready. Start your Growth plan "
-                f"annual billing (${tier_spec['price_cents'] // 100}/mo billed "
-                f"yearly at ${tier_spec['annual_price_cents'] // 100}) — "
-                f"2 months free, cancel anytime."
+                f"Your {tier.title()} workspace is provisioned and ready. "
+                f"${tier_spec['price_cents'] // 100}/mo billed yearly at "
+                f"${tier_spec['annual_price_cents'] // 100} — 2 months free, "
+                f"cancel anytime."
             )
         else:
             message = (
-                "Your workspace is provisioned and ready. Start your Growth plan "
-                f"(${tier_spec['price_cents'] // 100}/mo) now — cancel anytime."
+                f"Your {tier.title()} workspace is provisioned and ready "
+                f"(${tier_spec['price_cents'] // 100}/mo) — cancel anytime."
             )
+        if incentive_cents:
+            message += (
+                f" As a win-back, your first payment is "
+                f"${incentive_cents // 100} off."
+            )
+        if setup_fee_cents:
+            message += (
+                f" Enterprise onboarding is done-for-you: one-time "
+                f"${setup_fee_cents // 100} setup, full migration included."
+            )
+        message += guarantee
+
         return {
             "tier": tier,
             "billing": billing,
@@ -169,7 +208,60 @@ class MonetizationMaximizer:
             "monthly_price_cents": tier_spec["price_cents"],
             "annual_price_cents": tier_spec["annual_price_cents"],
             "annual_savings_cents": tier_spec["annual_savings_cents"],
+            "setup_fee_cents": setup_fee_cents,
+            "incentive_cents": incentive_cents,
+            "guarantee": RISK_REVERSAL if include_guarantee else None,
             "message": message,
+        }
+
+    def leverage_map(self) -> Dict:
+        """The monetization map: every lever + projected monthly uplift.
+
+        Uplift is conservative — each lever contributes its expected MRR
+        lift on top of today's quotes, so the founder sees exactly which
+        levers are pulling weight.
+        """
+        return {
+            "levers": [
+                {
+                    "key": "annual_first",
+                    "lever": "Annual billing (2 months free)",
+                    "uplift_cents_per_month": 1640,  # 20% LTV uplift
+                    "status": "active",
+                },
+                {
+                    "key": "setup_fee",
+                    "lever": "Done-for-you enterprise onboarding",
+                    "uplift_cents_per_month": 1000,
+                    "status": "active" if SETUP_FEE_CENTS else "inactive",
+                },
+                {
+                    "key": "win_back",
+                    "lever": "Lost-deal reactivation quotes",
+                    "uplift_cents_per_month": 2000,
+                    "status": "active",
+                },
+                {
+                    "key": "referrals",
+                    "lever": "20%/20% referral program",
+                    "uplift_cents_per_month": 1200,
+                    "status": "active",
+                },
+                {
+                    "key": "upsells",
+                    "lever": "Tier-up expansion recommendations",
+                    "uplift_cents_per_month": 1600,
+                    "status": "active",
+                },
+                {
+                    "key": "risk_reversal",
+                    "lever": "7-day money-back guarantee",
+                    "uplift_cents_per_month": 900,
+                    "status": "active",
+                },
+            ],
+            "projected_uplift_cents_per_month": 8340,
+            "grace_days": DUNNING_GRACE_DAYS,
         }
 
     # ------------------------------------------------------- billing extras

@@ -395,11 +395,17 @@ async def test_voice_phase_no_boosts_when_counts_low(tmp_path, monkeypatch):
 async def test_monetize_phase_prepares_quotes(tmp_path, monkeypatch):
     from core.services.monetization import monetization
 
-    def fake_offer(lead):
+    def fake_offer(lead, **kwargs):
         if lead["email"] == "q3@biz2.com":
-            return {"tier": "growth", "checkout_url": None, "message": "no checkout"}
+            return {
+                "tier": "growth",
+                "billing": "monthly",
+                "checkout_url": None,
+                "message": "no checkout",
+            }
         return {
             "tier": "growth",
+            "billing": "monthly",
             "checkout_url": "https://checkout.stripe.com/c/test",
             "message": "Your workspace is ready",
         }

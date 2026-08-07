@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Index, Integer, String, Text
 
 from core.persistence.base import Base
 
@@ -21,3 +21,8 @@ class Lead(Base):
     intent_score = Column(Integer, nullable=True)
     needs_review = Column(Boolean, default=False)
     email_invalid = Column(Boolean, default=False)
+
+    # Hot path: the growth loop drains NEW leads ordered by intent each cycle.
+    __table_args__ = (
+        Index("ix_leads_status_intent", "status", "email_invalid", "intent_score"),
+    )

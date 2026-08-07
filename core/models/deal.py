@@ -16,6 +16,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -55,6 +56,11 @@ class Deal(Base):
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     closed_at = Column(DateTime, nullable=True)
+
+    # Hot path: stage filtering in snapshot / list / win-back scans.
+    __table_args__ = (
+        Index("ix_deals_stage_active", "stage", "active"),
+    )
 
 
 class DealStageEvent(Base):

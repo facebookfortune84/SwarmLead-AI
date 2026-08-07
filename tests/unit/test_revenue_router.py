@@ -83,3 +83,44 @@ def test_usage_endpoint(client):
 
 def test_usage_requires_units(client):
     assert client.get("/api/revenue/usage?rate_cents=100").status_code == 422
+
+
+def test_referral_endpoint_with_email(client):
+    response = client.get(
+        "/api/revenue/referral?email=owner@smithplumbing.com"
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["program_name"] == "SwarmOS Referral Program"
+    assert body["referral_code"].startswith("swarm-")
+    assert "ref=swarm-" in body["share_url"]
+
+
+def test_referral_endpoint_without_email(client):
+    response = client.get("/api/revenue/referral")
+    assert response.status_code == 200
+    assert response.json()["referral_code"] is None
+
+
+def test_upsell_endpoint(client):
+    response = client.get("/api/revenue/upsell")
+    assert response.status_code == 200
+    tiers = [r["tier"] for r in response.json()["recommendations"]]
+    assert "enterprise" in tiers
+
+
+def test_map_endpoint(client):
+    response = client.get("/api/revenue/map")
+    assert response.status_code == 200
+    body = response.json()
+    keys = {lever["key"] for lever in body["levers"]}
+    assert {"annual_first", "win_back", "referrals"} <= keys
+    assert body["projected_uplift_cents_per_month"] > 0
+
+
+def test_summary_includes_sales_velocity(client):
+    response = client.get("/api/revenue/summary")
+    assert response.status_code == 200
+    body = response.json()
+    assert "median_close_days" in body
+    assert "oldest_open_deal_days" in body

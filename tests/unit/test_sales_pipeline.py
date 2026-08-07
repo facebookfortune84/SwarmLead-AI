@@ -74,9 +74,9 @@ def test_create_deal_idempotent(db, pipeline):
 
 
 def test_create_deal_suggested_amount_by_size(db, pipeline):
-    assert pipeline.create_deal(_lead(size=2, lead_id="L1"))["amount_cents"] == MONTHLY_VALUE["starter"]
-    assert pipeline.create_deal(_lead(size=8, lead_id="L2"))["amount_cents"] == MONTHLY_VALUE["growth"]
-    assert pipeline.create_deal(_lead(size=25, lead_id="L3"))["amount_cents"] == MONTHLY_VALUE["enterprise"]
+    assert pipeline.create_deal(_lead(size=2, lead_id="L1", email="s@x.com"))["amount_cents"] == MONTHLY_VALUE["starter"]
+    assert pipeline.create_deal(_lead(size=8, lead_id="L2", email="g@x.com"))["amount_cents"] == MONTHLY_VALUE["growth"]
+    assert pipeline.create_deal(_lead(size=25, lead_id="L3", email="e@x.com"))["amount_cents"] == MONTHLY_VALUE["enterprise"]
 
 
 def test_qualify_high_intent_creates_deal(db, pipeline):
@@ -133,8 +133,8 @@ def test_close_lost_sets_probability_zero(db, pipeline):
 
 
 def test_pipeline_snapshot_aggregates(db, pipeline):
-    pipeline.create_deal(_lead(score=80, size=8, lead_id="L1"))  # growth
-    pipeline.create_deal(_lead(score=70, size=25, lead_id="L2"))  # enterprise
+    pipeline.create_deal(_lead(score=80, size=8, lead_id="L1", email="one@x.com"))  # growth
+    pipeline.create_deal(_lead(score=70, size=25, lead_id="L2", email="two@x.com"))  # enterprise
     snapshot = pipeline.pipeline_snapshot()
     assert snapshot["total_deals"] == 2
     qualified_row = next(s for s in snapshot["stages"] if s["stage"] == "qualified")

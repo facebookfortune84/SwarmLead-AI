@@ -52,6 +52,7 @@ class RevenueAnalytics:
         """One dashboard-shaped snapshot of all revenue dimensions."""
         forecast = self.pipeline.forecast()
         quotes = self._growth_revenue()
+        velocity = self.pipeline.velocity_stats()
 
         closed = self.pipeline.list_deals(stage="closed_won", limit=10000)
         tier_mix = self.tier_mix(closed)
@@ -71,6 +72,9 @@ class RevenueAnalytics:
             "closed_won_count": forecast.get("closed_won_count", 0),
             "quotes_approved": quotes.get("quotes_approved", 0),
             "quotes_expected_mrr_cents": quotes.get("projected_mrr", 0) * 100,
+            "sales_velocity_days": forecast.get("sales_velocity_days", 0),
+            "median_close_days": velocity.get("median_close_days", 0),
+            "oldest_open_deal_days": velocity.get("oldest_open_deal_days", 0),
             "tier_mix": tier_mix,
             "as_of": datetime.now(timezone.utc).isoformat(),
         }

@@ -226,6 +226,30 @@ export default function BillingPage() {
               </p>
             </div>
           </Card>
+
+          <Card className="p-6 bg-white/[0.03] backdrop-blur-xl border-white/[0.06]">
+            <h2 className="text-lg font-semibold text-white mb-2">Referral Program</h2>
+            <p className="text-sm text-white/50 mb-4">
+              Earn while your network grows the swarm.
+            </p>
+            <div className="rounded-xl bg-white/5 border border-white/[0.04] p-4 text-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-white/70">You earn</span>
+                <span className="text-emerald-400 font-medium">20% of first monthly payment</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-white/70">Friend gets</span>
+                <span className="text-white/90 font-medium">20% off first month</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-white/70">Attribution window</span>
+                <span className="text-white/90 font-medium">30 days</span>
+              </div>
+              <p className="text-white/50 pt-2 border-t border-white/10">
+                Every referred signup is tracked; rewards are credited after their first payment.
+              </p>
+            </div>
+          </Card>
         </div>
 
         <Card className="p-6 bg-white/[0.03] backdrop-blur-xl border-white/[0.06]">

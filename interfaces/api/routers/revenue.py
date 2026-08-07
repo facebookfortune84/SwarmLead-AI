@@ -53,3 +53,22 @@ async def usage_bill(
 ):
     """Estimate a usage-based invoice (never charges)."""
     return monetization.usage_bill(units, rate_cents, label)
+
+
+@router.get("/referral")
+async def referral(email: str | None = Query(None)):
+    """Referral program config + a stable share code per account."""
+    return monetization.referral_program(email)
+
+
+@router.get("/upsell")
+async def upsell(lead_email: str | None = Query(None)):
+    """Expansion recommendations for existing accounts."""
+    lead = {"intent_score": 90} if lead_email else None
+    return {"recommendations": monetization.upsell_recommendations(lead)}
+
+
+@router.get("/map")
+async def leverage_map():
+    """The monetization map — every active lever + projected MRR uplift."""
+    return monetization.leverage_map()

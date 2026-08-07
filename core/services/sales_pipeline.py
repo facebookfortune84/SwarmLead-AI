@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy.orm import Session
 
 from core.models.deal import Deal, DealStageEvent
+from core.services.pricing import ANNUAL_MULTIPLIER, MONTHLY_VALUE
 
 logger = logging.getLogger("SalesPipeline")
 
@@ -48,15 +49,6 @@ STAGE_PROBABILITY = {
     "quoted": 0.70,
     "closed_won": 1.0,
     "closed_lost": 0.0,
-}
-
-# Annual plan multiplier vs monthly (2 months free).
-ANNUAL_MULTIPLIER = 10  # 10x monthly == 2 months free on an annual contract
-
-MONTHLY_VALUE = {
-    "starter": 2900,
-    "growth": 9900,
-    "enterprise": 29900,
 }
 
 
@@ -109,11 +101,7 @@ class SalesPipeline:
         """Create a deal from a lead dict (must contain id + email)."""
         db = self._session()
         try:
-            existing = (
-                db.query(Deal)
-                .filter(Deal.lead_id == lead["id"], Deal.active.is_(True))
-                .first()
-            )
+            existing = self._existing_active(db, lead)
             if existing:
                 return self._serialize(existing)
 
@@ -151,6 +139,27 @@ class SalesPipeline:
             if self._db is None:
                 db.close()
 
+    def _existing_active(
+        self, db: Session, lead: Dict[str, Any]
+    ) -> Optional[Deal]:
+        """Find the active deal for this lead — by lead_id or by email."""
+        existing = (
+            db.query(Deal)
+            .filter(Deal.lead_id == lead["id"], Deal.active.is_(True))
+            .first()
+        )
+        if existing:
+            return existing
+        email = lead.get("email")
+        if email:
+            return (
+                db.query(Deal)
+                .filter(Deal.email == email, Deal.active.is_(True))
+                .order_by(Deal.created_at.desc())
+                .first()
+            )
+        return None
+
     @staticmethod
     def _signal(lead: Dict[str, Any], key: str) -> bool:
         meta = lead.get("metadata", {}) or {}
@@ -178,7 +187,17 @@ class SalesPipeline:
         owner_agent: str = "sdr_agent",
     ) -> Dict[str, Any]:
         """BANT-lite qualification. Returns the deal when qualified, else
-        a rejection summary so the SDR can explain why."""
+        a rejection summary so the SDR can explain why.
+
+        Scoring reflects true buyer intent, not just traffic: intent score
+        (best proxy available on discovered leads) is combined with fit
+        signals (budget/authority/need/timeline) and a business-domain
+        boost that rewards real companies over free-inbox prospects.
+
+        A qualified deal is immediately handed to the demand team: the
+        qualified -> discovery transition (``triggered_by=sdr_agent``) is
+        recorded so the funnel always shows the handoff.
+        """
         intent = lead.get("intent_score") or 0
         signals = {
             "budget": self._signal(lead, "budget"),
@@ -186,20 +205,38 @@ class SalesPipeline:
             "need": self._signal(lead, "need"),
             "timeline": self._signal(lead, "timeline"),
         }
+        business_domain = lead.get("metadata", {}).get("business_domain", True)
+        reasons = []
+        reasons.append(f"intent={intent}")
+        for k in ("budget", "authority", "need", "timeline"):
+            reasons.append(f"{k}:{'y' if signals[k] else 'n'}")
         score = intent * 0.6 + (sum(signals.values()) / 4) * 40
+        if business_domain:
+            score += 2  # business-domain companies close at real rates
+            reasons.append("business_domain:+2")
+        else:
+            reasons.append("business_domain:no")
         qualified = score >= QUALIFY_INTENT_THRESHOLD
 
         if not qualified:
             return {
                 "qualified": False,
-                "reason": f"intent {intent} below threshold {QUALIFY_INTENT_THRESHOLD}",
+                "reason": f"intent {intent} below threshold {QUALIFY_INTENT_THRESHOLD} ({' '.join(reasons)})",
                 "score": round(score, 1),
+                "reasons": reasons,
             }
 
         deal = self.create_deal(lead, owner_agent=owner_agent)
+        # SDR -> demand-team handoff: enter discovery immediately.
+        if deal.get("stage") == "qualified":
+            deal = self.advance(
+                deal["id"], "discovery", triggered_by="sdr_agent",
+                note="SDR qualification complete — handed to demand team",
+            )
         return {
             "qualified": True,
             "score": round(score, 1),
+            "reasons": reasons,
             "deal": deal,
         }
 
@@ -211,7 +248,13 @@ class SalesPipeline:
         triggered_by: str = "sales_pipeline",
         note: str = "",
     ) -> Optional[Dict[str, Any]]:
-        """Move a deal to the given stage (must be in STAGES)."""
+        """Move a deal forward through the funnel (must be in STAGES).
+
+        Funnel integrity: moves are forward-only along the ordered pipeline.
+        Terminal stages are locked — a closed deal never reopens. Jumping
+        ahead (e.g. discovery -> quoted) is allowed; moving backwards raises
+        ValueError so the pipeline stays an honest record.
+        """
         if to_stage not in STAGES:
             raise ValueError(f"Unknown stage: {to_stage}")
         db = self._session()
@@ -223,6 +266,14 @@ class SalesPipeline:
                 return self._serialize(deal)
 
             old_stage = deal.stage
+            if deal.stage in TERMINAL:
+                raise ValueError(f"Deal {deal_id} is terminal ({deal.stage}); it cannot move")
+            if old_stage in STAGES and to_stage not in TERMINAL:
+                if STAGES.index(to_stage) < STAGES.index(old_stage):
+                    raise ValueError(
+                        f"Cannot move deal {deal_id} backwards {old_stage} -> {to_stage}"
+                    )
+
             deal.stage = to_stage
             deal.probability = STAGE_PROBABILITY[to_stage]
             if to_stage in TERMINAL:
@@ -357,8 +408,60 @@ class SalesPipeline:
             "annual_contract_cents": int(
                 sum(d["amount_cents"] for d in closed) * annual_multiplier
             ),
+            "sales_velocity_days": self.velocity_stats().get("median_close_days"),
             "as_of": datetime.utcnow().isoformat(),
         }
+
+    def velocity_stats(self) -> Dict[str, Any]:
+        """Time-to-first-sale: how fast deals go from creation to closed_won.
+
+        Median close days is the headline number (robust to outliers); the
+        oldest open deal days shows where the funnel is stalling.
+        """
+        db = self._session()
+        try:
+            won = (
+                db.query(Deal)
+                .filter(Deal.stage == "closed_won")
+                .all()
+            )
+            close_days = []
+            for d in won:
+                if d.created_at and d.closed_at:
+                    close_days.append(
+                        (d.closed_at - d.created_at).total_seconds() / 86400
+                    )
+            median = 0.0
+            if close_days:
+                close_days.sort()
+                n = len(close_days)
+                median = (
+                    close_days[n // 2]
+                    if n % 2
+                    else (close_days[n // 2 - 1] + close_days[n // 2]) / 2
+                )
+            open_rows = (
+                db.query(Deal)
+                .filter(Deal.active.is_(True))
+                .order_by(Deal.created_at.asc())
+                .first()
+            )
+            oldest_days = 0.0
+            if open_rows and open_rows.created_at:
+                oldest_days = (
+                    datetime.utcnow() - open_rows.created_at
+                ).total_seconds() / 86400
+            return {
+                "median_close_days": round(median, 1),
+                "wins_count": len(close_days),
+                "oldest_open_deal_days": round(oldest_days, 1),
+            }
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            if self._db is None:
+                db.close()
 
     # -------------------------------------------------------- growth sync
     def sync_from_leads(

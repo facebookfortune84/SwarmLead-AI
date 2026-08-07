@@ -395,7 +395,7 @@ class LeadDiscoveryEngine:
         for query in queries[: max_targets * 2]:
             urls = await self._find_urls(query)
             for url in urls[:4]:
-                _, meta = await self._crawl(url)
+                html, meta = await self._crawl(url)
                 emails = list(
                     dict.fromkeys(
                         (meta.get("contact_emails") or []) + (meta.get("homepage_emails") or [])
@@ -421,7 +421,13 @@ class LeadDiscoveryEngine:
                     if _looks_big_brand(domain, company, maildomain):
                         logger.info("Skip %s (big brand)", email)
                         continue
-                    score = _score_lead(maildomain, mx_host)
+                    signals = _infer_signals(
+                        html, meta.get("title", ""), local_part=local
+                    )
+                    score = _score_lead(
+                        maildomain, mx_host,
+                        title=meta.get("title", ""), signals=signals,
+                    )
                     lead = DiscoveredLead(
                         email=email,
                         name=name,
@@ -431,7 +437,12 @@ class LeadDiscoveryEngine:
                         source="search_website",
                         intent_score=score,
                         confidence="high" if maildomain not in FREE_DOMAINS else "medium",
-                        details={"mx": mx_host, "title": meta.get("title", "")},
+                        details={
+                            "mx": mx_host,
+                            "title": meta.get("title", ""),
+                            "signals": signals,
+                            "maildomain": maildomain,
+                        },
                     )
                     seen_emails.add(email)
                     candidates.append(lead)
@@ -498,7 +509,18 @@ def _looks_big_brand(site_domain: str, company: str, maildomain: str) -> bool:
     return any(m in low for m in brand_markers)
 
 
-def _score_lead(maildomain: str, mx_host: Optional[str]) -> int:
+def _score_lead(
+    maildomain: str,
+    mx_host: Optional[str],
+    title: str = "",
+    signals: Optional[Dict[str, bool]] = None,
+) -> int:
+    """Intent score: business-domain + mail infrastructure + page signals.
+
+    Higher scores mean the lead looks like a real business that monetizes
+    (pricing/bookability), operates proper mail, and is currently reachable
+    through a decision-maker-style inbox.
+    """
     score = 60
     if maildomain not in FREE_DOMAINS:
         score += 20  # business domain > personal inbox
@@ -506,7 +528,42 @@ def _score_lead(maildomain: str, mx_host: Optional[str]) -> int:
         score += 10  # explicit MX = real mail infrastructure
     if maildomain in {"gmail.com", "googlemail.com", "yahoo.com", "hotmail.com"}:
         score -= 10
+    for present in (signals or {}).values():
+        if present:
+            score += 4  # each confirmed BANT-lite signal (max +16)
     return max(10, min(99, score))
+
+
+def _infer_signals(
+    html: str,
+    title: str,
+    local_part: str = "",
+) -> Dict[str, bool]:
+    """BANT-lite signals inferred from the crawled site (deterministic).
+
+    Honest heuristics, not claims about the prospect:
+    - budget:    the business publishes pricing/rates/plans (they monetize)
+    - authority: the site's title reads owner-led, or the found inbox is a
+                 decision-maker style local part (not info/sales/contact)
+    - need:      the site actively courts customers (book/schedule/demo)
+    - timeline:  hiring / grand-opening / launch language (buying soon)
+    """
+    low = f"{(html or '')[:6000].lower()} {title.lower()}"
+    budget = any(m in low for m in ("pricing", "plans", "rates", "price list", "starting at", "$"))
+    authority = bool(title and re.search(
+        r"\b(owner|founder|dr\.?|attorney|law firm|principal|ceo|director|clinic)\b",
+        title.lower(),
+    ))
+    if not authority and local_part:
+        authority = not any(k in local_part.lower() for k in GENERIC_LOCALPARTS)
+    need = any(m in low for m in ("book", "schedule", "appointment", "get a quote", "request a", "estimate"))
+    timeline = any(m in low for m in ("now hiring", "hiring", "grand opening", "open house", "launching", "coming soon", "new location", "expanding"))
+    return {
+        "budget": budget,
+        "authority": authority,
+        "need": need,
+        "timeline": timeline,
+    }
 
 
 lead_discovery = LeadDiscoveryEngine()

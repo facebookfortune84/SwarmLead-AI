@@ -423,10 +423,11 @@ class GrowthAutomation:
         """
         if os.getenv("GROWTH_DISCOVERY", "1") != "1":
             return {"status": "ok", "discovered": 0, "written": 0, "verticals": []}
-        from core.services.lead_discovery import lead_discovery
+        from core.services.lead_discovery import FREE_DOMAINS, lead_discovery
 
         found = await lead_discovery.discover(max_targets=6)
         written = 0
+        email_to_id: Dict[str, str] = {}
         for lead in found:
             try:
                 from core.models import Lead
@@ -438,26 +439,27 @@ class GrowthAutomation:
                         db.query(Lead).filter(Lead.email == lead.email).first()
                     )
                     if existing:
+                        email_to_id[lead.email] = existing.id
                         continue
-                    db.add(
-                        Lead(
-                            email=lead.email,
-                            name=lead.name or lead.company,
-                            company=lead.company,
-                            status="NEW",
-                            website=lead.website,
-                            intent_score=lead.intent_score,
-                            metadata_json=json.dumps(
-                                {
-                                    "source": lead.source,
-                                    "vertical": lead.vertical,
-                                    "confidence": lead.confidence,
-                                    "details": lead.details,
-                                }
-                            ),
-                        )
+                    row = Lead(
+                        email=lead.email,
+                        name=lead.name or lead.company,
+                        company=lead.company,
+                        status="NEW",
+                        website=lead.website,
+                        intent_score=lead.intent_score,
+                        metadata_json=json.dumps(
+                            {
+                                "source": lead.source,
+                                "vertical": lead.vertical,
+                                "confidence": lead.confidence,
+                                "details": lead.details,
+                            }
+                        ),
                     )
+                    db.add(row)
                     db.commit()
+                    email_to_id[lead.email] = row.id
                     written += 1
                 finally:
                     db.close()
@@ -465,7 +467,8 @@ class GrowthAutomation:
                 logger.info("Could not persist discovered lead: %s", exc)
 
         # SDR qualification: discovered leads roll straight into the sales
-        # pipeline as deals. Pure internal DB work — no external contact.
+        # pipeline as deals, bound to their real Lead row. Pure internal DB
+        # work — no external contact.
         deals_created = 0
         if found:
             try:
@@ -476,7 +479,32 @@ class GrowthAutomation:
                     {
                         "action": "qualify",
                         "leads": [
-                            {**ld.__dict__, "id": ld.email, "metadata": {"source": ld.source}}
+                            {
+                                **ld.__dict__,
+                                "id": email_to_id.get(ld.email, ld.email),
+                                "company_size": ld.details.get("signals", {}).get(
+                                    "budget", False
+                                )
+                                and 5
+                                or 0,
+                                "metadata": {
+                                    "source": ld.source,
+                                    "business_domain": ld.details.get("maildomain")
+                                    not in FREE_DOMAINS,
+                                    "budget": ld.details.get("signals", {}).get(
+                                        "budget", False
+                                    ),
+                                    "authority": ld.details.get("signals", {}).get(
+                                        "authority", False
+                                    ),
+                                    "need": ld.details.get("signals", {}).get(
+                                        "need", False
+                                    ),
+                                    "timeline": ld.details.get("signals", {}).get(
+                                        "timeline", False
+                                    ),
+                                },
+                            }
                             for ld in found
                         ],
                     }
@@ -689,13 +717,17 @@ class GrowthAutomation:
             }
         )
 
+        # Priority desk: quote the leads most likely to convert first —
+        # highest intent x company size x freshness. Best shots win the
+        # cycle's limited quote budget (time-to-first-sale lever).
         quoted = 0
-        for lead in self._high_intent_leads(limit=QUOTE_LIMIT_PER_CYCLE):
+        for lead in self._priority_quote_leads(limit=QUOTE_LIMIT_PER_CYCLE):
             if self._already_quoted(lead["email"]):
                 continue
             if self._pending_count("quote_send") >= QUOTE_LIMIT_PER_CYCLE:
                 break
-            offer = self._compose_offer(lead)
+            annual_first = (lead.get("intent_score") or 0) >= 75
+            offer = self._compose_offer(lead, annual_first=annual_first)
             if not offer.get("checkout_url"):
                 continue
             self._enqueue(
@@ -709,23 +741,110 @@ class GrowthAutomation:
                         f"Start here: {offer['checkout_url']}\n\nSwarmOS"
                     ),
                     "tier": offer["tier"],
+                    "billing": offer["billing"],
                     "checkout_url": offer["checkout_url"],
                 },
             )
             self._mark_deal_quoted(lead["email"], tier=offer["tier"])
             quoted += 1
 
+        win_backs = self._win_back_quotes()
         return {
             "status": "ok",
             "funnel_health": analysis.get("overall_health"),
             "bottlenecks": [b["stage"] for b in analysis.get("bottlenecks", [])],
             "quotes_prepared": quoted,
+            "win_backs_prepared": win_backs,
         }
 
-    def _compose_offer(self, lead: Dict) -> Dict:
+    def _compose_offer(self, lead: Dict, annual_first: bool = False) -> Dict:
         from core.services.monetization import monetization
 
-        return monetization.offer_for(lead)
+        return monetization.offer_for(
+            lead,
+            billing="monthly",
+            incentive_pct=0,
+            annual_first=annual_first,
+        )
+
+    def _win_back_quotes(self, limit: int = 2) -> int:
+        """Lost-deal win-back: re-open deals closed_lost < 45 days ago with a
+        first-payment incentive so revenue that slipped away comes back fast."""
+        try:
+            from datetime import timedelta
+
+            from core.services.monetization import monetization
+            from core.services.sales_pipeline import sales_pipeline
+
+            won_back = 0
+            cutoff = datetime.now(timezone.utc) - timedelta(days=45)
+            for deal in sales_pipeline.list_deals(stage="closed_lost", limit=200):
+                if won_back >= limit:
+                    break
+                closed_at = deal.get("closed_at")
+                if not closed_at or closed_at < cutoff.isoformat():
+                    continue
+                email = deal.get("email")
+                if not email or self._already_quoted(email):
+                    continue
+                if self._pending_count("quote_send") >= QUOTE_LIMIT_PER_CYCLE:
+                    break
+                offer = monetization.offer_for(
+                    {
+                        "email": email,
+                        "company_size": 5 if deal.get("amount_cents", 0) >= 9900 else 0,
+                        "intent_score": deal.get("intent_score") or 70,
+                        "annual_first": True,
+                    },
+                    billing="monthly",
+                    incentive_pct=20,
+                )
+                if not offer.get("checkout_url"):
+                    continue
+                self._enqueue(
+                    "quote_send",
+                    {
+                        "to_email": email,
+                        "lead_name": email,
+                        "subject": "We'd like your business back — 20% off your first month",
+                        "body": (
+                            f"Hi,\n\n{offer['message']}\n\n"
+                            f"Redeem here: {offer['checkout_url']}\n\nSwarmOS"
+                        ),
+                        "tier": offer["tier"],
+                        "billing": offer["billing"],
+                        "checkout_url": offer["checkout_url"],
+                        "incentive_pct": 20,
+                    },
+                )
+                won_back += 1
+            return won_back
+        except Exception as exc:  # pragma: no cover
+            logger.info("Win-back quotes unavailable: %s", exc)
+            return 0
+
+    def _priority_quote_leads(self, limit: int) -> List[Dict]:
+        """Sort quote candidates by expected conversion velocity:
+        intent x company size x recency, so the strongest shots go first.
+
+        Already-quoted leads are filtered out (they wouldn't consume quote
+        budget anyway), and the pool is drawn larger than the budget so
+        skips don't starve the cycle.
+        """
+        candidates = []
+        for lead in self._high_intent_leads(limit=max(limit * 3, limit + 2)):
+            if self._already_quoted(lead["email"]):
+                continue
+            size = 0
+            size_text = (lead.get("company") or "").lower()
+            if any(
+                k in size_text
+                for k in ("group", "partners", "llc", "inc", "clinic", "studio", "agency")
+            ):
+                size = 3
+            candidates.append((lead, (lead.get("intent_score") or 0) * (1 + size)))
+        candidates.sort(key=lambda pair: pair[1], reverse=True)
+        return [lead for lead, _ in candidates[:limit]]
 
     def _mark_deal_quoted(self, email: str, tier: str = "growth") -> None:
         """Closer hand-off: advance an engaged deal to 'quoted' when a quote
@@ -899,11 +1018,13 @@ class GrowthAutomation:
 
     def _record_quote(self, action: Dict) -> None:
         """Track approved/paid quotes for MRR projection."""
+        from core.services.pricing import MONTHLY_VALUE
+
         tier = action["payload"].get("tier", "growth")
-        monthly = {"starter": 29, "growth": 99, "enterprise": 299}.get(tier, 99)
+        monthly = MONTHLY_VALUE.get(tier, MONTHLY_VALUE["growth"])
         rev = self.state.setdefault("revenue", {"quotes_approved": 0, "projected_mrr": 0})
         rev["quotes_approved"] = rev.get("quotes_approved", 0) + 1
-        rev["projected_mrr"] = rev.get("projected_mrr", 0) + monthly
+        rev["projected_mrr"] = rev.get("projected_mrr", 0) + monthly // 100
         self._save_state()
 
     def reject(self, action_id: str, note: str = "") -> Dict[str, Any]:

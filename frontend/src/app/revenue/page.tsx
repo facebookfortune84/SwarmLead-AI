@@ -9,8 +9,15 @@ import {
   TrendingUp,
   Receipt,
   AlertTriangle,
+  Timer,
+  Gauge,
 } from "lucide-react";
-import { useRevenueSummary, useChurnReport, type ChurnReport } from "@/hooks/use-revenue";
+import {
+  useRevenueSummary,
+  useChurnReport,
+  useMonetizationMap,
+  type ChurnReport,
+} from "@/hooks/use-revenue";
 import { formatCents, percent, stageLabel } from "@/lib/money";
 
 function ChurnList({ deals }: { deals: ChurnReport["risk"]["at_risk_deals"] }) {
@@ -37,12 +44,15 @@ function ChurnList({ deals }: { deals: ChurnReport["risk"]["at_risk_deals"] }) {
 export default function RevenuePage() {
   const { data: summary } = useRevenueSummary();
   const { data: churn } = useChurnReport();
+  const { data: map } = useMonetizationMap();
 
   const tierNames: Record<string, string> = {
     starter: "Starter",
     growth: "Growth",
     enterprise: "Enterprise",
   };
+
+  const activeLevers = (map?.levers ?? []).filter((l) => l.status === "active");
 
   return (
     <AppShell>
@@ -184,6 +194,75 @@ export default function RevenuePage() {
               <div className="mt-2 text-xs text-white/40">
                 Cohort retention at {churn ? percent(churn.ltv.churn_rate) : "—"} monthly churn
               </div>
+            </div>
+          </Card>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card className="bg-white/[0.03] backdrop-blur-xl border-white/[0.06] p-6">
+            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <Gauge className="w-5 h-5" /> Sales Velocity
+            </h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-sm text-white/50">Median time to close</div>
+                <div className="text-2xl font-bold text-white mt-1">
+                  {summary?.median_close_days ?? 0}d
+                </div>
+                <div className="text-xs text-white/40 mt-1">
+                  from deal creation to closed-won
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-white/50">Oldest open deal</div>
+                <div className="text-2xl font-bold text-white mt-1">
+                  {summary?.oldest_open_deal_days ?? 0}d
+                </div>
+                <div className="text-xs text-white/40 mt-1">
+                  where the funnel is stalling
+                </div>
+              </div>
+            </div>
+            <div className="mt-6 pt-4 border-t border-white/10">
+              <div className="text-sm text-white/50 mb-2">Win-back safety net</div>
+              <ul className="space-y-2 text-sm text-white/70">
+                <li className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-400" />
+                  Lost deals &lt; 45 days old are offered 20%-off win-back quotes automatically.
+                </li>
+                <li className="flex items-center gap-2">
+                  <Receipt className="w-4 h-4 text-purple-400" />
+                  Dunning notices give failed payments a {map?.grace_days ?? 7}-day grace window.
+                </li>
+              </ul>
+            </div>
+          </Card>
+
+          <Card className="bg-white/[0.03] backdrop-blur-xl border-white/[0.06] p-6">
+            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5" /> Monetization Map
+            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-sm text-white/50">Projected monthly uplift</div>
+              <div className="text-2xl font-bold text-emerald-400">
+                {formatCents(map?.projected_uplift_cents_per_month ?? 0)}
+              </div>
+            </div>
+            <div className="space-y-2">
+              {activeLevers.map((lever) => (
+                <div
+                  key={lever.key}
+                  className="flex items-center justify-between rounded-xl bg-white/5 border border-white/5 px-4 py-2.5 text-sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-emerald-400">✓</span>
+                    <span className="text-white/80">{lever.lever}</span>
+                  </div>
+                  <span className="text-white/50">
+                    {formatCents(lever.uplift_cents_per_month)}/mo
+                  </span>
+                </div>
+              ))}
             </div>
           </Card>
         </div>

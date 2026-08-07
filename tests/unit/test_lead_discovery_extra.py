@@ -461,9 +461,12 @@ async def test_discover_full_e2e_persists_and_dedups(tmp_path, monkeypatch):
     assert bob.company == "Acme Plumbing LLC"
     assert bob.vertical.strip('"') == "Plumber"
     assert bob.website == "https://acmeplumbing.com"
-    assert bob.intent_score == 90
+    assert bob.intent_score == 94
     assert bob.confidence == "high"
-    assert bob.details == {"mx": "mx.acmeplumbing.com", "title": "Acme Plumbing LLC | Home"}
+    assert bob.details["mx"] == "mx.acmeplumbing.com"
+    assert bob.details["title"] == "Acme Plumbing LLC | Home"
+    assert bob.details["signals"]["authority"] is True
+    assert bob.details["maildomain"] == "acmeplumbing.com"
 
     assert engine._known("bob@acmeplumbing.com")
     assert engine._known("jane@acmeplumbing.com")
@@ -579,5 +582,5 @@ async def test_discover_personal_email_medium_confidence(tmp_path, monkeypatch):
     assert len(leads) == 1
     assert leads[0].email == "maria.doe@proton.me"
     assert leads[0].name == "Maria Doe"
-    assert leads[0].intent_score == 60
+    assert leads[0].intent_score == 64
     assert leads[0].confidence == "medium"

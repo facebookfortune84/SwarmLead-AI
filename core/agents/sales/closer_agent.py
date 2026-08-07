@@ -15,7 +15,12 @@ import logging
 from typing import Any, Dict, Optional
 
 from core.agents.base_agent import BaseAgent
-from core.services.sales_pipeline import MONTHLY_VALUE, SalesPipeline, sales_pipeline
+from core.services.pricing import (
+    MONTHLY_VALUE,
+    RISK_REVERSAL,
+    SETUP_FEE_TIERS,
+)
+from core.services.sales_pipeline import SalesPipeline, sales_pipeline
 
 logger = logging.getLogger("CloserAgent")
 
@@ -35,7 +40,8 @@ OBJECTION_RESPONSES = {
     ),
     "trust": (
         "Start on the Starter plan with Stripe billing — cancel anytime, and "
-        "every external action stays behind your approval gate."
+        "every external action stays behind your approval gate. "
+        + RISK_REVERSAL
     ),
     "features": (
         "Every plan includes the full agent workforce; tiers differ on volume "
@@ -98,6 +104,7 @@ class CloserAgent(BaseAgent):
         monthly_cents = MONTHLY_VALUE[tier]
         annual = input_data.get("annual", False)
         annual_cents = int(monthly_cents * 10) if annual else None
+        setup_fee_cents = SETUP_FEE_TIERS.get(tier, 0)
 
         pitch = (
             f"I'd recommend the {tier.title()} plan "
@@ -105,11 +112,18 @@ class CloserAgent(BaseAgent):
             + (f", ${annual_cents // 100}/mo on annual — 2 months free)" if annual else ")")
             + ". It fits what you're building and scales with you."
         )
+        if setup_fee_cents:
+            pitch += (
+                f" Enterprise onboarding is done-for-you: one-time "
+                f"${setup_fee_cents // 100} setup, full migration included."
+            )
+        pitch += f" {RISK_REVERSAL}"
         return {
             "status": "ok",
             "tier": tier,
             "monthly_cents": monthly_cents,
             "annual_cents": annual_cents,
+            "setup_fee_cents": setup_fee_cents,
             "pitch": pitch,
             "deal_id": deal.get("id"),
         }

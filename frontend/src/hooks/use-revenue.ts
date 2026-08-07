@@ -11,6 +11,8 @@ export interface RevenueSummary {
   closed_won_count: number;
   quotes_approved: number;
   quotes_expected_mrr_cents: number;
+  median_close_days: number;
+  oldest_open_deal_days: number;
   tier_mix: Record<
     string,
     {
@@ -19,6 +21,17 @@ export interface RevenueSummary {
     }
   >;
   as_of: string;
+}
+
+export interface MonetizationMap {
+  levers: Array<{
+    key: string;
+    lever: string;
+    uplift_cents_per_month: number;
+    status: string;
+  }>;
+  projected_uplift_cents_per_month: number;
+  grace_days: number;
 }
 
 export interface BillingTiers {
@@ -108,5 +121,16 @@ export function useUsageInvoice(units: number, rateCents: number) {
       return data;
     },
     enabled: units > 0,
+  });
+}
+
+export function useMonetizationMap() {
+  return useQuery({
+    queryKey: ["revenue-map"],
+    queryFn: async () => {
+      const { data } = await api.get<MonetizationMap>("/api/revenue/map");
+      return data;
+    },
+    staleTime: 120_000,
   });
 }

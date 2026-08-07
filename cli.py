@@ -164,6 +164,10 @@ def cmd_revenue(args) -> int:
     print(f"  Open weighted ARR : ${summary['open_weighted_annual_cents'] / 100:,.2f}")
     print(f"  Closed-won deals  : {summary['closed_won_count']}")
     print(f"  Quotes approved   : {summary['quotes_approved']}")
+    print(
+        f"  Sales velocity    : {summary.get('median_close_days', 0):.1f}d median close "
+        f"(oldest open {summary.get('oldest_open_deal_days', 0):.1f}d)"
+    )
     print("  Tier mix (count / MRR):")
     for tier, mix in summary["tier_mix"].items():
         print(
