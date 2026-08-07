@@ -80,6 +80,25 @@ export default function BillingPage() {
           </p>
         </motion.div>
 
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06] p-4 flex items-center gap-4"
+        >
+          <div className="shrink-0 w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center">
+            <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <div className="text-sm">
+            <span className="font-semibold text-white">14-day money-back guarantee.</span>{" "}
+            <span className="text-white/60">
+              Launch a workspace, let the swarm run outreach for two weeks, and if you
+              are not seeing the pipeline you expected, get a full refund. No questions asked.
+            </span>
+          </div>
+        </motion.div>
+
         <div className="inline-flex items-center gap-3 rounded-full bg-white/5 border border-white/10 p-1.5">
           <button
             onClick={() => setAnnual(false)}

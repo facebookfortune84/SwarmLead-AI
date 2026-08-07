@@ -1069,3 +1069,84 @@ def test_instance_id_is_unique():
     a = GrowthAutomation(state_path=None)
     b = GrowthAutomation(state_path=None)
     assert a.instance_id != b.instance_id
+
+
+# --------------------------------------------------------------- nurture
+def _patch_leads(ga, monkeypatch):
+    monkeypatch.setattr(
+        ga,
+        "_qualified_leads",
+        lambda limit: [
+            {
+                "email": "owner@smithplumbing.com",
+                "name": "Dave",
+                "company": "Smith Plumbing",
+                "intent_score": 80,
+            }
+        ],
+    )
+
+
+@pytest.mark.asyncio
+async def test_nurture_phase_scores_leads_and_records(ga, monkeypatch):
+    _patch_leads(ga, monkeypatch)
+    ga._enqueue(
+        "outreach_send",
+        {"to_email": "owner@smithplumbing.com", "subject": "s", "body": "b"},
+    )
+    result = await ga._phase_nurture()
+    assert result["status"] == "ok"
+    assert result["leads_scored"] >= 1
+    records = ga.state["nurture_records"]
+    assert any("score" in rec for rec in records.values())
+    assert any(rec.get("plan") for rec in records.values())
+
+
+@pytest.mark.asyncio
+async def test_nurture_phase_queues_value_touch_on_day(ga, monkeypatch):
+    _patch_leads(ga, monkeypatch)
+    ga._enqueue(
+        "outreach_send",
+        {"to_email": "owner@smithplumbing.com", "subject": "s", "body": "b"},
+    )
+    await ga._phase_nurture()
+    # day-0 intro is the outreach itself -> nothing due yet
+    assert ga._pending_count("nurture_touch") == 0
+    # age the plan back past the day-2 value touch
+    for rec in ga.state["nurture_records"].values():
+        if rec.get("plan"):
+            rec["plan_started"] = "2024-01-01T00:00:00+00:00"
+    result = await ga._phase_nurture()
+    assert result["touches_queued"] >= 1
+    pending = [
+        a
+        for a in ga.state["approval_queue"]
+        if a["kind"] == "nurture_touch"
+        and a["payload"]["to_email"] == "owner@smithplumbing.com"
+    ]
+    assert pending
+    assert pending[0]["payload"]["touch_label"] == "value"
+    assert "cadence_note" in pending[0]["payload"]
+
+
+@pytest.mark.asyncio
+async def test_nurture_phase_draft_does_not_repeat_touch(ga, monkeypatch):
+    _patch_leads(ga, monkeypatch)
+    ga._enqueue(
+        "outreach_send",
+        {"to_email": "owner@smithplumbing.com", "subject": "s", "body": "b"},
+    )
+    await ga._phase_nurture()
+    for rec in ga.state["nurture_records"].values():
+        if rec.get("plan"):
+            rec["plan_started"] = "2024-01-01T00:00:00+00:00"
+    for _ in range(8):
+        await ga._phase_nurture()
+    queued = [
+        a["payload"]["touch_label"]
+        for a in ga.state["approval_queue"]
+        if a["kind"] == "nurture_touch"
+        and a["payload"]["to_email"] == "owner@smithplumbing.com"
+    ]
+    # each 5-touch plan drafts each touch label exactly once
+    assert queued == ["value", "social_proof", "risk_reversal", "breakup"]

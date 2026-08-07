@@ -82,7 +82,7 @@ export function FeatureShowcase() {
 
 export function SocialProof() {
   const stats = [
-    { value: "15", label: "AI Agents on Staff" },
+    { value: "19", label: "AI Agents on Staff" },
     { value: "24/7", label: "Voice Agent Coverage" },
     { value: "1", label: "Human Approval Gate" },
     { value: "0", label: "Lines of Code Required" }
@@ -141,7 +141,7 @@ export function Testimonials() {
             What Launching with Genesis Looks Like
           </h2>
           <p className="text-xl text-white/60 max-w-2xl mx-auto">
-            One workspace, 15 agents, one human approval gate. No code, no
+            One workspace, 19 agents, one human approval gate. No code, no
             waiting on an agency.
           </p>
         </motion.div>

@@ -48,7 +48,7 @@ describe("LiveActivityTicker", () => {
       await Promise.resolve();
     });
     // Neutral capability copy — never fabricated live testimonials.
-    expect(screen.getAllByText(/15 agents run outreach, SEO.*behind one approval gate/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/19 agents run outreach, SEO.*behind one approval gate/i).length).toBeGreaterThan(0);
   });
 
   it("links to the Product Hunt upvote page", async () => {

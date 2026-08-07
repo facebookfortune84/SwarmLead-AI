@@ -198,6 +198,33 @@ def test_model_status_reports_active_model(service):
     assert status["provider"] == "ollama"
 
 
+@pytest.mark.asyncio
+async def test_concierge_start_returns_prompt_and_audio(service):
+    result = await service.concierge_start(founder_name="Sandra")
+    assert result["step"] == "company"
+    assert result["session_id"].startswith("cc_")
+    assert "name" in result["prompt"].lower()
+    assert result["prompt_audio_b64"] == "ZmFrZS1tcDMtYnl0ZXM="
+
+
+@pytest.mark.asyncio
+async def test_concierge_turn_advances_and_speaks(service):
+    opened = await service.concierge_start(opening_line="a bakery business for locals")
+    sid = opened["session_id"]
+    result = await service.concierge_turn(sid, "a bakery business for local residents")
+    assert result["session_id"] == sid
+    assert result["step"] in {"domain", "audience"}
+    assert result["prompt_audio_b64"] == "ZmFrZS1tcDMtYnl0ZXM="
+    assert result["candidates"]
+
+
+@pytest.mark.asyncio
+async def test_concierge_turn_unknown_session_starts_fresh(service):
+    result = await service.concierge_turn("cc_does_not_exist", "a bakery")
+    assert result["session_id"] != "cc_does_not_exist"
+    assert result["step"] == "company"
+
+
 def test_greetings_cover_all_keys():
     for key in ("proactive", "scroll", "exit_intent", "voice"):
         assert key in GREETINGS

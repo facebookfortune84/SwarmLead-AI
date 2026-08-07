@@ -5,7 +5,7 @@ import { industries } from "@/lib/industries";
 export const metadata: Metadata = {
   title: "Industries — AI Lead Generation by Vertical",
   description:
-    "Genesis automates lead generation across 12 industries with a full-duplex voice agent and a 15-agent workforce. See how it works for yours.",
+    "Genesis automates lead generation across 12 industries with a full-duplex voice agent and a 19-agent workforce. See how it works for yours.",
   alternates: { canonical: "/industries" },
 };
 
@@ -23,7 +23,7 @@ export default function IndustriesPage() {
           AI Lead Generation, by Industry
         </h1>
         <p className="mt-4 max-w-2xl text-lg text-white/70">
-          Genesis runs a full-duplex voice agent and a 15-agent workforce that
+          Genesis runs a full-duplex voice agent and a 19-agent workforce that
           answers your line in real time, qualifies leads, and automates follow-up.
           Pick your vertical.
         </p>

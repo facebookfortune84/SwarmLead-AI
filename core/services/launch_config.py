@@ -54,7 +54,7 @@ SOCIAL_POSTS = [
         "text": (
             "We just launched Genesis Forge — the first autonomous business "
             "launch platform powered by constitutional voice AI. Speak your "
-            "vision, and a 15-agent workforce provisions, qualifies, and "
+            "vision, and a 19-agent workforce provisions, qualifies, and "
             "follows up for you. Launch week: 1 month free on any plan. "
             f"{SITE_URL} {HASHTAGS[3]}"
         ),
@@ -64,7 +64,7 @@ SOCIAL_POSTS = [
         "text": (
             "Built an AI that answers your business line in your voice, "
             "qualifies every lead, and drafts outreach. Full-duplex barge-in, "
-            "RAG-grounded, 15 agents running the operation behind one human "
+            "RAG-grounded, 19 agents running the operation behind one human "
             f"approval gate. AMA / feedback welcome: {SITE_URL} {HASHTAGS[3]}"
         ),
     },
@@ -74,8 +74,8 @@ PH_COMMENTS = [
     (
         "What makes Genesis Forge different: full-duplex voice with real "
         "barge-in (interrupt it mid-sentence and it stops instantly), a "
-        "constitutional 15-agent workforce, and every external action gated "
-        "behind one human approval. Launching with a 15-agent workforce that "
+        "constitutional 19-agent workforce, and every external action gated "
+        "behind one human approval. Launching with a 19-agent workforce that "
         "provisions your business from a single spoken prompt."
     ),
     (

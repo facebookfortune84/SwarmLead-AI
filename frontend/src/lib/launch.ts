@@ -11,7 +11,7 @@ export const LAUNCH_COPY = {
 };
 
 const SHARE_TEXT =
-  "Launch your business with your voice. Genesis Forge is live on Product Hunt — 15 AI agents run your whole operation behind one human approval gate.";
+  "Launch your business with your voice. Genesis Forge is live on Product Hunt — 19 AI agents run your whole operation behind one human approval gate.";
 
 export function shareUrl(network: "x" | "facebook" | "linkedin" | "whatsapp" | "email"): string {
   const text = encodeURIComponent(SHARE_TEXT);

@@ -26,7 +26,7 @@ logger = logging.getLogger("CloserAgent")
 
 OBJECTION_RESPONSES = {
     "price": (
-        "The Growth plan is $99/mo and includes the full 15-agent workforce, "
+        "The Growth plan is $99/mo and includes the full 19-agent workforce, "
         "programmatic SEO, outreach and the voice agent. Annual billing drops "
         "that to $82.50/mo (2 months free)."
     ),

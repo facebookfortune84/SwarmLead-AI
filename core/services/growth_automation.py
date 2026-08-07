@@ -17,6 +17,9 @@ GROWTH_AUTO_MODE). On every cycle it:
 5. Monetize  — scores the funnel, composes Stripe checkout offers for
                high-intent leads, and places each quote in the APPROVAL
                QUEUE (human gate). Never charges without approval.
+6. Nurture   — scores leads with the outreach maximizer, then generates
+               5-touch nurture plans for already-contacted leads so the
+               follow-up cadence keeps working with zero manual effort.
 
 External actions (email sends, payment links) always land behind the one
 human gate; the loop only ever *prepares*. This honors the constitution's
@@ -43,11 +46,12 @@ DEFAULT_CYCLE_HOURS = 6
 OUTREACH_LIMIT_PER_CYCLE = 8
 QUOTE_LIMIT_PER_CYCLE = 3
 INTENT_QUOTE_THRESHOLD = 60
+NURTURE_LIMIT_PER_CYCLE = 6
 
 OUTREACH_ANGLES = [
     "full-duplex voice agent answers your business line in real time",
     "zero-to-provisioned: your business scaffolded from one prompt",
-    "15 agent workforce runs outreach, SEO and follow-ups for you",
+    "19 agent workforce runs outreach, SEO and follow-ups for you",
 ]
 
 SEO_INDUSTRIES = [
@@ -213,6 +217,7 @@ class GrowthAutomation:
             "learned_keyword_boosts": {},
             "artifacts": {"seo_pages": [], "content_drafts": []},
             "approval_queue": [],
+            "nurture_records": {},
         }
 
     def _save_state(self) -> None:
@@ -236,6 +241,7 @@ class GrowthAutomation:
             "outreach": self._phase_outreach,
             "traffic": self._phase_traffic,
             "voice": self._phase_voice,
+            "nurture": self._phase_nurture,
             "monetize": self._phase_monetize,
         }
         for name, phase in phases.items():
@@ -283,7 +289,7 @@ class GrowthAutomation:
         failed = 0
         rate_limited = 0
         for action in self.pending_actions():
-            if action["kind"] not in {"outreach_send", "quote_send", "dunning_retry"}:
+            if action["kind"] not in {"outreach_send", "nurture_touch", "quote_send", "dunning_retry"}:
                 continue  # traffic posts stay behind the founder's hand
             result = await self.approve(action["id"])
             status = result.get("status")
@@ -408,7 +414,7 @@ class GrowthAutomation:
             + "\n\n"
             "## Body\n"
             "[Expand with the voice-agent differentiator: full-duplex barge-in, "
-            "zero-to-provisioned launch OS, 15-agent workforce.]\n\n"
+            "zero-to-provisioned launch OS, 19-agent workforce.]\n\n"
             "## CTA\n"
             "Try the live voice agent on the landing page — it answers in seconds."
         )
@@ -659,7 +665,7 @@ class GrowthAutomation:
         subject = f"Meet the AI that answers for {company}"
         body = (
             f"Hi {name},\n\n"
-            f"SwarmOS just shipped a full-duplex voice agent and a 15-agent "
+            f"SwarmOS just shipped a full-duplex voice agent and a 19-agent "
             f"workforce that runs outreach, SEO and follow-ups automatically. "
             f"The headline: {angle}.\n\n"
             f"Want a 5-minute, zero-setup demo for {company}? Book a slot here and "
@@ -667,6 +673,158 @@ class GrowthAutomation:
             f"Best,\nThe SwarmOS Team"
         )
         return {"subject": subject, "body": body}
+
+    # --------------------------------------------------------------- nurture
+    async def _phase_nurture(self) -> Dict[str, Any]:
+        """Score each fresh lead with the outreach maximizer (so we know which
+        10-20 levers to apply), then plan + queue the deterministic 5-touch
+        nurture sequence for leads we've already contacted.
+
+        Like every phase: drafts prep behind the human gate — it never sends
+        without approval.
+        """
+        from core.services.nurture_engine import nurture_engine
+        from core.services.outreach_maximization import outreach_maximizer
+
+        records: Dict[str, Any] = self.state.setdefault("nurture_records", {})
+        scored = 0
+        planned = 0
+        queued = 0
+
+        # 1) Maximize interplay scoring for fresh leads.
+        for lead in self._qualified_leads(limit=NURTURE_LIMIT_PER_CYCLE):
+            email = lead["email"]
+            rec = records.setdefault(
+                email, {"intent_score": lead.get("intent_score") or 0}
+            )
+            if "score" in rec:
+                continue
+            analysis = outreach_maximizer.maximize(lead)
+            rec.update(
+                {
+                    "score": analysis["score"],
+                    "band": analysis["band"],
+                    "matched_levers": [
+                        item["key"] for item in analysis.get("levers", [])
+                    ],
+                    "suggested_subject": analysis.get("suggested_subject", ""),
+                }
+            )
+            scored += 1
+
+        # 2) Plan cadence for leads we've already reached out to.
+        contacted = {
+            action["payload"].get("to_email")
+            for action in self.state.get("approval_queue", [])
+            if action.get("kind") == "outreach_send"
+            and action.get("status") in {"pending", "approved"}
+        }
+        now = datetime.now(timezone.utc).isoformat()
+        for email in contacted:
+            rec = records.setdefault(email, {"score": None})
+            if rec.get("plan"):
+                continue
+            rec["plan"] = nurture_engine.plan(email)["touches"]
+            rec["touch_idx"] = 1  # the outreach itself was the day-0 intro
+            rec["plan_started"] = now
+            planned += 1
+
+        # 3) Queue the next nurture touch that is actually due on the cadence.
+        for email, rec in records.items():
+            plan = rec.get("plan")
+            if not plan or queued >= NURTURE_LIMIT_PER_CYCLE:
+                continue
+            idx = rec.get("touch_idx", 0)
+            if idx >= len(plan):
+                continue
+            touch = plan[idx]
+            days_elapsed = self._days_since(rec.get("plan_started"))
+            if days_elapsed < touch.get("days", 0):
+                continue
+            payload = self._draft_nurture_touch(email, touch.get("label", "value"))
+            self._enqueue(
+                "nurture_touch",
+                {
+                    "to_email": email,
+                    "lead_name": email,
+                    "touch_label": touch.get("label", "value"),
+                    "subject": payload["subject"],
+                    "body": payload["body"],
+                    "cadence_note": f"Touch {touch.get('seq')} of {len(plan)} "
+                    f"on day {touch.get('days', 0)} ({touch.get('goal', '')}).",
+                },
+            )
+            rec["touch_idx"] = idx + 1
+            rec["last_queued"] = now
+            queued += 1
+
+        return {
+            "status": "ok",
+            "leads_scored": scored,
+            "plans_built": planned,
+            "touches_queued": queued,
+            "leads_in_nurture": len(records),
+        }
+
+    @staticmethod
+    def _days_since(iso_value: Optional[str]) -> int:
+        if not iso_value:
+            return 0
+        try:
+            parsed = datetime.fromisoformat(iso_value)
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            return (datetime.now(timezone.utc) - parsed).days
+        except (ValueError, TypeError):
+            return 0
+
+    @staticmethod
+    def _draft_nurture_touch(email: str, label: str) -> Dict[str, str]:
+        name = (email or "there").split("@")[0].replace(".", " ").title() or "there"
+        company = (email or "").split("@")[-1].split(".")[0].title() or "your company"
+        subject_map = {
+            "intro": "SwarmOS — the AI that runs your pipeline",
+            "value": f"A concrete playbook for {name}",
+            "social_proof": f"How a business like {company} got it done",
+            "risk_reversal": "The zero-risk way to test this",
+            "breakup": "Last call — worth one look?",
+        }
+        body_map = {
+            "intro": (
+                f"Hi {name},\n\n"
+                f"SwarmOS is a 19-agent AI workforce that runs outreach, SEO, "
+                f"follow-ups and your business line — visible topics on one plan.\n\n"
+                f"Best,\nThe SwarmOS Team"
+            ),
+            "value": (
+                f"Hi {name},\n\n"
+                f"One idea that works for companies like yours: let the voice "
+                f"agent answer inbound, while the SDR + content agents keep the "
+                f"pipeline warm 24/7.\n\nBest,\nThe SwarmOS Team"
+            ),
+            "social_proof": (
+                f"Hi {name},\n\n"
+                f"A similar business cut follow-up time to zero and kept a booked "
+                f"calendar with the same 19-agent swarm. Want the 2-minute version"
+                f"?\n\nBest,\nThe SwarmOS Team"
+            ),
+            "risk_reversal": (
+                f"Hi {name},\n\n"
+                f"Try it risk-free: a 7-day pilot, no card, no long-term "
+                f"commitment. If it doesn't save you hours in the first week, "
+                f"keep the setup free.\n\nBest,\nThe SwarmOS Team"
+            ),
+            "breakup": (
+                f"Hi {name},\n\n"
+                f"If now isn't the right time, no hard feelings — I'll stop "
+                f"writing. Want a one-pager to file away when you are ready? "
+                f"Just say the word.\n\nBest,\nThe SwarmOS Team"
+            ),
+        }
+        return {
+            "subject": subject_map.get(label, subject_map["value"]),
+            "body": body_map.get(label, body_map["value"]),
+        }
 
     # ---------------------------------------------------------------- voice
     async def _phase_voice(self) -> Dict[str, Any]:
@@ -962,6 +1120,8 @@ class GrowthAutomation:
 
         if action["kind"] == "outreach_send":
             result = await self._dispatch_outreach(action)
+        elif action["kind"] == "nurture_touch":
+            result = await self._dispatch_nurture(action)
         elif action["kind"] == "quote_send":
             result = await self._dispatch_quote(action)
         elif action["kind"] == "dunning_retry":
@@ -1098,6 +1258,16 @@ class GrowthAutomation:
             payload["body"],
         )
 
+    async def _dispatch_nurture(self, action: Dict) -> Dict:
+        from core.services.email_sender import email_sender
+
+        payload = action["payload"]
+        return await email_sender.send(
+            payload["to_email"],
+            payload["subject"],
+            payload["body"],
+        )
+
     async def _dispatch_quote(self, action: Dict) -> Dict:
         from core.services.email_sender import email_sender
 
@@ -1179,6 +1349,10 @@ class GrowthAutomation:
             "discovery": {
                 "findings": self._discovery_count(),
                 "recent": self._recent_discoveries(5),
+            },
+            "nurture": {
+                "leads_in_nurture": len(self.state.get("nurture_records", {})),
+                "pending_touches": self._pending_count("nurture_touch"),
             },
             "artifacts": {
                 "seo_pages": len(self.state.get("artifacts", {}).get("seo_pages", [])),

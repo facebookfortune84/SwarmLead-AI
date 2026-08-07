@@ -129,3 +129,28 @@ async def capture_voice_lead(payload: LeadCaptureRequest):
     )
     logger.info("Voice lead capture: %s", result)
     return result
+
+
+class ConciergeStartRequest(BaseModel):
+    founder_name: Optional[str] = None
+    opening_line: Optional[str] = None
+
+
+class ConciergeTurnRequest(BaseModel):
+    session_id: str
+    text: str
+
+
+@router.post("/concierge/start")
+async def concierge_start(payload: ConciergeStartRequest):
+    """Start a voice-driven company-creation session (name, domain, audience, offer)."""
+    return await voice_agent_service.concierge_start(
+        founder_name=payload.founder_name or "",
+        opening_line=payload.opening_line or "",
+    )
+
+
+@router.post("/concierge/turn")
+async def concierge_turn(payload: ConciergeTurnRequest):
+    """Advance the voice-led company concierge with the founder's answer."""
+    return await voice_agent_service.concierge_turn(payload.session_id, payload.text)

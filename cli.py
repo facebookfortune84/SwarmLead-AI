@@ -198,6 +198,43 @@ def cmd_seo(args) -> int:
     return 0
 
 
+def cmd_launch(args) -> int:
+    """Drive the voice company-concierge end to end from the terminal."""
+    import asyncio
+
+    from core.services.company_concierge import company_concierge
+
+    async def run():
+        s = company_concierge.start(
+            founder_name=args.name,
+            opening_line=args.prompt
+            or "I run a {0} and want help launching the business".format(
+                args.industry or "small business"
+            ),
+        )
+        print(f"\nLaunch Concierge\n{'=' * 60}")
+        print(f"  {s['prompt']}\n")
+
+        turns = [
+            f"{args.industry or 'plumbing'} business serving local customers",
+            args.tld or ".com",
+            args.audience or "local homeowners and small companies in the metro area",
+            args.roles or "sdr, outreach, content, seo",
+            args.offer or "flat-rate premium service with a free first assessment",
+            "launch",
+        ]
+        for text in turns:
+            result = company_concierge.advance(s["session_id"], text)
+            print(f"> {text}")
+            print(f"  [{result['step']}] {result['prompt'][:140]}\n")
+            if result["done"]:
+                print(f"  Brief:\n  {result['brief']}\n")
+                print(f"  Launch signal: {result['launch_signal']}")
+        return 0
+
+    return asyncio.run(run())
+
+
 def make_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="genesis", description="Genesis CLI - test the agent swarm")
     sub = parser.add_subparsers(dest="command")
@@ -219,6 +256,15 @@ def make_arg_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("revenue", help="show the revenue dashboard")
     sub.add_parser("seo", help="show the SEO asset inventory")
+
+    ln = sub.add_parser("launch", help="drive the voice company concierge end to end")
+    ln.add_argument("--name", default="Rob", help="founder name")
+    ln.add_argument("--industry", default="plumbing", help="business industry")
+    ln.add_argument("--tld", default=".com", help="preferred domain extension")
+    ln.add_argument("--audience", default=None, help="target audience")
+    ln.add_argument("--roles", default=None, help="agent roles to staff")
+    ln.add_argument("--offer", default=None, help="offer / price point")
+    ln.add_argument("--prompt", default=None, help="opening line to use")
     return parser
 
 
@@ -233,6 +279,7 @@ def main() -> int:
         "sales": cmd_sales,
         "revenue": cmd_revenue,
         "seo": cmd_seo,
+        "launch": cmd_launch,
     }
     handler = handlers.get(args.command)
     if handler is None:

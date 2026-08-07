@@ -10,6 +10,10 @@ const items = [
     label: "Dashboard",
   },
   {
+    href: "/launch",
+    label: "Launch",
+  },
+  {
     href: "/leads",
     label: "Leads",
   },

@@ -327,6 +327,32 @@ class VoiceAgentService:
         self._sessions.pop(first_key, None)
 
     # ------------------------------------------------------------------
+    # Company Concierge (voice-driven company creation)
+    # ------------------------------------------------------------------
+
+    async def concierge_start(
+        self, founder_name: str = "", opening_line: str = ""
+    ) -> Dict[str, Any]:
+        """Start a guided company-creation session, returning prompt + audio."""
+        from core.services.company_concierge import company_concierge
+
+        result = company_concierge.start(
+            founder_name=founder_name, opening_line=opening_line
+        )
+        result["prompt_audio_b64"] = await self._synthesize(result["prompt"])
+        return result
+
+    async def concierge_turn(
+        self, session_id: str, user_text: str
+    ) -> Dict[str, Any]:
+        """Advance the company concierge and speak the next prompt."""
+        from core.services.company_concierge import company_concierge
+
+        result = company_concierge.advance(session_id, user_text)
+        result["prompt_audio_b64"] = await self._synthesize(result["prompt"])
+        return result
+
+    # ------------------------------------------------------------------
     # Model / ops status
     # ------------------------------------------------------------------
 

@@ -19,7 +19,7 @@ export const industries: Industry[] = [
       "Automate E-Commerce lead generation with Genesis AI agents. Voice-first outreach, workflow automation, and autonomous business launch.",
     keywords: ["E-Commerce lead generation", "E-Commerce automation", "AI E-Commerce"],
     h1: "AI-Powered Lead Generation for E-Commerce",
-    body: "E-commerce brands waste hours on repetitive outreach and follow-up. Genesis runs a full-duplex voice agent and a 15-agent workforce that answer your line in real time, qualify inbound traffic, and keep every lead moving through your funnel automatically.",
+    body: "E-commerce brands waste hours on repetitive outreach and follow-up. Genesis runs a full-duplex voice agent and a 19-agent workforce that answer your line in real time, qualify inbound traffic, and keep every lead moving through your funnel automatically.",
     painPoints: ["Missed calls and slow response times", "Manual outreach that never scales", "Leads going cold between first touch and follow-up"],
     outcome: "Never miss a buyer again — your voice agent answers in real time and routes hot leads straight to your team.",
   },
@@ -105,7 +105,7 @@ export const industries: Industry[] = [
     h1: "AI-Powered Lead Generation for Boutique Agencies",
     body: "Agencies live and die by pipeline. Genesis answers discovery-call requests in real time, qualifies fit, and runs the outreach sequences that fill your funnel while you deliver the work.",
     painPoints: ["Inconsistent prospecting", "Slow discovery-call scheduling", "No time for outbound while delivering"],
-    outcome: "A 15-agent workforce fills your pipeline so you can focus on client work.",
+    outcome: "A 19-agent workforce fills your pipeline so you can focus on client work.",
   },
   {
     slug: "property-management",

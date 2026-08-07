@@ -346,6 +346,28 @@ DEFAULT_AGENT_CONFIG = {
             ],
             "data_allowlist": ["deals", "pipeline", "quotes", "pricing"],
         },
+        {
+            "agent_id": "concierge_agent",
+            "agent_type": "ConciergeAgent",
+            "display_name": "Launch Concierge Agent",
+            "domains": ["simulation", "external_comms"],
+            "tool_allowlist": ["call_llm", "company_concierge", "read_memory", "write_memory"],
+            "data_allowlist": ["founder_brief", "company_profiles", "domain_check"],
+        },
+        {
+            "agent_id": "nurture_agent",
+            "agent_type": "NurtureAgent",
+            "display_name": "Nurture Agent",
+            "domains": ["simulation", "external_comms"],
+            "tool_allowlist": [
+                "call_llm",
+                "nurture_plan",
+                "classify_reply",
+                "read_memory",
+                "write_memory",
+            ],
+            "data_allowlist": ["leads", "nurture_sequences", "replies"],
+        },
     ]
 }
 

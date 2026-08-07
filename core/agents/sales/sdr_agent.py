@@ -27,7 +27,7 @@ logger = logging.getLogger("SDRAgent")
 
 # Escalating cadence: (delay_days, angle) — each touch adds a new reason to respond.
 CADENCE = [
-    (0, "The 15-agent workforce: 15 agents doing outreach, SEO and follow-ups on one plan"),
+    (0, "The 19-agent workforce: 19 agents doing outreach, SEO and follow-ups on one plan"),
     (3, "Programmatic SEO pages that rank for every industry you target — already live"),
     (7, "Voice agent on your landing page that answers and captures leads 24/7"),
     (14, "The growth loop: discovery, outreach, content and quoting on autopilot"),

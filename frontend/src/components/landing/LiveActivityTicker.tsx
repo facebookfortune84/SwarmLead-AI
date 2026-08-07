@@ -14,7 +14,7 @@ interface LaunchActivity {
 }
 
 const FALLBACK_EVENTS = [
-  "15 agents run outreach, SEO & follow-ups behind one approval gate",
+  "19 agents run outreach, SEO & follow-ups behind one approval gate",
   "Full-duplex barge-in — interrupt the voice agent mid-sentence",
   "A business skeleton from a single spoken prompt",
   "Every lead qualified, every send human-approved",

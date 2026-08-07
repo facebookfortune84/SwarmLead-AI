@@ -38,11 +38,13 @@ def register_default_agents() -> None:
     from configs.config_loader import ConfigLoader
     from core.agents.audit.audit_agent import audit_agent
     from core.agents.builder.builder_agent import BuilderAgent
+    from core.agents.concierge.concierge_agent import ConciergeAgent
     from core.agents.content.content_agent import ContentAgent
     from core.agents.governance.governance_agent import governance_agent
     from core.agents.growth.growth_agent import GrowthAgent
     from core.agents.landing.landing_agent import LandingAgent
     from core.agents.monitoring.monitoring_agent import MonitoringAgent
+    from core.agents.nurture.nurture_agent import NurtureAgent
     from core.agents.onboarding.onboarding_agent import OnboardingAgent
     from core.agents.outreach.outreach_agent import OutreachAgent
     from core.agents.payment.payment_agent import PaymentAgent
@@ -95,6 +97,16 @@ def register_default_agents() -> None:
         ("growth_agent", GrowthAgent("growth_agent", config), ["growth analysis"]),
         ("sdr_agent", SDRAgent("sdr_agent", config), ["lead qualification", "prospecting", "cadence"]),
         ("closer_agent", CloserAgent("closer_agent", config), ["offers", "objection handling", "closing"]),
+        (
+            "concierge_agent",
+            ConciergeAgent("concierge_agent", config),
+            ["company creation", "voice onboarding", "naming", "domain"],
+        ),
+        (
+            "nurture_agent",
+            NurtureAgent("nurture_agent", config),
+            ["lead nurturing", "follow-up cadence", "reply classification"],
+        ),
     ]
 
     for agent_id, handler, capabilities in agents:
