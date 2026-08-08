@@ -245,6 +245,10 @@ Brings up Postgres + Redis + API (port 8000) + frontend (port 3000).
 Frontend container env (`frontend/.env.docker`): empty = defaults; set
 `FRONTEND_URL` for the canonical site URL used in share links.
 
+> If you have older manually started containers (`swarmlead-*`) still
+> running, remove them first so compose can take over the names:
+> `docker rm -f swarmlead-api swarmlead-frontend swarmlead-postgres swarmlead-redis`
+
 ## CLI
 
 ```bash
