@@ -5,7 +5,7 @@
 Genesis Forge is the first autonomous business launch platform powered by
 constitutional voice AI. Speak your vision — the platform provisions a
 business, qualifies leads, drafts outreach, and runs the whole operation
-with a 15-agent workforce — while every external action stays behind a
+with a 19-agent workforce — while every external action stays behind a
 single human approval gate.
 
 > **Product Hunt launch: Monday, August 3, 2026 12:01 AM.**
@@ -91,6 +91,12 @@ your trained weights and the landing agent runs on them.
   magnet, live activity ticker, social share buttons, referral banner,
   integrations strip, monthly/annual pricing toggle, testimonials, FAQ,
   comparison table.
+- **Feature showcase**: 20 features across four groups (Voice Concierge,
+  Revenue & Lead Growth, Launch & Growth Ops, Sales & Operations Spine).
+- **Launch Studio**: `frontend/src/app/launch/page.tsx` — one page that runs
+  the whole launch: the vocally guided company concierge, nurture plans, and
+  outreach maximization levers (`/api/launch/concierge/*`, `/launch/maximize`,
+  `/launch/nurture/*` in `interfaces/api/routers/launch_ext.py`).
 - **Traffic engine**: the growth loop composes X/LinkedIn/Facebook/Reddit/PH
   posts into your approval queue during launch week (`/api/launch/traffic/drafts`);
   your explicit daily job list is **`docs/launch_traffic_playbook.md`**.
@@ -107,7 +113,7 @@ your trained weights and the landing agent runs on them.
 
 ## 🔁 The Autonomous Growth Loop
 
-Runs on a configurable cycle (`GROWTH_CYCLE_HOURS`, default 6h) with six
+Runs on a configurable cycle (`GROWTH_CYCLE_HOURS`, default 6h) with seven
 isolated phases — one failure never kills a cycle:
 
 1. **Discovery** — search-verified real businesses that publish a contact
@@ -189,7 +195,8 @@ the container-side counterpart.
 - **Workflows**: multi-step, persisted, completion tracking
 - **Tickets**: lifecycle, history, department routing
 - **Tenants**: registration, provisioning, runtime monitoring
-- **15-agent workforce**: SEO, outreach, content, builder, voice, growth, etc.
+- **19-agent workforce**: SEO, outreach, content, builder, voice, growth,
+  concierge, nurture, maximization, and more.
 
 ## Stack
 
@@ -200,6 +207,8 @@ ElevenLabs (TTS/STT) · Ollama (local LLM)
 ---
 
 ## 🧑‍💻 Local Development
+
+Backend (from repo root):
 
 ```bash
 python -m venv venv
@@ -214,18 +223,36 @@ uvicorn main:app --reload
 ```
 
 - API: `http://localhost:8000` · Swagger: `http://localhost:8000/docs`
-- Frontend: `cd frontend && npm run dev` → `http://localhost:3000`
-- Frontend tests: `cd frontend && npm test` · Build: `npm run build`
 
-## Docker
+Frontend (in `frontend/`):
 
 ```bash
-docker compose build
-docker compose up
+npm install
+npm run dev                        # http://localhost:3000
 ```
 
-API + frontend + Postgres + Redis run as containers. `OUTREACH_DRY_RUN` and
-`GROWTH_DISCOVERY` live in `.env.docker.local`.
+The Next.js dev server proxies `/api/*` and `/health` to `API_BACKEND_URL`
+(default `http://localhost:8000`).
+
+## Docker (full stack in one command)
+
+```bash
+docker compose up --build
+```
+
+Brings up Postgres + Redis + API (port 8000) + frontend (port 3000).
+`OUTREACH_DRY_RUN` and `GROWTH_DISCOVERY` live in `.env.docker.local`.
+Frontend container env (`frontend/.env.docker`): empty = defaults; set
+`FRONTEND_URL` for the canonical site URL used in share links.
+
+## CLI
+
+```bash
+python cli.py launch        # voice-guided company concierge launch
+python cli.py status        # workspace status / growth loop state
+```
+
+Run `python cli.py --help` for the full command list.
 
 ## Growth Loop Env
 
@@ -247,17 +274,20 @@ API + frontend + Postgres + Redis run as containers. `OUTREACH_DRY_RUN` and
 ## Testing
 
 ```bash
-pytest -v                 # full suite
-pytest tests/unit -v      # unit tests
+python tests/run_tests.py <files> -p no:cacheprovider   # targeted backend suite
+pytest tests/unit -v      # backend unit tests
 pytest tests/integration -v
-npm run test              # frontend (vitest)
+cd frontend && npx vitest run    # frontend unit tests
+cd frontend && npx tsc --noEmit  # frontend typecheck
+cd frontend && npm run build     # production build
+python -m ruff check core interfaces tests utils   # lint (CI scope)
 ```
 
 ## Project Structure
 
 ```text
 core/
-├── agents/          # 15 specialized agents (seo, outreach, content, voice, builder, ...)
+├── agents/          # 19 specialized agents (seo, outreach, content, voice, builder, ...)
 ├── services/        # growth_automation, lead_discovery, deliverability, voice_agent_service,
 │                    # voice_model (pluggable LLM), launch_config (PH campaign), email_sender,
 │                    # monetization, product_knowledge
@@ -297,9 +327,9 @@ tests/
 - Migration: ✅ Complete
 - Backend: ✅ Production Candidate
 - Tests: ✅ 1500+ passing · 96% coverage (see `pytest`)
-- Docker: ✅ Configured (API + frontend + Postgres + Redis)
+- Docker: ✅ Configured (API + frontend + Postgres + Redis — one `docker compose up`)
 - Kubernetes: ✅ Manifests + HPA + overlay
-- Frontend: ✅ Live (landing, autonomy console, business-skeleton tool, voice agent)
+- Frontend: ✅ Live (landing with 20+ grouped features, Launch Studio, autonomy console, voice agent)
 - Launch: ✅ Live on Product Hunt (launch week traffic engine running)
 
 ## Docs
@@ -310,6 +340,7 @@ tests/
 - `docs/email_alias.md` — branded sending alias + DNS records
 - `docs/mrr_projection.md` — honest revenue projection + funnel math
 - `docs/marketing_voice.md` — voice-of-the-market research
+- `docs/governance/ENFORCEMENT.md` — how the single approval gate is enforced
 
 ## License
 

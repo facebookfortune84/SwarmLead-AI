@@ -1,39 +1,144 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Mic, Sparkles, TrendingUp, Users, Shield, Zap } from "lucide-react";
+import {
+  Mic, TrendingUp, Zap, SquareUser, UserCheck,
+  Users, Target, MessagesSquare, Send, ShieldCheck, Wallet, Rocket,
+  ClipboardCheck, Globe, Headphones, Orbit, GanttChart, BarChart3, Database,
+  Users2,
+} from "lucide-react";
 
-const features = [
+type Feature = {
+  title: string;
+  desc: string;
+  icon: typeof Mic;
+};
+
+const FEATURE_GROUPS: { label: string; tagline: string; features: Feature[] }[] = [
   {
-    title: "Voice-First AI Agents",
-    desc: "Natural voice conversations with barge-in support. Interrupt naturally, just like talking to a human.",
-    icon: Mic
+    label: "The Voice Concierge",
+    tagline: "The flagship. A live, talking Salesperson for every visitor.",
+    features: [
+      {
+        title: "Full-Duplex Voice Agent",
+        desc: "Greets visitors within seconds on your landing page, supports barge-in, and never freezes — a 25s LLM cap falls back to intent-matched replies.",
+        icon: Mic,
+      },
+      {
+        title: "Voice-Led Company Concierge",
+        desc: "Describe your business in conversation and the concierge runs the entire build — agent force, workflows, and launch plan — step by step.",
+        icon: SquareUser,
+      },
+      {
+        title: "Voice-First Lead Capture",
+        desc: "A visitor says \u201ccontact me\u201d and a high-intent lead card drops straight into your CRM — captured by voice, scored, and routed.",
+        icon: UserCheck,
+      },
+      {
+        title: "Plug In\u00a0YOUR\u00a0 Voice Model",
+        desc: "The agent runs on your trained weights or a hosted model of your choice — no per-seat markups, full control.",
+        icon: Zap,
+      },
+    ],
   },
   {
-    title: "Autonomous Business Launch",
-    desc: "From idea to incorporated entity. Legal, banking, website, and first customers - fully automated.",
-    icon: Zap
+    label: "Revenue & Lead Growth",
+    tagline: "An entire revenue team that never sleeps.",
+    features: [
+      {
+        title: "19-Agent Workforce",
+        desc: "SEO, SDR, outreach, content, sales, voice, nurture, and more — a full department under one roof, at a fraction of the cost.",
+        icon: Users,
+      },
+      {
+        title: "Autonomous Lead Discovery",
+        desc: "F-when-finding real businesses 24/7 that publish contacts — MX-validated, disposable and role-inbox filtered, never harvested.",
+        icon: Target,
+      },
+      {
+        title: "Nurture Engine",
+        desc: "Every lead is scored and automatically routed to a nurture path that keeps them warm until they're ready to buy — no lead ever goes dead.",
+        icon: MessagesSquare,
+      },
+      {
+        title: "Outreach Maximization",
+        desc: "Drafts personalized outreach that rebalances subject, opener, and value prop for each account — prepared and human-approved.",
+        icon: Send,
+      },
+      {
+        title: "Deliverability & DNS Suite",
+        desc: "Generated SPF/DKIM/DMARC records, live DNS checks, and a 0\u2013100 sender-health score so your emails actually arrive.",
+        icon: ShieldCheck,
+      },
+      {
+        title: "Monetization Engine",
+        desc: "Composes Stripe checkout offers for high-intent leads into your approval queue — pricing propositions, never missed revenue.",
+        icon: Wallet,
+      },
+    ],
   },
   {
-    title: "Autonomous Lead Generation",
-    desc: "AI agents that discover, qualify, and engage leads 24/7. Voice-first outreach at scale.",
-    icon: TrendingUp
+    label: "Launch & Growth Ops",
+    tagline: "From idea to live business in minutes.",
+    features: [
+      {
+        title: "Launch Studio + Traffic Engine",
+        desc: "Run the whole launch from one studio — ready-to-post copy for X, LinkedIn, Reddit, and Product Hunt drops into your queue.",
+        icon: Rocket,
+      },
+      {
+        title: "Business Launch Launchpad",
+        desc: "Type a business idea, get a complete skeleton in seconds — product, market, funnel, and launch checklist pre-built.",
+        icon: ClipboardCheck,
+      },
+      {
+        title: "Programmatic SEO Machines",
+        desc: "A rotating pool of industry pages with JSON-LD and sitemap feeds — capture intent-based search with zero writing.",
+        icon: Globe,
+      },
+      {
+        title: "Live Launch Metrics",
+        desc: "Real launch-week activity, shares, and referrals streamed live onto the page — momentum you can feel and quantify.",
+        icon: BarChart3,
+      },
+      {
+        title: "24/7 Voice Reception",
+        desc: "The same voice agent works round the clock: qualifies inbound, recommends plans, and captures contact details after hours.",
+        icon: Headphones,
+      },
+    ],
   },
   {
-    title: "Autonomous Workflows",
-    desc: "Multi-agent swarms that execute complex business processes end-to-end without human intervention.",
-    icon: Users
+    label: "Sales & Operations Spine",
+    tagline: "The machine that keeps every deal and every workflow moving.",
+    features: [
+      {
+        title: "Autonomous Workflow Engine",
+        desc: "Multi-step, persisted, completion-tracked workflows across teams — start, pause, resume, and cancel anytime.",
+        icon: GanttChart,
+      },
+      {
+        title: "Sales Pipeline & Forecasting",
+        desc: "Deals, stages, pipeline, and forecast dashboards — with lead-signal inference and velocity visible per stage.",
+        icon: TrendingUp,
+      },
+      {
+        title: "CRM + 30-Event Law Timeline",
+        desc: "Every lead carries a full interaction timeline — enrichment, outreach, nurture, status — all in one pane.",
+        icon: Database,
+      },
+      {
+        title: "Revenue Map & Win-Back",
+        desc: "Tier snapshots, churn analysis, dunning (pasted behind approval), upsell and referral maps, and win-back playbooks.",
+        icon: Orbit,
+      },
+      {
+        title: "Multi-Tenant by Design",
+        desc: "Namespace-isolated per tenant with separate secrets and provisioning — scale a single box to hundreds of companies.",
+        icon: Users2,
+      },
+    ],
   },
-  {
-    title: "Constitutional Compliance",
-    desc: "Built-in governance. Every agent action traceable, every dollar human-approved, every decision auditable.",
-    icon: Shield
-  },
-  {
-    title: "Voice-First Onboarding",
-    desc: "Conversational setup in minutes, not hours. Talk to your AI, don't click through forms.",
-    icon: Sparkles
-  }
 ];
 
 export function FeatureShowcase() {
@@ -58,24 +163,37 @@ export function FeatureShowcase() {
         </p>
       </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {features.map((feature, i) => (
-          <motion.div
-            key={feature.title}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.1, duration: 0.5 }}
-            className="group p-8 bg-white/[0.03] backdrop-blur-xl rounded-2xl border border-white/[0.06] hover:border-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-300"
-          >
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-              <feature.icon className="w-7 h-7 text-white" aria-hidden="true" />
+      {FEATURE_GROUPS.map((group, g) => (
+        <div key={group.label} className="mb-16 last:mb-0">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-3 mb-4">
+              <span className="h-px w-8 bg-gradient-to-r from-transparent to-indigo-400/60" aria-hidden="true" />
+              <h3 className="text-2xl md:text-3xl font-bold text-white">{group.label}</h3>
+              <span className="h-px w-8 bg-gradient-to-l from-transparent to-indigo-400/60" aria-hidden="true" />
             </div>
-            <h3 className="text-xl font-bold text-white mb-3">{feature.title}</h3>
-            <p className="text-white/60 leading-relaxed">{feature.desc}</p>
-          </motion.div>
-        ))}
-      </div>
+            <p className="text-white/50">{group.tagline}</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {group.features.map((feature, i) => (
+              <motion.div
+                key={group.label + feature.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1, duration: 0.5 }}
+                className="group p-8 bg-white/[0.03] backdrop-blur-xl rounded-2xl border border-white/[0.06] hover:border-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-300"
+              >
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <feature.icon className="w-7 h-7 text-white" aria-hidden="true" />
+                </div>
+                <h4 className="text-xl font-bold text-white mb-3">{feature.title}</h4>
+                <p className="text-white/60 leading-relaxed">{feature.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      ))}
     </section>
   );
 }
