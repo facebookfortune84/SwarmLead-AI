@@ -16,9 +16,11 @@ from datetime import datetime, timezone
 from typing import Dict, List
 from urllib.parse import quote
 
+from core.site import site_url
+
 logger = None  # pragma: no cover - module import only
 
-SITE_URL = os.getenv("LAUNCH_URL", "https://realms2riches.com")
+SITE_URL = os.getenv("LAUNCH_URL", site_url())
 PRODUCT_HUNT_URL = os.getenv(
     "PRODUCT_HUNT_URL", "https://www.producthunt.com/products/genesis-5"
 )

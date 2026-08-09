@@ -14,11 +14,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 
+from core.site import site_url
+
 logger = logging.getLogger("SEOEngine")
 
 GROWTH_STATE_PATH = Path(__file__).resolve().parents[2] / "data" / "growth_state.json"
 
-DEFAULT_BASE_URL = "https://realms2riches.com"
+DEFAULT_BASE_URL = site_url()
 
 # Canonical routes that always exist regardless of the growth-loop artifacts.
 STATIC_URLS = [

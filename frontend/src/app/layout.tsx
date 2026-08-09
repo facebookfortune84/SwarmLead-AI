@@ -4,8 +4,9 @@ import "./globals.css";
 import { AppThemeProvider } from "@/components/providers/theme-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { APP_NAME, PUBLIC_DOMAIN, SITE_URL } from "@/lib/site";
 
-const siteUrl = process.env.SITE_URL || "https://realms2riches.com";
+const siteUrl = SITE_URL;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

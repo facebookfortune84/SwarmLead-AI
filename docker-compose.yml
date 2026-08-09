@@ -68,6 +68,7 @@ services:
       context: ./frontend
       args:
         API_BACKEND_URL: http://api:8000
+        NEXT_PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:-realms2riches.com}
 
     container_name: swarmlead-frontend
 
@@ -75,12 +76,30 @@ services:
 
     environment:
       API_BACKEND_URL: http://api:8000
+      NEXT_PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:-realms2riches.com}
 
     ports:
       - "3000:3000"
 
     depends_on:
       api:
+        condition: service_started
+
+  # ── Cloudflare Tunnel (optional; enable with: docker compose --profile tunnel up -d)
+  # Free hosting: exposes the full stack on your Cloudflare account via a
+  # remote tunnel. Set CLOUDFLARE_TUNNEL_TOKEN (from the Cloudflare dashboard
+  # -> Zero Trust -> Networks -> Tunnels -> Create -> Remotely-managed) and
+  # map public hostnames to http://frontend:3000 (and http://api:8000 as needed).
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: swarmlead-tunnel
+    restart: unless-stopped
+    profiles: ["tunnel"]
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      frontend:
         condition: service_started
 
 volumes:

@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from core.models.tenant import CompanyTenant
 from core.persistence.session import SessionLocal
+from core.site import tech_domain
 from infrastructure.deployment.box_deployer import (
     BoxDeployer,
     _slugify,
@@ -58,9 +59,9 @@ class TenantService:
                     id=f"TEN-{uuid.uuid4().hex[:8].upper()}",
                     slug=final_slug,
                     name=name,
-                    subdomain=f"{final_slug}.{os.getenv('TECH_DOMAIN', 'realms2riches.tech')}",
+                    subdomain=f"{final_slug}.{tech_domain()}",
                     status="pending",
-                    box_url=f"https://{final_slug}.{os.getenv('TECH_DOMAIN', 'realms2riches.tech')}",
+                    box_url=f"https://{final_slug}.{tech_domain()}",
                 )
                 db.add(tenant)
                 db.commit()

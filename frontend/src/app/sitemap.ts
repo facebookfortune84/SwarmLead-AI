@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
 import { industries } from "@/lib/industries";
+import { SITE_URL } from "@/lib/site";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.SITE_URL || "https://realms2riches.com";
+  const baseUrl = SITE_URL;
   const today = new Date();
 
   const staticPages = [

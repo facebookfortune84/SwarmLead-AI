@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { SITE_URL, PRODUCT_HUNT_URL, LAUNCH_COPY } from "@/lib/launch";
+import { PRODUCT_HUNT_URL, LAUNCH_COPY } from "@/lib/launch";
+import { SITE_URL } from "@/lib/site";
 
 const INTEGRATIONS = [
   "Stripe",

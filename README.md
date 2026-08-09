@@ -241,13 +241,43 @@ docker compose up --build
 ```
 
 Brings up Postgres + Redis + API (port 8000) + frontend (port 3000).
-`OUTREACH_DRY_RUN` and `GROWTH_DISCOVERY` live in `.env.docker.local`.
-Frontend container env (`frontend/.env.docker`): empty = defaults; set
-`FRONTEND_URL` for the canonical site URL used in share links.
+`OUTREACH_DRY_RUN`, `GROWTH_DISCOVERY`, and the public domain config live in
+`.env.docker.local` (backend) and `frontend/.env.docker` (frontend).
 
 > If you have older manually started containers (`swarmlead-*`) still
 > running, remove them first so compose can take over the names:
 > `docker rm -f swarmlead-api swarmlead-frontend swarmlead-postgres swarmlead-redis`
+
+## ☁️ Free hosting: Cloudflare Tunnel (full app, no restrictions)
+
+The stack runs anywhere (your Windows host, a cheap VPS, a K8s cluster) and
+is published for free through a Cloudflare Tunnel — full feature parity:
+voice WebSockets, streaming, cron/worker containers, no PaaS limits.
+
+```bash
+# Shortcut — free trycloudflare URL, zero setup:
+docker run -d --name swarmlead-tunnel-quick --network swarmlead-ai_default \
+  cloudflare/cloudflared tunnel --no-autoupdate --url http://frontend:3000
+docker logs -f swarmlead-tunnel-quick     # prints your https://...trycloudflare.com
+
+# Permanent — set CLOUDFLARE_TUNNEL_TOKEN (Zero Trust → Networks → Tunnels),
+# map hostnames to :3000/:8000, then:
+docker compose --profile tunnel up -d
+```
+
+`PUBLIC_DOMAIN` is the **single source of truth** for every URL in the
+product (CORS, SEO, sitemap, OG tags, share links, tenant subdomains —
+see `core/site.py` and `frontend/src/lib/site.ts`). Change one env line and
+rebuild to move the whole product to a new domain. Full walkthrough +
+complete switch checklist: **[docs/domain_switch_playbook.md](docs/domain_switch_playbook.md)**.
+
+## 🔄 CI/CD
+
+`.github/workflows/ci.yml` runs lint + backend tests + frontend
+typecheck/tests/build on every push (GitHub-hosted, free minutes).
+`.github/workflows/deploy.yml` rebuilds and restarts the compose stack on a
+self-hosted runner (label `docker-host`) right on your host machine — push
+to `main`, containers roll.
 
 ## CLI
 
@@ -262,6 +292,11 @@ Run `python cli.py --help` for the full command list.
 
 | Var | Default | Meaning |
 | --- | --- | --- |
+| `PUBLIC_DOMAIN` | `realms2riches.com` | **single source of truth** for all public URLs (see Cloudflare section) |
+| `FRONTEND_URL` / `BACKEND_URL` | derived from `PUBLIC_DOMAIN` | explicit overrides if hosts are split |
+| `CORS_ORIGINS` | derived from `PUBLIC_DOMAIN` (+ www/api/corp/tunnel/localhost) | extra origins appended if set |
+| `CLOUDFLARE_TUNNEL_TOKEN` | *(unset)* | runtime token for the `tunnel` compose profile |
+| `CLOUDFLARE_TUNNEL_HOSTNAME` | *(unset)* | staging trycloudflare hostname, auto-added to CORS |
 | `GROWTH_AUTO_MODE` | `1` | start the loop on API boot |
 | `GROWTH_CYCLE_HOURS` | `6` | hours between cycles |
 | `GROWTH_USE_LLM` | `0` | LLM content generation (slow on CPU) vs deterministic scaffold |
@@ -345,6 +380,7 @@ tests/
 - `docs/mrr_projection.md` — honest revenue projection + funnel math
 - `docs/marketing_voice.md` — voice-of-the-market research
 - `docs/governance/ENFORCEMENT.md` — how the single approval gate is enforced
+- `docs/domain_switch_playbook.md` — free Cloudflare Tunnel hosting + the exact domain-switch checklist
 
 ## License
 

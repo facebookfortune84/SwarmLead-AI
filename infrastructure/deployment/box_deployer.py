@@ -13,12 +13,11 @@ import subprocess
 import uuid
 from pathlib import Path
 
+from core.site import tech_domain
+
 logger = logging.getLogger("box_deployer")
 
-TECH_DOMAIN = os.getenv(
-    "TECH_DOMAIN",
-    "realms2riches.tech",
-)
+TECH_DOMAIN = tech_domain()
 
 BOX_IMAGE = os.getenv(
     "TENANT_BOX_IMAGE",

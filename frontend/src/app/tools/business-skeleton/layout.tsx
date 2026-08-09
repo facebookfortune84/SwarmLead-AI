@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { SITE_URL } from "@/lib/site";
+
 export const metadata: Metadata = {
   title: "Business Skeleton Generator — Free AI Tool",
   description:
@@ -9,7 +11,7 @@ export const metadata: Metadata = {
     title: "Business Skeleton Generator — Free AI Tool",
     description:
       "Type a business idea and get a complete launch skeleton — files, infra plan and checklist — in seconds.",
-    url: "https://realms2riches.com/tools/business-skeleton",
+    url: `${SITE_URL}/tools/business-skeleton`,
     type: "website",
   },
 };

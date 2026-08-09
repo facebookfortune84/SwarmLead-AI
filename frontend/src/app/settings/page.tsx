@@ -72,7 +72,7 @@ export default function SettingsPage() {
       { key: "JWT_SECRET", label: "JWT Secret", status: "ok", message: "Configured" },
       { key: "DATABASE_URL", label: "Database", status: "ok", message: "Connected" },
       { key: "STRIPE_API_KEY", label: "Stripe Payments", status: "ok", message: "Configured" },
-      { key: "SITE_URL", label: "Site URL (SEO)", status: "ok", message: "realms2riches.com" },
+      { key: "SITE_URL", label: "Site URL (SEO)", status: "ok", message: window.location.host },
     ];
     try {
       const healthResp = await fetch("/health");

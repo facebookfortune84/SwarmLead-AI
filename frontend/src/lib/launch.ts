@@ -1,7 +1,9 @@
-export const PRODUCT_HUNT_URL =
-  "https://www.producthunt.com/products/genesis-5?utm_source=realms2riches.com&utm_medium=social";
+import { PUBLIC_DOMAIN, shareLink } from "./site";
 
-export const SITE_URL = "https://realms2riches.com";
+export const PRODUCT_HUNT_URL =
+  "https://www.producthunt.com/products/genesis-5?utm_source=" +
+  encodeURIComponent(PUBLIC_DOMAIN) +
+  "&utm_medium=social";
 
 export const LAUNCH_COPY = {
   promoCode: "LAUNCH100",
@@ -14,20 +16,7 @@ const SHARE_TEXT =
   "Launch your business with your voice. Genesis Forge is live on Product Hunt — 19 AI agents run your whole operation behind one human approval gate.";
 
 export function shareUrl(network: "x" | "facebook" | "linkedin" | "whatsapp" | "email"): string {
-  const text = encodeURIComponent(SHARE_TEXT);
-  const url = encodeURIComponent(PRODUCT_HUNT_URL);
-  switch (network) {
-    case "x":
-      return `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
-    case "facebook":
-      return `https://www.facebook.com/sharer/sharer.php?u=${url}`;
-    case "linkedin":
-      return `https://www.linkedin.com/sharing/share-offsite/?url=${url}`;
-    case "whatsapp":
-      return `https://wa.me/?text=${text}%20${url}`;
-    case "email":
-      return `mailto:?subject=${encodeURIComponent("Launch your business with your voice")}&body=${text}%20${url}`;
-  }
+  return shareLink(network, PRODUCT_HUNT_URL, SHARE_TEXT);
 }
 
 export interface PlanQuizAnswer {

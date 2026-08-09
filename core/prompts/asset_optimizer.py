@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+from core.site import public_domain
+
 
 class AssetOptimizer:
     def __init__(self, input_dir="assets/raw", output_dir="assets/optimized"):
@@ -110,7 +112,7 @@ class AssetOptimizer:
             )
 
             domains = [
-                d for d in data.get("topology", {}).get("domains", []) if "realms2riches" in d
+                d for d in data.get("topology", {}).get("domains", []) if public_domain() in d
             ]
 
             domains = ", ".join(domains)

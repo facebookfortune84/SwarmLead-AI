@@ -7,6 +7,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from core.config import *
 from core.persistence.session import init_db
+from core.site import cors_origins
 from interfaces.api.routers.acquisition import router as acquisition_router
 from interfaces.api.routers.agents import router as agents_router
 from interfaces.api.routers.auth import router as auth_router
@@ -53,11 +54,7 @@ app = FastAPI(
     redirect_slashes=False,
 )
 
-_cors_str = os.getenv(
-    "CORS_ORIGINS",
-    "http://localhost:3000,http://127.0.0.1:3000",
-)
-CORS_ORIGINS = [o.strip() for o in _cors_str.split(",") if o.strip()]
+CORS_ORIGINS = cors_origins()
 
 app.add_middleware(
     CORSMiddleware,
