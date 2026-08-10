@@ -153,7 +153,71 @@ curl -sfX OPTIONS -H "Origin: https://<new>.com" http://localhost:8000/health -I
 - **Old redirects**: if you still own the old domain, add a Cloudflare
   "Redirect Rules" 301 from old → new so SEO equity carries over.
 
-## 6. FAQ
+## 6. Free domains that actually work with a Cloudflare Tunnel
+
+**The one constraint that decides everything:** Cloudflare Tunnel only
+routes hostnames whose DNS records live in the *same Cloudflare account* —
+the public hostname in a tunnel is a CNAME to `<tunnel-uuid>.cfargotunnel.
+com`, and Cloudflare proxies that CNAME only for records inside your own
+zone. That rules out GitHub Pages/static hosts (they can't run this app
+anyway) *and* external free subdomains (afraid.org, duckdns, no-ip: their
+DNS isn't a zone you can delegate to Cloudflare, so no tunnel CNAME can
+exist there). A free domain qualifies only if it can become a **Cloudflare
+zone** via custom nameservers.
+
+| Option | Cost | Time to live | Verdict |
+| --- | --- | --- | --- |
+| Quick Tunnel (`trycloudflare.com`) | $0, no account/domain | 2 minutes | Staging only — URL changes each restart |
+| **EU.org** (`name.eu.org`) | $0, forever, renewable | Manual review: weeks-months | Best permanent free domain (has NS delegation) |
+| **ClouDNS** free subdomain (`name.cloudns.org` etc.) | $0 | Minutes-hours | Fast free option (zones are in Cloudflare's Public Suffix List) |
+| Real TLD on sale (`.xyz`/`.top`/`.online`) | ~$1-3 first year | Minutes | Backup if free approvals drag |
+
+### 6a. Quick Tunnel (staging now)
+
+```bash
+docker run -d --name swarmlead-tunnel-quick --network swarmlead-ai_default \
+  cloudflare/cloudflared tunnel --no-autoupdate --url http://frontend:3000
+docker logs -f swarmlead-tunnel-quick   # prints: https://<random>.trycloudflare.com
+```
+
+Full dynamic app, zero registration. Catch: random URL, changes on restart,
+WebSockets may throttle — staging only.
+
+### 6b. EU.org — free-forever domain (recommended permanent)
+
+1. `nic.eu.org` → sign up (Contact account, set WHOIS to "Private").
+2. Cloudflare → **+Add site** → enter your desired `name.eu.org` → Free
+   plan → copy the two `*.ns.cloudflare.com` nameservers.
+3. EU.org → **New Domain** → enter the same name → paste the two Cloudflare
+   nameservers → submit (manual approval, varies from weeks-months).
+4. When approved: your zone is active in Cloudflare → follow section 1b
+   (create tunnel, add public hostnames) → set `PUBLIC_DOMAIN` per section
+   4 → rebuild.
+
+Caveat: `eu.org` is a subdomain *you administer*, not a registrable TLD —
+you can't transfer it, but you control its DNS fully, it never expires,
+and the whole app runs on it for $0.
+
+### 6c. ClouDNS free subdomain (faster than EU.org)
+
+ClouDNS's free subdomains (e.g. `name.cloudns.org`) sit under zones listed
+in the Public Suffix List, so Cloudflare accepts them as sites — the
+Cloudflare community confirms this route works.
+
+1. `cloudns.net` → free account → **Free subdomains** → pick a suffix.
+2. Cloudflare → **+Add site** → `name.cloudns.org` → Free plan → copy the
+   two nameservers.
+3. In ClouDNS's DNS panel, set **NS records** for your subdomain to those
+   two Cloudflare nameservers.
+4. Cloudflare validates → tunnel hostnames per 1b → `PUBLIC_DOMAIN` per 4.
+
+### 6d. If you'd rather pay ~$1-3 once
+
+Namecheap / Porkbun / Cloudflare Registrar sell `.xyz`, `.top`, `.online`
+at ~$1-3 first year. Cheap, portable, brandable — and with the
+single-source-of-truth switch it's still just one env line to move later.
+
+## 7. FAQ
 
 **Q: Does anything break with a Quick Tunnel before I own a domain?**
 A: The `trycloudflare.com` URL works for everything except (a) WebSockets
@@ -172,7 +236,7 @@ VPS or a always-on machine; the compose stack is identical there.
 A: One env line per place + rebuild + stripe/DNS (table # 2). The code
 carries zero hard-coded platform URLs now.
 
-## 7. Test suite that guards this
+## 8. Test suite that guards this
 
 - `tests/unit/test_seo_engine.py` — sitemap/robots/JSON-LD built from
   `base_url` argument (tests inject explicit domains; they do not depend on
