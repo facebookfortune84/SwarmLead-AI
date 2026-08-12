@@ -12,6 +12,8 @@ from types import ModuleType
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from core.site import site_url
+
 # Lazy import to avoid hard dependency at import time
 stripe: ModuleType | None = None
 try:
@@ -61,10 +63,7 @@ async def create_checkout_session(payload: CheckoutCreate):
         )
 
     try:
-        frontend_url = os.getenv(
-            "FRONTEND_URL",
-            "http://localhost:3000",
-        )
+        frontend_url = site_url()
         success_url = f"{frontend_url}/success?session_id={{CHECKOUT_SESSION_ID}}"
         cancel_url = f"{frontend_url}/cancel"
 

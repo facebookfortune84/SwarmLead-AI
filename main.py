@@ -4,7 +4,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
-
 from core.config import *
 from core.persistence.session import init_db
 from core.site import cors_origins
@@ -56,8 +55,22 @@ app = FastAPI(
 
 CORS_ORIGINS = cors_origins()
 
+
+class DynamicCORSMiddleware(CORSMiddleware):
+    """CORS middleware that re-evaluates allowed origins on every request.
+
+    In dynamic tunnel mode the public origin rotates daily (Quick Tunnel
+    URL in Redis). A stock CORSMiddleware freezes ``allow_origins`` at
+    import time; this subclass consults ``cors_origins()`` per request so
+    the current tunnel URL is always allowed without a container restart.
+    """
+
+    def is_allowed_origin(self, origin: str) -> bool:
+        return origin in cors_origins()
+
+
 app.add_middleware(
-    CORSMiddleware,
+    DynamicCORSMiddleware,
     allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],

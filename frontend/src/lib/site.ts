@@ -38,6 +38,21 @@ export const API_URL: string = (
   `https://api.${PUBLIC_DOMAIN}`
 ).replace(/\/+$/, "");
 
+/**
+ * Origin for client-side rendering: always the browser's current origin.
+ *
+ * In dynamic tunnel mode the public URL rotates daily; the browser is
+ * sitting on the current tunnel URL, so `window.location.origin` is the
+ * one value that can never go stale. Falls back to the baked SITE_URL when
+ * rendered server-side (use `requestOrigin()` from lib/server-site there).
+ */
+export function currentOrigin(): string {
+  if (typeof window !== "undefined") {
+    return window.location.origin;
+  }
+  return SITE_URL;
+}
+
 export const APP_NAME: string = env("NEXT_PUBLIC_APP_NAME") || "Genesis Forge";
 
 export function shareLink(network: string, url: string, text: string): string {

@@ -67,8 +67,9 @@ class SEOEngine:
         except (OSError, ValueError):
             return []
 
-    def page_inventory(self) -> List[Dict[str, Any]]:
+    def page_inventory(self, base_url: str | None = None) -> List[Dict[str, Any]]:
         """Full URL inventory: growth-loop programmatic pages + static routes."""
+        origin = self._resolve_base_url(base_url)
         seen = set()
         inventory = []
         for static in STATIC_URLS:
@@ -78,7 +79,7 @@ class SEOEngine:
             seen.add(url)
             inventory.append(
                 {
-                    "url": self.base_url + url,
+                    "url": origin + url,
                     "changefreq": static["changefreq"],
                     "priority": static["priority"],
                     "lastmod": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
@@ -91,7 +92,7 @@ class SEOEngine:
             seen.add(url)
             inventory.append(
                 {
-                    "url": self.base_url + url,
+                    "url": origin + url,
                     "changefreq": page.get("changefreq", "weekly"),
                     "priority": float(page.get("priority", 0.8)),
                     "lastmod": page.get("generated_at", "")[:10]
@@ -101,7 +102,17 @@ class SEOEngine:
         return inventory
 
     # ---------------------------------------------------------------- assets
-    def build_sitemap(self) -> str:
+    def _resolve_base_url(self, base_url: str | None = None) -> str:
+        """Base URL for a single render: explicit > instance > default.
+
+        The instance base URL is resolved at import time, which is wrong in
+        dynamic tunnel mode where the origin rotates daily. Passing a live
+        ``base_url`` per render (from ``core.site.site_url()``) keeps these
+        builders correct without rebuilding the singleton.
+        """
+        return (base_url or self.base_url).rstrip("/")
+
+    def build_sitemap(self, base_url: str | None = None) -> str:
         """Render a standard sitemap.xml from the page inventory."""
         urls = "\n".join(
             f"    <url>\n"
@@ -110,7 +121,7 @@ class SEOEngine:
             f"      <changefreq>{entry['changefreq']}</changefreq>\n"
             f"      <priority>{entry['priority']:.1f}</priority>\n"
             f"    </url>"
-            for entry in self.page_inventory()
+            for entry in self.page_inventory(base_url=base_url)
         )
         return (
             '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -119,34 +130,35 @@ class SEOEngine:
             "</urlset>\n"
         )
 
-    def build_robots(self) -> str:
+    def build_robots(self, base_url: str | None = None) -> str:
         """Render robots.txt referencing the sitemap."""
         return (
             "User-agent: *\n"
             "Allow: /\n"
             "Disallow: /admin/\n"
             "Disallow: /api/\n"
-            f"\nSitemap: {self.base_url}/sitemap.xml\n"
+            f"\nSitemap: {self._resolve_base_url(base_url)}/sitemap.xml\n"
         )
 
-    def build_json_ld(self) -> str:
+    def build_json_ld(self, base_url: str | None = None) -> str:
         """JSON-LD structured data for the landing page (Organization + WebSite)."""
+        origin = self._resolve_base_url(base_url)
         schema = [
             {
                 "@context": "https://schema.org",
                 "@type": "Organization",
                 "name": "Realm & Riches",
-                "url": self.base_url,
+                "url": origin,
                 "sameAs": [],
             },
             {
                 "@context": "https://schema.org",
                 "@type": "WebSite",
                 "name": "SwarmLead AI",
-                "url": self.base_url,
+                "url": origin,
                 "potentialAction": {
                     "@type": "SearchAction",
-                    "target": f"{self.base_url}/?q={{search_term_string}}",
+                    "target": f"{origin}/?q={{search_term_string}}",
                     "query-input": "required name=search_term_string",
                 },
             },

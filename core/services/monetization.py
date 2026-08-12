@@ -26,6 +26,7 @@ from core.services.pricing import (
     SETUP_FEE_TIERS,
     TIERS,
 )
+from core.site import site_url
 
 logger = logging.getLogger("Monetization")
 
@@ -62,7 +63,7 @@ class MonetizationMaximizer:
             logger.warning("Stripe not ready; no checkout URL created")
             return None
 
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+        frontend_url = site_url()
         success_url = f"{frontend_url}/success?session_id={{CHECKOUT_SESSION_ID}}"
         cancel_url = f"{frontend_url}/cancel"
 
@@ -112,7 +113,7 @@ class MonetizationMaximizer:
             "referee_discount": "20% off first month",
             "attribution_window_days": 30,
             "referral_code": code,
-            "share_url": f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/?ref={code}"
+            "share_url": f"{site_url()}/?ref={code}"
             if code
             else None,
         }
@@ -300,7 +301,7 @@ class MonetizationMaximizer:
                 "Your latest invoice payment failed. No interruption yet — "
                 f"you have {DUNNING_GRACE_DAYS} days of grace before service "
                 "pauses. You can update your card here: "
-                f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/billing\n\n"
+                f"{site_url()}/billing\n\n"
                 f"Referenced invoice: {inv.get('id', '(not provided)')}\n\n"
                 "SwarmOS"
             ),

@@ -53,6 +53,10 @@ services:
       - .env.docker
       - .env.docker.local
 
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DYNAMIC_TUNNEL_MODE: ${DYNAMIC_TUNNEL_MODE:-0}
+
     ports:
       - "8000:8000"
 
@@ -101,6 +105,27 @@ services:
     depends_on:
       frontend:
         condition: service_started
+
+  # ── Tunnel Auto-Pilot (enable with: docker compose --profile tunnel-quick up -d)
+  # Free Quick Tunnel with NO account/domain. Publishes the current
+  # trycloudflare.com URL to Redis (`site:public_url`, 24h TTL) and rotates
+  # it daily + on every boot. With DYNAMIC_TUNNEL_MODE=1 the API and
+  # frontend follow the URL at request time (CORS, SEO, shares, Stripe).
+  tunnel-quick:
+    build:
+      context: ./infrastructure/tunnel-quick
+    container_name: swarmlead-tunnel-quick
+    restart: unless-stopped
+    profiles: ["tunnel-quick"]
+    environment:
+      TUNNEL_TARGET: http://frontend:3000
+      REDIS_URL: redis://redis:6379/0
+      SYNC_INTERVAL_HOURS: ${TUNNEL_SYNC_INTERVAL_HOURS:-24}
+    depends_on:
+      frontend:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
 volumes:
   postgres_data:

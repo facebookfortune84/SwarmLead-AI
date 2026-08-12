@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { PRODUCT_HUNT_URL, LAUNCH_COPY } from "@/lib/launch";
-import { SITE_URL } from "@/lib/site";
+import { currentOrigin } from "@/lib/site";
 
 const INTEGRATIONS = [
   "Stripe",
@@ -103,7 +103,7 @@ export function LaunchPromoBar() {
         for {LAUNCH_COPY.promoOffer}
       </span>{" "}
       <a
-        href={SITE_URL}
+        href={currentOrigin()}
         className="ml-2 inline-block underline underline-offset-2 text-white font-semibold hover:text-white/80 transition-colors"
       >
         Claim now →

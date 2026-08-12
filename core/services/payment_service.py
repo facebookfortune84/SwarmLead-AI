@@ -11,6 +11,7 @@ import stripe
 
 from core.auth.agent_identity import AgentIdentityRegistry
 from core.services.monetary_rules import get_monetary_rules
+from core.site import site_url
 
 logger = logging.getLogger("PaymentService")
 
@@ -143,7 +144,7 @@ class PaymentService:
         Creates a Stripe Checkout session for recurring subscriptions.
 """
         try:
-            frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+            frontend_url = site_url()
             session = stripe.checkout.Session.create(
                 customer_email=customer_email,
                 payment_method_types=["card"],

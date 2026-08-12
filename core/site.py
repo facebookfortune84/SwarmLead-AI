@@ -24,10 +24,21 @@ Rules applied:
 - A Cloudflare tunnel hostname (``CLOUDFLARE_TUNNEL_HOSTNAME``) is included
   in CORS origins when set, so a trycloudflare quick-link works during
   domain-migration staging.
+
+Dynamic tunnel mode
+-------------------
+When ``DYNAMIC_TUNNEL_MODE=1``, the site origin is resolved at REQUEST time
+from the ``site:public_url`` key that the ``tunnel-quick`` service keeps in
+Redis (the current Quick Tunnel URL, which rotates daily). This lets the
+whole app follow a changing URL with zero rebuilds — see
+``core/runtime_origin.py``. Explicit env overrides (``FRONTEND_URL``,
+``PUBLIC_DOMAIN``, ...) always win over the runtime value.
 """
 
 import os
 from typing import List
+
+from core.runtime_origin import dynamic_tunnel_mode, runtime_tunnel_url
 
 PUBLIC_DOMAIN = (os.getenv("PUBLIC_DOMAIN") or "realms2riches.com").strip()
 
@@ -37,24 +48,50 @@ def _strip_scheme(value: str) -> str:
     return value.strip().replace("https://", "").replace("http://", "").rstrip("/")
 
 
+def _runtime_origin() -> str | None:
+    """Full origin (with scheme) of the live tunnel URL, when dynamic mode
+    is on and the tunnel service has published one."""
+    if not dynamic_tunnel_mode():
+        return None
+    return runtime_tunnel_url()
+
+
 def public_domain() -> str:
     """Bare hostname (no scheme) of the public site."""
+    runtime = _runtime_origin()
+    if runtime:
+        return _strip_scheme(runtime)
     return _strip_scheme(PUBLIC_DOMAIN)
 
 
 def api_domain() -> str:
     """Bare hostname (no scheme) of the API."""
+    runtime = _runtime_origin()
+    if runtime:
+        return _strip_scheme(runtime)
     return _strip_scheme(os.getenv("API_DOMAIN") or f"api.{public_domain()}")
 
 
 def site_url() -> str:
     """Full origin of the frontend (used for links, shares, redirects)."""
-    return (os.getenv("FRONTEND_URL") or f"https://{public_domain()}").rstrip("/")
+    explicit = os.getenv("FRONTEND_URL", "").strip()
+    if explicit:
+        return explicit.rstrip("/")
+    runtime = _runtime_origin()
+    if runtime:
+        return runtime.rstrip("/")
+    return f"https://{public_domain()}"
 
 
 def api_url() -> str:
     """Full origin of the backend (used for webhooks, cross-origin links)."""
-    return (os.getenv("BACKEND_URL") or f"https://{api_domain()}").rstrip("/")
+    explicit = os.getenv("BACKEND_URL", "").strip()
+    if explicit:
+        return explicit.rstrip("/")
+    runtime = _runtime_origin()
+    if runtime:
+        return runtime.rstrip("/")
+    return f"https://{api_domain()}"
 
 
 def tech_domain() -> str:
@@ -82,6 +119,10 @@ def cors_origins() -> List[str]:
     tunnel = os.getenv("CLOUDFLARE_TUNNEL_HOSTNAME", "").strip()
     if tunnel:
         derived.add(f"https://{_strip_scheme(tunnel)}")
+
+    runtime = runtime_tunnel_url()
+    if runtime:
+        derived.add(runtime.rstrip("/"))
 
     dev = {"http://localhost:3000", "http://127.0.0.1:3000"}
     return sorted(dev | derived)

@@ -1,9 +1,9 @@
 import type { MetadataRoute } from "next";
 import { industries } from "@/lib/industries";
-import { SITE_URL } from "@/lib/site";
+import { requestOrigin } from "@/lib/server-site";
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = SITE_URL;
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const baseUrl = await requestOrigin();
   const today = new Date();
 
   const staticPages = [
