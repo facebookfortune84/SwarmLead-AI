@@ -169,7 +169,7 @@ zone** via custom nameservers.
 | --- | --- | --- | --- |
 | Quick Tunnel (`trycloudflare.com`) | $0, no account/domain | 2 minutes | Staging only — URL changes each restart |
 | **EU.org** (`name.eu.org`) | $0, forever, renewable | Manual review: weeks-months | Best permanent free domain (has NS delegation) |
-| **ClouDNS** free subdomain (`name.cloudns.org` etc.) | $0 | Minutes-hours | Fast free option (zones are in Cloudflare's Public Suffix List) |
+| **ClouDNS** free subdomain (`name.cloudns.org` etc.) | $0 | N/A | **Dead end for tunnels** — free tier cannot set custom NS; zone never activates (verified) |
 | Real TLD on sale (`.xyz`/`.top`/`.online`) | ~$1-3 first year | Minutes | Backup if free approvals drag |
 
 ### 6a. Quick Tunnel (staging now)
@@ -198,18 +198,23 @@ Caveat: `eu.org` is a subdomain *you administer*, not a registrable TLD —
 you can't transfer it, but you control its DNS fully, it never expires,
 and the whole app runs on it for $0.
 
-### 6c. ClouDNS free subdomain (faster than EU.org)
+### 6c. ClouDNS — free subdomain: dead end for tunnels (verified)
 
-ClouDNS's free subdomains (e.g. `name.cloudns.org`) sit under zones listed
-in the Public Suffix List, so Cloudflare accepts them as sites — the
-Cloudflare community confirms this route works.
+ClouDNS's free subdomains (e.g. `name.cloudns.org`) are under zones in the
+Public Suffix List, so Cloudflare *accepts* them as sites — but their own
+wiki (article 31, updated 2026-02) says free zones **cannot use custom
+nameservers**: *"It is not possible to use custom name servers in a Free
+zone. Only the free (unicast) name servers available for your account can
+be used."* The zone therefore stays **Pending** forever (Cloudflare needs
+NS delegation to activate it), and a tunnel can't route hostnames from a
+Pending zone. A Cloudflare community MVP confirmed the same (Sep 2024): a
+free ClouDNS account can't change SOA/delegate, so DNS never points at
+Cloudflare. is-a.dev is also out — its docs deny NS records for self
+hosting and explicitly for Cloudflare use.
 
-1. `cloudns.net` → free account → **Free subdomains** → pick a suffix.
-2. Cloudflare → **+Add site** → `name.cloudns.org` → Free plan → copy the
-   two nameservers.
-3. In ClouDNS's DNS panel, set **NS records** for your subdomain to those
-   two Cloudflare nameservers.
-4. Cloudflare validates → tunnel hostnames per 1b → `PUBLIC_DOMAIN` per 4.
+(For reference, the free subdomain lives in the ClouDNS UI at
+**DNS Hosting → "New zone" → choose "Free zone"** → pick a suffix from the
+drop-down — it is *not* labeled "Free subdomains".)
 
 ### 6d. If you'd rather pay ~$1-3 once
 
