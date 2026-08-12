@@ -222,6 +222,30 @@ Namecheap / Porkbun / Cloudflare Registrar sell `.xyz`, `.top`, `.online`
 at ~$1-3 first year. Cheap, portable, brandable — and with the
 single-source-of-truth switch it's still just one env line to move later.
 
+### 6e. "Personal hosting" option: your machine, or a free-forever VM
+
+- **Your Windows box + tunnel (what this repo assumes)** — already personal
+  hosting: free, full stack, zero platform limits. Uptime = your PC being
+  on; the domain requirement is unchanged (EU.org free, or a cheap TLD).
+- **Oracle Cloud Always Free** — a real VM, free forever: 4 OCPU Ampere
+  A1 (ARM) + 24 GB RAM + 200 GB storage, full root, Docker works normally,
+  no platform restrictions. The compose stack runs unchanged:
+  1. Create an Oracle Cloud account (card required only for verification;
+     Always-Free resources are never charged).
+  2. Create a VM (shape **Ampere A1** 4 OCPU/24 GB, Ubuntu), install
+     Docker + Docker Compose.
+  3. Clone the repo, copy `.env.docker*` + the tunnel token.
+  4. `docker compose up -d --build --force-recreate` then
+     `docker compose --profile tunnel up -d` — the tunnel serves the VM
+     24/7.
+  5. Optional: install the GitHub Actions self-hosted runner with label
+     `docker-host` on the VM — `deploy.yml` then does CI/CD straight onto
+     it.
+- **Not recommended:** AWS/GCP/Azure free tiers (12-month trials,
+  1-2 GB RAM — too small for Postgres+Redis+voice; e2-micro throttles) and
+  Fly.io/Render free tiers (containers sleep on idle — breaks an always-on
+  voice/WebSockets server).
+
 ## 7. FAQ
 
 **Q: Does anything break with a Quick Tunnel before I own a domain?**
