@@ -42,6 +42,38 @@ SYNC_INTERVAL_SECONDS = int(os.getenv("SYNC_INTERVAL_HOURS", "24")) * 3600
 TUNNEL_URL_KEY = os.getenv("TUNNEL_URL_KEY", "site:public_url")
 TUNNEL_URL_TTL_SECONDS = 24 * 3600  # 24h: the key self-expires if we die
 
+# Stable "door" page: a static host (e.g. GitHub Pages) whose URL never
+# changes, forwarding visitors to the CURRENT tunnel URL. When the tunnel
+# rotates, we regenerate the page and push it, so the door always points at
+# the live app. DOOR_REPO is the SSH clone URL of the door repo,
+# DOOR_SSH_ARGS the ssh invocations (identity file, no host checking).
+DOOR_REPO = os.getenv("DOOR_REPO", "").strip()
+DOOR_SSH_ARGS = os.getenv(
+    "DOOR_SSH_ARGS",
+    "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null",
+)
+_SSH_IDENTITY = os.getenv("DOOR_SSH_KEY", "/door_key")
+
+
+def _prepare_ssh_key() -> None:
+    """Windows mounts the key with world-readable perms + CRLF; OpenSSH
+    refuses both. Copy to a private path with LF endings and 0600."""
+    global _SSH_IDENTITY  # noqa: PLW0603
+    source = os.environ.get("DOOR_SSH_KEY", "/door_key")
+    if not os.path.exists(source):
+        return
+    content = open(source, "rb").read().replace(b"\r\n", b"\n")
+    import stat
+
+    private = "/door_key.private"
+    with open(private, "wb") as fh:
+        fh.write(content)
+    os.chmod(private, stat.S_IRUSR | stat.S_IWUSR)
+    _SSH_IDENTITY = private
+
+
+DOOR_TITLE = "SwarmLead — Redirecting\u2026"
+
 _URL_PATTERN = re.compile(r"https://[a-z0-9-]+\.trycloudflare\.com")
 
 _shutdown = False
@@ -67,6 +99,91 @@ def _publish(client: redis.Redis, url: str) -> None:
 def _extract_url(line: str) -> Optional[str]:
     match = _URL_PATTERN.search(line)
     return match.group(0) if match else None
+
+
+def _write_door_page(workdir: str, url: str) -> None:
+    """Rewrite the door repo's index.html to redirect to the live URL."""
+    page = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{DOOR_TITLE}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="refresh" content="0; url={url}">
+<style>
+  body {{ margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+         background: #0a0a1a; color: #c7c7d8; font-family: system-ui, sans-serif; }}
+  .box {{ text-align: center; padding: 2rem; }}
+  a {{ color: #818cf8; }}
+</style>
+</head>
+<body>
+<div class="box">
+  <p>Redirecting to the live app\u2026</p>
+  <p><a href="{url}">Click here if you are not redirected automatically</a></p>
+</div>
+<script>window.location.replace({url!r});</script>
+</body>
+</html>
+"""
+    path = os.path.join(workdir, "index.html")
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(page)
+
+
+def _git(args, workdir, **kw):
+    env = dict(os.environ, GIT_SSH_COMMAND=f"ssh {DOOR_SSH_ARGS} -i {_SSH_IDENTITY}")
+    return subprocess.run(
+        ["git", *args], cwd=workdir, env=env, capture_output=True, text=True, **kw
+    )
+
+
+def _sync_door(url: str) -> None:
+    """If a door repo is configured, point its index.html at the live URL and push."""
+    if not DOOR_REPO:
+        return
+    print(f"syncing door -> {url}", flush=True)
+    workdir = "/door"
+    import shutil
+
+    shutil.rmtree(workdir, ignore_errors=True)  # always start clean
+    cloned = False
+    for attempt in range(3):  # retry clone against flaky network
+        result = _git(["clone", "--depth", "1", DOOR_REPO, workdir], "/")
+        if result.returncode == 0:
+            cloned = True
+            break
+        err = (result.stderr or result.stdout).strip()
+        print(f"door clone attempt {attempt + 1} failed:\n{err}", flush=True)
+        shutil.rmtree(workdir, ignore_errors=True)
+        time.sleep(5)
+    if not cloned:
+        print("door clone failed after retries; will retry next rotation", flush=True)
+        return
+
+    _write_door_page(workdir, url)
+    _git(
+        ["config", "user.name", "SwarmLead Door"],
+        workdir,
+    )
+    _git(
+        ["config", "user.email", "door@swarmlead.local"],
+        workdir,
+    )
+    _git(["add", "index.html"], workdir)
+    commit = _git(
+        [
+            "commit",
+            "-m",
+            f"Redirect door to live tunnel URL: {url}",
+        ],
+        workdir,
+    )
+    if commit.returncode != 0 and "nothing to commit" not in commit.stdout:
+        print(f"door commit failed: {commit.stderr.strip()}", flush=True)
+    _git(["push", "origin", "HEAD"], workdir)
+    print("door pushed; GitHub Pages rebuilds shortly (1-2 min)", flush=True)
 
 
 def run_cycle(client: redis.Redis) -> None:
@@ -102,6 +219,7 @@ def run_cycle(client: redis.Redis) -> None:
                     _publish(client, url)
                     published_url = url
                     print(f"tunnel URL: {url}", flush=True)
+                    _sync_door(url)
 
             if proc.poll() is not None:
                 print(f"cloudflared exited with code {proc.returncode}", flush=True)
@@ -123,6 +241,7 @@ def run_cycle(client: redis.Redis) -> None:
 
 
 def main() -> int:
+    _prepare_ssh_key()
     client = redis.from_url(
         REDIS_URL,
         socket_connect_timeout=2,

@@ -172,16 +172,56 @@ zone** via custom nameservers.
 | **ClouDNS** free subdomain (`name.cloudns.org` etc.) | $0 | N/A | **Dead end for tunnels** — free tier cannot set custom NS; zone never activates (verified) |
 | Real TLD on sale (`.xyz`/`.top`/`.online`) | ~$1-3 first year | Minutes | Backup if free approvals drag |
 
-### 6a. Quick Tunnel (staging now)
+### 6a. Quick Tunnel (staging now) + stable door via GitHub Pages
 
 ```bash
-docker run -d --name swarmlead-tunnel-quick --network swarmlead-ai_default \
-  cloudflare/cloudflared tunnel --no-autoupdate --url http://frontend:3000
+docker compose --profile tunnel-quick up -d --build
 docker logs -f swarmlead-tunnel-quick   # prints: https://<random>.trycloudflare.com
+docker exec swarmlead-redis redis-cli GET site:public_url   # same URL, 24h TTL
 ```
 
 Full dynamic app, zero registration. Catch: random URL, changes on restart,
 WebSockets may throttle — staging only.
+
+**Stable door — the URL you share never changes.** The tunnel rotates
+daily, so visitors can't bookmark the random URL. The auto-pilot fixes that
+with a *door page* on GitHub Pages:
+
+- `https://facebookfortune84.github.io/swarmlead-door/` — this URL NEVER
+  changes. Visiting it immediately redirects (meta refresh + JS) to the
+  current tunnel URL.
+- The `tunnel-quick` supervisor AUTOMATICALLY regenerates + pushes the door
+  page on every URL rotation, so the door always points at the live app
+  (push → GitHub Pages rebuild ≈ 1-2 min; until then the old URL still
+  works).
+- Cost: $0, and GitHub Pages rebuilds for free forever.
+
+Setup (one-time): create the door repo, enable Pages (Settings → *Pages* →
+*Deploy from branch: main, / (root)*), seed `index.html` with a redirect to
+the current URL, then add a **write-scoped deploy key** to that repo:
+
+```bash
+ssh-keygen -t ed25519 -f infrastructure/tunnel-quick/.door_key -N "" -C door
+gh api -X POST repos/<you>/<door-repo>/keys \
+  -f title=tunnel-quick -f key="$(Get-Content infrastructure/tunnel-quick/.door_key.pub)" -f read_only=false
+```
+
+Then in `.env.docker.local`: `DOOR_REPO=git@github.com:<you>/<door-repo>.git`
+(the key path + ssh hardening are already wired in compose). On every
+rotation the supervisor clones the door repo, rewrites `index.html` to the
+live URL and pushes — nothing else to maintain. The door page is
+`noindex`, and because the app resolves its origin from the request Host
+header, the app works identically whether the visitor comes via the door,
+the raw tunnel URL, or (later) a permanent domain.
+
+Verify the whole chain:
+
+```bash
+# door -> current tunnel URL
+curl -s https://facebookfortune84.github.io/swarmlead-door/ | Select-String "http-equiv"
+# app reachable exactly as a browser would be
+curl -sL -o NUL -w "%{http_code}`n" https://facebookfortune84.github.io/swarmlead-door/
+```
 
 ### 6b. EU.org — free-forever domain (recommended permanent)
 

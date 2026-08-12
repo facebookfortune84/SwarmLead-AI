@@ -55,7 +55,6 @@ services:
 
     environment:
       REDIS_URL: redis://redis:6379/0
-      DYNAMIC_TUNNEL_MODE: ${DYNAMIC_TUNNEL_MODE:-0}
 
     ports:
       - "8000:8000"
@@ -117,10 +116,21 @@ services:
     container_name: swarmlead-tunnel-quick
     restart: unless-stopped
     profiles: ["tunnel-quick"]
+    env_file:
+      - .env.docker.local
     environment:
       TUNNEL_TARGET: http://frontend:3000
       REDIS_URL: redis://redis:6379/0
       SYNC_INTERVAL_HOURS: ${TUNNEL_SYNC_INTERVAL_HOURS:-24}
+      # Stable door page (GitHub Pages): DOOR_REPO = SSH clone URL of the
+      # door repo (read from .env.docker.local). On every URL rotation the
+      # supervisor regenerates index.html to redirect to the live URL and
+      # pushes it, so visitors can always use ONE stable URL. Key:
+      # write-scoped deploy key mounted from
+      # infrastructure/tunnel-quick/.door_key (gitignored).
+      DOOR_SSH_KEY: /door_key
+    volumes:
+      - ./infrastructure/tunnel-quick/.door_key:/door_key:ro
     depends_on:
       frontend:
         condition: service_started

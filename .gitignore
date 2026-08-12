@@ -96,3 +96,6 @@ node_modules/
 
 # Runtime build artifacts
 output/
+
+# Tunnel door deploy key (never commit)
+infrastructure/tunnel-quick/.door_key*

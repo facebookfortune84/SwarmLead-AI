@@ -13,7 +13,7 @@ FROM python:3.12-alpine
 
 ARG TARGETARCH
 
-RUN apk add --no-cache curl \
+RUN apk add --no-cache curl git openssh-client \
     && curl -fsSL -o /usr/local/bin/cloudflared \
         "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${TARGETARCH}" \
     && chmod +x /usr/local/bin/cloudflared \
